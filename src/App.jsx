@@ -5,8 +5,9 @@ import Dashboard from './components/Dashboard';
 import AuthSetup from './components/AuthSetup';
 import EventBooking from './components/EventBooking';
 import MenuPlanning from './components/MenuPlanning';
-import RawMaterials from './components/RawMaterials';
-import Inventory from './components/Inventory';
+import VendorManagement from './components/VendorManagement';
+import ProvisionInventory from './components/ProvisionInventory';
+import StorageInventory from './components/StorageInventory';
 import AgencyLabor from './components/AgencyLabor';
 import QuotationBilling from './components/QuotationBilling';
 import Reports from './components/Reports';
@@ -16,7 +17,8 @@ import {
   LayoutDashboard,
   CalendarDays,
   UtensilsCrossed,
-  Wheat,
+  Store,
+  Boxes,
   Package,
   Users,
   Receipt,
@@ -61,8 +63,9 @@ const AppContent = () => {
     dashboard: ['Admin', 'Manager', 'Accountant', 'Agency'],
     bookings: ['Admin', 'Manager', 'Accountant'],
     menu: ['Admin', 'Manager'],
-    inventory: ['Admin', 'Manager', 'Accountant', 'Chef'],
-    materials: ['Admin', 'Manager', 'Accountant'],
+    vendors: ['Admin', 'Manager', 'Accountant'],
+    provisions: ['Admin', 'Manager', 'Accountant', 'Chef'],
+    storage: ['Admin', 'Manager', 'Accountant', 'Chef'],
     labor: ['Admin', 'Manager', 'Accountant', 'Agency'],
     billing: ['Admin', 'Manager', 'Accountant'],
     reports: ['Admin', 'Manager', 'Accountant'],
@@ -77,8 +80,9 @@ const AppContent = () => {
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'bookings', name: 'Event Booking', icon: CalendarDays },
     { id: 'menu', name: 'Menu Planning', icon: UtensilsCrossed },
-    { id: 'inventory', name: 'Inventory (Vessels/Veg)', icon: Package },
-    { id: 'materials', name: 'Raw Materials', icon: Wheat },
+    { id: 'vendors', name: 'Vendor Management', icon: Store },
+    { id: 'provisions', name: 'Provision Inventory', icon: Boxes },
+    { id: 'storage', name: 'Storage Inventory', icon: Package },
     { id: 'labor', name: 'Labour Management', icon: Users },
     { id: 'billing', name: 'Quotation & Billing', icon: Receipt },
     { id: 'reports', name: 'Reports & Analytics', icon: BarChart3 },
@@ -95,8 +99,9 @@ const AppContent = () => {
       case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
       case 'bookings': return <EventBooking />;
       case 'menu': return <MenuPlanning />;
-      case 'inventory': return <Inventory />;
-      case 'materials': return <RawMaterials />;
+      case 'vendors': return <VendorManagement />;
+      case 'provisions': return <ProvisionInventory />;
+      case 'storage': return <StorageInventory />;
       case 'labor': return <AgencyLabor />;
       case 'billing': return <QuotationBilling />;
       case 'reports': return <Reports />;
