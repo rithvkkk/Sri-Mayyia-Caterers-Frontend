@@ -15,7 +15,28 @@ import {
 
 export const AppContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return '/api';
+  }
+  return 'http://localhost:5000/api';
+};
+const API_URL = getApiUrl();
+
+const getSafeLocal = (key, fallback) => {
+  try {
+    const local = localStorage.getItem(key);
+    if (!local) return fallback;
+    const parsed = JSON.parse(local);
+    if (Array.isArray(fallback)) {
+      return Array.isArray(parsed) ? parsed : fallback;
+    }
+    return parsed || fallback;
+  } catch (e) {
+    return fallback;
+  }
+};
 
 export const AppProvider = ({ children }) => {
   // Session / Role state
@@ -24,13 +45,12 @@ export const AppProvider = ({ children }) => {
   });
 
   const [users, setUsers] = useState(() => {
-    const local = localStorage.getItem('cater_users');
-    return local ? JSON.parse(local) : [
+    return getSafeLocal('cater_users', [
       { id: 'admin', password: 'admin123', role: 'Admin' },
       { id: 'manager', password: 'manager123', role: 'Manager' },
       { id: 'accountant', password: 'accountant123', role: 'Accountant' },
       { id: 'agency', password: 'agency123', role: 'Agency' }
-    ];
+    ]);
   });
 
   const login = async (username, password) => {
@@ -41,12 +61,12 @@ export const AppProvider = ({ children }) => {
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data && data.success) {
         setCurrentRole(data.role);
         localStorage.setItem('cater_current_role', data.role);
         return { success: true, role: data.role };
       }
-      return { success: false, message: data.message || 'Invalid credentials' };
+      return { success: false, message: (data && data.message) || 'Invalid credentials' };
     } catch (e) {
       console.warn('Backend offline, running local storage verification fallback...');
       const user = users.find(u => u.id.toLowerCase() === username.toLowerCase());
@@ -100,108 +120,94 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
   
-  // Database states
-  const [venues, setVenues] = useState(() => {
-    const local = localStorage.getItem('cater_venues');
-    return local ? JSON.parse(local) : initialVenues;
-  });
+  // Database states with safe fallbacks
+  const [venues, setVenues] = useState(() => getSafeLocal('cater_venues', initialVenues));
+  const [rawMaterials, setRawMaterials] = useState(() => getSafeLocal('cater_raw_materials', initialRawMaterials));
+  const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
+  const [suppliers, setSuppliers] = useState(() => getSafeLocal('cater_suppliers', initialSuppliers));
+  const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
+  const [agencies, setAgencies] = useState(() => getSafeLocal('cater_agencies', initialAgencies));
+  const [events, setEvents] = useState(() => getSafeLocal('cater_events', initialEvents));
+  const [vessels, setVessels] = useState(() => getSafeLocal('cater_vessels', initialVessels));
+  const [provisions, setProvisions] = useState(() => getSafeLocal('cater_provisions', initialProvisions));
+  const [vegetables, setVegetables] = useState(() => getSafeLocal('cater_vegetables', initialVegetables));
+  const [labourWorkers, setLabourWorkers] = useState(() => getSafeLocal('cater_labour_workers', initialLabourWorkers));
 
-  const [rawMaterials, setRawMaterials] = useState(() => {
-    const local = localStorage.getItem('cater_raw_materials');
-    return local ? JSON.parse(local) : initialRawMaterials;
-  });
-
-  const [dishes, setDishes] = useState(() => {
-    const local = localStorage.getItem('cater_dishes');
-    return local ? JSON.parse(local) : initialDishes;
-  });
-
-  const [suppliers, setSuppliers] = useState(() => {
-    const local = localStorage.getItem('cater_suppliers');
-    return local ? JSON.parse(local) : initialSuppliers;
-  });
-
-  const [laborRates, setLaborRates] = useState(() => {
-    const local = localStorage.getItem('cater_labor_rates');
-    return local ? JSON.parse(local) : initialLaborRates;
-  });
-
-  const [agencies, setAgencies] = useState(() => {
-    const local = localStorage.getItem('cater_agencies');
-    return local ? JSON.parse(local) : initialAgencies;
-  });
-
-  const [vessels, setVessels] = useState(() => {
-    const local = localStorage.getItem('cater_vessels');
-    return local ? JSON.parse(local) : initialVessels;
-  });
-
-  const [provisions, setProvisions] = useState(() => {
-    const local = localStorage.getItem('cater_provisions');
-    return local ? JSON.parse(local) : initialProvisions;
-  });
-
-  const [vegetables, setVegetables] = useState(() => {
-    const local = localStorage.getItem('cater_vegetables');
-    return local ? JSON.parse(local) : initialVegetables;
-  });
-
-  const [labourWorkers, setLabourWorkers] = useState(() => {
-    const local = localStorage.getItem('cater_labour_workers');
-    return local ? JSON.parse(local) : initialLabourWorkers;
+  const [companyProfile, setCompanyProfile] = useState(() => {
+    const parsed = getSafeLocal('cater_company_profile', null);
+    if (parsed) return parsed;
+    return {
+      name: 'Sri Mayyia Caterers',
+      tagline: 'Legacy of Royal Flavors Since 1953',
+      phone: '+91 99988 77766',
+      email: 'info@srimayyiacaterers.com',
+      address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
+      gstin: '24AAAAA1111A1Z1',
+      defaultTaxRate: 18,
+      currency: '₹'
+    };
   });
 
   const [syncStatus, setSyncStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+
+  const safeJsonFetch = (url) => {
+    return fetch(url)
+      .then(res => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .catch(() => null);
+  };
 
   // Bi-directional MongoDB live load & sync function
   const loadData = async (isBackground = false) => {
     try {
       if (!isBackground) setSyncStatus('syncing');
       
-      const statusRes = await fetch(`${API_URL}/status`).then(r => r.json()).catch(() => null);
+      const statusRes = await safeJsonFetch(`${API_URL}/status`);
       if (!statusRes || statusRes.status !== 'online') {
         setSyncStatus('offline');
         return;
       }
 
       const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
-        fetch(`${API_URL}/venues`).then(r => r.json()),
-        fetch(`${API_URL}/raw-materials`).then(r => r.json()),
-        fetch(`${API_URL}/dishes`).then(r => r.json()),
-        fetch(`${API_URL}/suppliers`).then(r => r.json()),
-        fetch(`${API_URL}/labor-rates`).then(r => r.json()),
-        fetch(`${API_URL}/agencies`).then(r => r.json()),
-        fetch(`${API_URL}/events`).then(r => r.json()),
-        fetch(`${API_URL}/company-profile`).then(r => r.json()),
-        fetch(`${API_URL}/users`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/vessels`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/provisions`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/vegetables`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/labour-workers`).then(r => r.json()).catch(() => [])
+        safeJsonFetch(`${API_URL}/venues`),
+        safeJsonFetch(`${API_URL}/raw-materials`),
+        safeJsonFetch(`${API_URL}/dishes`),
+        safeJsonFetch(`${API_URL}/suppliers`),
+        safeJsonFetch(`${API_URL}/labor-rates`),
+        safeJsonFetch(`${API_URL}/agencies`),
+        safeJsonFetch(`${API_URL}/events`),
+        safeJsonFetch(`${API_URL}/company-profile`),
+        safeJsonFetch(`${API_URL}/users`),
+        safeJsonFetch(`${API_URL}/vessels`),
+        safeJsonFetch(`${API_URL}/provisions`),
+        safeJsonFetch(`${API_URL}/vegetables`),
+        safeJsonFetch(`${API_URL}/labour-workers`)
       ]);
 
-      // If database is brand new and empty, trigger seed
-      if (vList.length === 0 && rmList.length === 0 && dList.length === 0) {
+      // Strict array checking to prevent setting error objects as state
+      if (Array.isArray(vList) && Array.isArray(rmList) && vList.length === 0 && rmList.length === 0) {
         console.log('🌱 Database empty. Requesting server seed...');
-        await fetch(`${API_URL}/seed`, { method: 'POST' }).then(r => r.json());
+        await fetch(`${API_URL}/seed`, { method: 'POST' }).then(r => r.json()).catch(() => null);
         loadData(true);
         return;
       }
 
-      setVenues(vList);
-      setRawMaterials(rmList);
-      setDishes(dList);
-      setSuppliers(sList);
-      setLaborRates(lrList);
-      setAgencies(aList);
-      setEvents(evList);
-      setCompanyProfile(pDoc);
-      setUsers(uList || []);
-      if (vesList && vesList.length > 0) setVessels(vesList);
-      if (prvList && prvList.length > 0) setProvisions(prvList);
-      if (vegList && vegList.length > 0) setVegetables(vegList);
-      if (lwList && lwList.length > 0) setLabourWorkers(lwList);
+      if (Array.isArray(vList)) setVenues(vList);
+      if (Array.isArray(rmList)) setRawMaterials(rmList);
+      if (Array.isArray(dList)) setDishes(dList);
+      if (Array.isArray(sList)) setSuppliers(sList);
+      if (Array.isArray(lrList)) setLaborRates(lrList);
+      if (Array.isArray(aList)) setAgencies(aList);
+      if (Array.isArray(evList)) setEvents(evList);
+      if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
+      if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
+      if (Array.isArray(vesList) && vesList.length > 0) setVessels(vesList);
+      if (Array.isArray(prvList) && prvList.length > 0) setProvisions(prvList);
+      if (Array.isArray(vegList) && vegList.length > 0) setVegetables(vegList);
+      if (Array.isArray(lwList) && lwList.length > 0) setLabourWorkers(lwList);
 
       setSyncStatus('connected');
       setLastSyncedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
