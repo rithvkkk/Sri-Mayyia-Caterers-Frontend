@@ -21,7 +21,17 @@ const getSafeLocal = (key, fallback) => {
     if (!local) return fallback;
     const parsed = JSON.parse(local);
     if (Array.isArray(fallback)) {
-      return Array.isArray(parsed) ? parsed : fallback;
+      if (!Array.isArray(parsed) || parsed.length === 0) return fallback;
+      // Auto-migrate if old legacy mock dishes or events are cached in browser
+      if (key === 'cater_dishes' && parsed.some(d => d.id === 'd1' || d.id === 'd2')) {
+        localStorage.setItem(key, JSON.stringify(fallback));
+        return fallback;
+      }
+      if (key === 'cater_events' && parsed.some(e => e.eventType === 'Wedding Reception')) {
+        localStorage.setItem(key, JSON.stringify(fallback));
+        return fallback;
+      }
+      return parsed;
     }
     return parsed || fallback;
   } catch (e) {
@@ -192,32 +202,44 @@ export const AppProvider = ({ children }) => {
     try {
       if (!isBackground) setSyncStatus('syncing');
       
-      const statusRes = await apiCall('/status');
-      if (!statusRes || statusRes.status !== 'online') {
+      let statusRes = await apiCall('/status');
+      if (!statusRes) {
+        statusRes = await apiCall('/api/status');
+      }
+
+      const fetchEndpoint = async (path) => {
+        const res = await apiCall(path);
+        if (res !== null) return res;
+        return await apiCall(`/api${path}`);
+      };
+
+      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
+        fetchEndpoint('/venues'),
+        fetchEndpoint('/raw-materials'),
+        fetchEndpoint('/dishes'),
+        fetchEndpoint('/suppliers'),
+        fetchEndpoint('/labor-rates'),
+        fetchEndpoint('/agencies'),
+        fetchEndpoint('/events'),
+        fetchEndpoint('/company-profile'),
+        fetchEndpoint('/users'),
+        fetchEndpoint('/vessels'),
+        fetchEndpoint('/provisions'),
+        fetchEndpoint('/vegetables'),
+        fetchEndpoint('/labour-workers')
+      ]);
+
+      const isServerReachable = statusRes?.status === 'online' || Array.isArray(vList) || Array.isArray(rmList) || Array.isArray(dList);
+
+      if (!isServerReachable) {
         setSyncStatus('offline');
         return;
       }
 
-      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
-        apiCall('/venues'),
-        apiCall('/raw-materials'),
-        apiCall('/dishes'),
-        apiCall('/suppliers'),
-        apiCall('/labor-rates'),
-        apiCall('/agencies'),
-        apiCall('/events'),
-        apiCall('/company-profile'),
-        apiCall('/users'),
-        apiCall('/vessels'),
-        apiCall('/provisions'),
-        apiCall('/vegetables'),
-        apiCall('/labour-workers')
-      ]);
-
-      // Strict array checking to prevent setting error objects as state
+      // If database is brand new and empty, trigger seed
       if (Array.isArray(vList) && Array.isArray(rmList) && vList.length === 0 && rmList.length === 0) {
         console.log('🌱 Database empty. Requesting server seed...');
-        await apiCall('/seed', { method: 'POST' });
+        await fetchEndpoint('/seed', { method: 'POST' });
         loadData(true);
         return;
       }
