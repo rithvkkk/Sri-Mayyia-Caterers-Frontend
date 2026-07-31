@@ -61,14 +61,14 @@ const AppContent = () => {
   // Tab permissions configuration
   const tabPermissions = {
     dashboard: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    bookings: ['Admin', 'Manager', 'Accountant', 'Sales Executive', 'Sales'],
+    bookings: ['Admin', 'Manager', 'Accountant', 'Accounts Manager', 'Sales Executive', 'Sales'],
     menu: ['Admin', 'Manager', 'Sales Executive', 'Sales'],
     vendors: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    provisions: ['Admin', 'Manager', 'Accountant', 'Provision Store Manager', 'Store Manager'],
-    storage: ['Admin', 'Manager', 'Accountant', 'Storage Store Manager', 'Storage Manager', 'Store Manager'],
+    provisions: ['Admin', 'Manager', 'Accountant', 'Accounts Manager', 'Store Manager', 'Provision Store Manager'],
+    storage: ['Admin', 'Manager', 'Accountant', 'Accounts Manager', 'Store Manager', 'Storage Store Manager', 'Storage Manager'],
     labor: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
     billing: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    reports: ['Admin', 'Manager', 'Accountant'],
+    reports: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
     setup: ['Admin']
   };
 

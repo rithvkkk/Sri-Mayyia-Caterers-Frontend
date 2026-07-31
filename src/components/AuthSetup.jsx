@@ -765,11 +765,10 @@ const AuthSetup = () => {
                   style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
                 >
                   <option value="Sales Executive">Sales Executive</option>
-                  <option value="Provision Store Manager">Provision Store Manager</option>
-                  <option value="Storage Store Manager">Storage Store Manager</option>
-                  <option value="Store Manager">Store Manager</option>
-                  <option value="Accounts Manager">Accounts Manager</option>
-                  <option value="Accountant">Accountant</option>
+                  <option value="Store Manager">Store Manager (Both Provision & Storage Inventory)</option>
+                  <option value="Provision Store Manager">Provision Store Manager (Provision Inventory Only)</option>
+                  <option value="Storage Store Manager">Storage Store Manager (Storage Inventory Only)</option>
+                  <option value="Accounts Manager">Accounts Manager / Accountant</option>
                   <option value="Manager">Manager</option>
                   <option value="Admin">Admin</option>
                 </select>
