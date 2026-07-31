@@ -105,11 +105,7 @@ const AppContent = () => {
     }
   };
 
-  if (!currentRole) {
-    return <Login />;
-  }
-
-  // Render "Server Connecting to Cloud" screen with smooth fade-out when MongoDB connects
+  // 1. Render "Server Connecting to Cloud" screen immediately when website opens, until MongoDB connects
   if (showSplash) {
     return (
       <div className={isFadingOut ? 'fade-out-screen' : ''} style={{
@@ -185,24 +181,8 @@ const AppContent = () => {
               {isFadingOut ? '🎉 MongoDB Connected! Entering App...' : 'Server Connecting to Cloud...'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '420px' }}>
-              {isFadingOut ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...' : 'Establishing secure live connection to MongoDB Atlas Database. Real-time master items & data are loading...'}
+              {isFadingOut ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...' : 'Establishing secure live connection. Please wait while database initializes...'}
             </p>
-          </div>
-
-          <div style={{
-            background: isFadingOut ? 'rgba(16, 185, 129, 0.08)' : 'rgba(128, 0, 32, 0.04)',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '12px',
-            border: isFadingOut ? '1px dashed rgba(16, 185, 129, 0.3)' : '1px dashed rgba(128, 0, 32, 0.2)',
-            fontSize: '0.82rem',
-            color: 'var(--text-secondary)',
-            width: '100%',
-            transition: 'all 0.3s ease'
-          }}>
-            <span style={{ fontWeight: 600 }}>Connection Status: </span>
-            <span style={{ color: isFadingOut ? '#10b981' : (syncStatus === 'syncing' ? '#d97706' : '#ef4444'), fontWeight: 700 }}>
-              {isFadingOut ? '🟢 MongoDB Atlas Connected & Synced!' : (syncStatus === 'syncing' ? '🟡 Contacting MongoDB Atlas...' : '🔴 MongoDB Disconnected / Waiting for Connection')}
-            </span>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.5rem' }}>
@@ -227,6 +207,11 @@ const AppContent = () => {
         </div>
       </div>
     );
+  }
+
+  // 2. Once MongoDB is connected, render Login (if unauthenticated) or App Workspace (if authenticated)
+  if (!currentRole) {
+    return <Login />;
   }
 
   return (

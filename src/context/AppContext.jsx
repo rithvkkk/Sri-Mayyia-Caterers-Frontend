@@ -98,16 +98,12 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('cater_current_role') || null;
   });
 
-  const [users, setUsers] = useState(() => {
-    return getSafeLocal('cater_users', [
-      { id: 'admin', password: 'admin123', role: 'Admin' },
-      { id: 'manager', password: 'manager123', role: 'Manager' },
-      { id: 'accountant', password: 'accountant123', role: 'Accountant' },
-      { id: 'agency', password: 'agency123', role: 'Agency' }
-    ]);
-  });
+  const [users, setUsers] = useState([]);
 
   const login = async (username, password) => {
+    if (syncStatus !== 'connected') {
+      return { success: false, message: 'Cloud Server Connection Failed. Cannot log in until MongoDB is connected.' };
+    }
     try {
       const data = await apiCall('/users/login', {
         method: 'POST',
@@ -120,14 +116,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: (data && data.message) || 'Invalid credentials' };
     } catch (e) {
-      console.warn('Backend offline, running local storage verification fallback...');
-      const user = users.find(u => u.id.toLowerCase() === username.toLowerCase());
-      if (user && (user.password === password || password === user.id + '123')) {
-        setCurrentRole(user.role);
-        localStorage.setItem('cater_current_role', user.role);
-        return { success: true, role: user.role };
-      }
-      return { success: false, message: 'Invalid credentials or connection issue' };
+      return { success: false, message: 'Cloud Server Connection Failed' };
     }
   };
 
@@ -137,37 +126,61 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateUserPassword = async (username, newPassword) => {
+    if (syncStatus !== 'connected') {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return { success: false, message: 'Cloud Server Connection Failed' };
+    }
     const user = users.find(u => u.id.toLowerCase() === username.toLowerCase());
     if (!user) return { success: false, message: 'User account not found' };
+
+    const res = await apiCall(`/users/${user.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ password: newPassword, role: user.role })
+    });
+
+    if (!res) {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return { success: false, message: 'Cloud Server Connection Failed' };
+    }
 
     const updatedUser = { ...user, password: newPassword };
     const updatedUsers = users.map(u => u.id.toLowerCase() === username.toLowerCase() ? updatedUser : u);
     setUsers(updatedUsers);
-    localStorage.setItem('cater_users', JSON.stringify(updatedUsers));
-
-    try {
-      await apiCall(`/users/${user.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ password: newPassword, role: user.role })
-      });
-      return { success: true };
-    } catch (e) {
-      console.error('Offline password update cache only:', e);
-      return { success: true };
-    }
-  };
-
-  const addUser = (newUser) => {
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    localStorage.setItem('cater_users', JSON.stringify(updatedUsers));
     return { success: true };
   };
 
-  const deleteUser = (userId) => {
+  const addUser = async (newUser) => {
+    if (syncStatus !== 'connected') {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return { success: false, message: 'Cloud Server Connection Failed' };
+    }
+    const res = await apiCall('/users', {
+      method: 'POST',
+      body: JSON.stringify(newUser)
+    });
+
+    if (!res) {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return { success: false, message: 'Cloud Server Connection Failed' };
+    }
+
+    const updatedUsers = [...users, res || newUser];
+    setUsers(updatedUsers);
+    return { success: true };
+  };
+
+  const deleteUser = async (userId) => {
+    if (syncStatus !== 'connected') {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return { success: false, message: 'Cloud Server Connection Failed' };
+    }
+    const res = await apiCall(`/users/${userId}`, { method: 'DELETE' });
+    if (!res) {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return { success: false, message: 'Cloud Server Connection Failed' };
+    }
     const updatedUsers = users.filter(u => u.id !== userId);
     setUsers(updatedUsers);
-    localStorage.setItem('cater_users', JSON.stringify(updatedUsers));
     return { success: true };
   };
   
@@ -329,211 +342,220 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cater_company_profile', JSON.stringify(companyProfile));
   }, [companyProfile]);
 
+  const requireMongoConnection = () => {
+    if (syncStatus !== 'connected') {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return false;
+    }
+    return true;
+  };
+
   // Master Data Add/Update/Delete actions
   const addVenue = async (venue) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...venue, id: 'v_' + Date.now() };
-    setVenues(prev => [...prev, payload]);
-    try {
-      await apiCall('/venues', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/venues', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setVenues(prev => [...prev, res || payload]);
   };
 
   const updateVenue = async (updated) => {
-    setVenues(prev => prev.map(v => v.id === updated.id ? updated : v));
-    try {
-      await apiCall(`/venues/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/venues/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setVenues(prev => prev.map(v => v.id === updated.id ? (res || updated) : v));
   };
 
   const deleteVenue = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/venues/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setVenues(prev => prev.filter(v => v.id !== id));
-    try {
-      await apiCall(`/venues/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   const addRawMaterial = async (rm) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...rm, id: 'rm_' + Date.now() };
-    setRawMaterials(prev => [...prev, payload]);
-    try {
-      await apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setRawMaterials(prev => [...prev, res || payload]);
   };
 
   const updateRawMaterial = async (updated) => {
-    setRawMaterials(prev => prev.map(r => r.id === updated.id ? updated : r));
-    try {
-      await apiCall(`/raw-materials/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/raw-materials/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setRawMaterials(prev => prev.map(r => r.id === updated.id ? (res || updated) : r));
   };
 
   const deleteRawMaterial = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setRawMaterials(prev => prev.filter(r => r.id !== id));
-    try {
-      await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   const addDish = async (dish) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...dish, id: 'd_' + Date.now() };
-    setDishes(prev => [...prev, payload]);
-    try {
-      await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setDishes(prev => [...prev, res || payload]);
   };
 
   const updateDish = async (updated) => {
-    setDishes(prev => prev.map(d => d.id === updated.id ? updated : d));
-    try {
-      await apiCall(`/dishes/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/dishes/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setDishes(prev => prev.map(d => d.id === updated.id ? (res || updated) : d));
   };
 
   const deleteDish = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/dishes/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setDishes(prev => prev.filter(d => d.id !== id));
-    try {
-      await apiCall(`/dishes/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   const addSupplier = async (sup) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...sup, id: 's_' + Date.now() };
-    setSuppliers(prev => [...prev, payload]);
-    try {
-      await apiCall('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setSuppliers(prev => [...prev, res || payload]);
   };
 
   const updateSupplier = async (updated) => {
-    setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s));
-    try {
-      await apiCall(`/suppliers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/suppliers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setSuppliers(prev => prev.map(s => s.id === updated.id ? (res || updated) : s));
   };
 
   const deleteSupplier = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/suppliers/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setSuppliers(prev => prev.filter(s => s.id !== id));
-    try {
-      await apiCall(`/suppliers/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   const addAgency = async (ag) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...ag, id: 'a_' + Date.now() };
-    setAgencies(prev => [...prev, payload]);
-    try {
-      await apiCall('/agencies', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/agencies', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setAgencies(prev => [...prev, res || payload]);
   };
 
   const updateAgency = async (updated) => {
-    setAgencies(prev => prev.map(a => a.id === updated.id ? updated : a));
-    try {
-      await apiCall(`/agencies/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/agencies/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setAgencies(prev => prev.map(a => a.id === updated.id ? (res || updated) : a));
   };
 
   const deleteAgency = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/agencies/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setAgencies(prev => prev.filter(a => a.id !== id));
-    try {
-      await apiCall(`/agencies/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   // Vessel Actions
   const addVessel = async (ves) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...ves, id: 'ves_' + Date.now() };
-    setVessels(prev => [...prev, payload]);
-    try {
-      await apiCall('/vessels', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/vessels', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setVessels(prev => [...prev, res || payload]);
   };
 
   const updateVessel = async (updated) => {
-    setVessels(prev => prev.map(v => v.id === updated.id ? updated : v));
-    try {
-      await apiCall(`/vessels/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/vessels/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setVessels(prev => prev.map(v => v.id === updated.id ? (res || updated) : v));
   };
 
   const deleteVessel = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/vessels/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setVessels(prev => prev.filter(v => v.id !== id));
-    try {
-      await apiCall(`/vessels/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   // Provision Actions
   const addProvision = async (prv) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...prv, id: 'prv_' + Date.now() };
-    setProvisions(prev => [...prev, payload]);
-    try {
-      await apiCall('/provisions', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/provisions', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setProvisions(prev => [...prev, res || payload]);
   };
 
   const updateProvision = async (updated) => {
-    setProvisions(prev => prev.map(p => p.id === updated.id ? updated : p));
-    try {
-      await apiCall(`/provisions/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/provisions/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setProvisions(prev => prev.map(p => p.id === updated.id ? (res || updated) : p));
   };
 
   const deleteProvision = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/provisions/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setProvisions(prev => prev.filter(p => p.id !== id));
-    try {
-      await apiCall(`/provisions/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   // Vegetable Actions
   const addVegetable = async (veg) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...veg, id: 'veg_' + Date.now() };
-    setVegetables(prev => [...prev, payload]);
-    try {
-      await apiCall('/vegetables', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/vegetables', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setVegetables(prev => [...prev, res || payload]);
   };
 
   const updateVegetable = async (updated) => {
-    setVegetables(prev => prev.map(v => v.id === updated.id ? updated : v));
-    try {
-      await apiCall(`/vegetables/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/vegetables/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setVegetables(prev => prev.map(v => v.id === updated.id ? (res || updated) : v));
   };
 
   const deleteVegetable = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/vegetables/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setVegetables(prev => prev.filter(v => v.id !== id));
-    try {
-      await apiCall(`/vegetables/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   // Labour Worker Actions
   const addLabourWorker = async (lw) => {
+    if (!requireMongoConnection()) return;
     const payload = { ...lw, id: 'lw_' + Date.now() };
-    setLabourWorkers(prev => [...prev, payload]);
-    try {
-      await apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(payload) });
-    } catch (e) { console.error(e); }
+    const res = await apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setLabourWorkers(prev => [...prev, res || payload]);
   };
 
   const updateLabourWorker = async (updated) => {
-    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? updated : w));
-    try {
-      await apiCall(`/labour-workers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/labour-workers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? (res || updated) : w));
   };
 
   const deleteLabourWorker = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/labour-workers/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setLabourWorkers(prev => prev.filter(w => w.id !== id));
-    try {
-      await apiCall(`/labour-workers/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   // Event actions
   const createEvent = async (eventDetails) => {
+    if (!requireMongoConnection()) return null;
     const year = new Date().getFullYear();
     const lastEvent = events[events.length - 1];
     let nextNum = 1;
@@ -576,27 +598,34 @@ export const AppProvider = ({ children }) => {
 
     recalculateEventFinances(newEvent);
 
-    setEvents(prev => [...prev, newEvent]);
+    const res = await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
+    if (!res) {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return null;
+    }
 
-    try {
-      await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
-    } catch (e) { console.error(e); }
-
+    setEvents(prev => [...prev, res || newEvent]);
     return newId;
   };
 
   const updateEvent = async (updatedEvent) => {
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
-    try {
-      await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
-    } catch (e) { console.error(e); }
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
+    if (!res) {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return;
+    }
+    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? (res || updatedEvent) : e));
   };
 
   const deleteEvent = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/events/${id}`, { method: 'DELETE' });
+    if (!res) {
+      alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
+      return;
+    }
     setEvents(prev => prev.filter(e => e.id !== id));
-    try {
-      await apiCall(`/events/${id}`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
   };
 
   // Algorithmic Raw Material Requirements Calculation
