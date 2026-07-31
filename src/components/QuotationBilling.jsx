@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport } from '../utils/pdfGenerator';
-import { DollarSign, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert, Sliders, Eye, Download, X } from 'lucide-react';
+import { DollarSign, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert, Sliders, Eye, Download, X, Lock } from 'lucide-react';
 
 const QuotationBilling = () => {
   const {
@@ -262,8 +262,16 @@ const QuotationBilling = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', borderLeft: '3px solid var(--color-success)', marginTop: '0.25rem' }}>
                   <div style={{ fontWeight: 600, color: 'var(--color-success)' }}>Estimated Net Margin:</div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700 }}>{companyProfile.currency} {estimatedProfit.toLocaleString('en-IN')}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{profitMarginPercent.toFixed(1)}% margin ratio</div>
+                    {currentRole === 'Admin' ? (
+                      <>
+                        <div style={{ fontWeight: 700 }}>{companyProfile.currency} {estimatedProfit.toLocaleString('en-IN')}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{profitMarginPercent.toFixed(1)}% margin ratio</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem', paddingTop: '0.2rem' }}>
+                        <Lock size={12} /> Restricted to Admin
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

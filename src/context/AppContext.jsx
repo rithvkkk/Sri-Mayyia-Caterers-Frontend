@@ -6,7 +6,11 @@ import {
   initialSuppliers,
   initialLaborRates,
   initialAgencies,
-  initialEvents
+  initialEvents,
+  initialVessels,
+  initialProvisions,
+  initialVegetables,
+  initialLabourWorkers
 } from '../utils/mockData';
 
 export const AppContext = createContext();
@@ -127,105 +131,100 @@ export const AppProvider = ({ children }) => {
     return local ? JSON.parse(local) : initialAgencies;
   });
 
-  const [events, setEvents] = useState(() => {
-    const local = localStorage.getItem('cater_events');
-    return local ? JSON.parse(local) : initialEvents;
+  const [vessels, setVessels] = useState(() => {
+    const local = localStorage.getItem('cater_vessels');
+    return local ? JSON.parse(local) : initialVessels;
   });
 
-  const [companyProfile, setCompanyProfile] = useState(() => {
-    const local = localStorage.getItem('cater_company_profile');
-    if (local) {
-      const parsed = JSON.parse(local);
-      if (parsed.name === 'Shreeji Catering Services') {
-        parsed.name = 'Sri Mayyia Caterers';
-        parsed.tagline = 'Legacy of Royal Flavors Since 1953';
-        parsed.email = 'info@srimayyiacaterers.com';
-        parsed.address = 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
-        localStorage.setItem('cater_company_profile', JSON.stringify(parsed));
+  const [provisions, setProvisions] = useState(() => {
+    const local = localStorage.getItem('cater_provisions');
+    return local ? JSON.parse(local) : initialProvisions;
+  });
+
+  const [vegetables, setVegetables] = useState(() => {
+    const local = localStorage.getItem('cater_vegetables');
+    return local ? JSON.parse(local) : initialVegetables;
+  });
+
+  const [labourWorkers, setLabourWorkers] = useState(() => {
+    const local = localStorage.getItem('cater_labour_workers');
+    return local ? JSON.parse(local) : initialLabourWorkers;
+  });
+
+  const [syncStatus, setSyncStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+
+  // Bi-directional MongoDB live load & sync function
+  const loadData = async (isBackground = false) => {
+    try {
+      if (!isBackground) setSyncStatus('syncing');
+      
+      const statusRes = await fetch(`${API_URL}/status`).then(r => r.json()).catch(() => null);
+      if (!statusRes || statusRes.status !== 'online') {
+        setSyncStatus('offline');
+        return;
       }
-      return parsed;
+
+      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
+        fetch(`${API_URL}/venues`).then(r => r.json()),
+        fetch(`${API_URL}/raw-materials`).then(r => r.json()),
+        fetch(`${API_URL}/dishes`).then(r => r.json()),
+        fetch(`${API_URL}/suppliers`).then(r => r.json()),
+        fetch(`${API_URL}/labor-rates`).then(r => r.json()),
+        fetch(`${API_URL}/agencies`).then(r => r.json()),
+        fetch(`${API_URL}/events`).then(r => r.json()),
+        fetch(`${API_URL}/company-profile`).then(r => r.json()),
+        fetch(`${API_URL}/users`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/vessels`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/provisions`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/vegetables`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/labour-workers`).then(r => r.json()).catch(() => [])
+      ]);
+
+      // If database is brand new and empty, trigger seed
+      if (vList.length === 0 && rmList.length === 0 && dList.length === 0) {
+        console.log('🌱 Database empty. Requesting server seed...');
+        await fetch(`${API_URL}/seed`, { method: 'POST' }).then(r => r.json());
+        loadData(true);
+        return;
+      }
+
+      setVenues(vList);
+      setRawMaterials(rmList);
+      setDishes(dList);
+      setSuppliers(sList);
+      setLaborRates(lrList);
+      setAgencies(aList);
+      setEvents(evList);
+      setCompanyProfile(pDoc);
+      setUsers(uList || []);
+      if (vesList && vesList.length > 0) setVessels(vesList);
+      if (prvList && prvList.length > 0) setProvisions(prvList);
+      if (vegList && vegList.length > 0) setVegetables(vegList);
+      if (lwList && lwList.length > 0) setLabourWorkers(lwList);
+
+      setSyncStatus('connected');
+      setLastSyncedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch (err) {
+      console.warn('⚠️ MongoDB connection issue, offline fallback active:', err.message);
+      setSyncStatus('offline');
     }
-    return {
-      name: 'Sri Mayyia Caterers',
-      tagline: 'Legacy of Royal Flavors Since 1953',
-      phone: '+91 99988 77766',
-      email: 'info@srimayyiacaterers.com',
-      address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
-      gstin: '24AAAAA1111A1Z1',
-      defaultTaxRate: 18,
-      currency: '₹'
-    };
-  });
+  };
 
-  // Load from Backend REST endpoints
+  // Load initially and setup 8s polling interval + window focus trigger for bi-directional live sync
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        console.log('🔄 Fetching Master Data from CaterFlow Cloud API...');
-        
-        // Check health/seed state first
-        const statusRes = await fetch(`${API_URL}/status`).then(r => r.json()).catch(() => null);
-        if (!statusRes || statusRes.status !== 'online') {
-          console.warn('⚠️ Cloud backend is offline, retaining offline localStorage cache.');
-          return;
-        }
-
-        const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList] = await Promise.all([
-          fetch(`${API_URL}/venues`).then(r => r.json()),
-          fetch(`${API_URL}/raw-materials`).then(r => r.json()),
-          fetch(`${API_URL}/dishes`).then(r => r.json()),
-          fetch(`${API_URL}/suppliers`).then(r => r.json()),
-          fetch(`${API_URL}/labor-rates`).then(r => r.json()),
-          fetch(`${API_URL}/agencies`).then(r => r.json()),
-          fetch(`${API_URL}/events`).then(r => r.json()),
-          fetch(`${API_URL}/company-profile`).then(r => r.json()),
-          fetch(`${API_URL}/users`).then(r => r.json()).catch(() => [])
-        ]);
-
-        // If the database is brand new and contains no records, seed it automatically
-        if (vList.length === 0 && rmList.length === 0 && dList.length === 0) {
-          console.log('🌱 Database is empty. Requesting server to seed default collections...');
-          const seedResult = await fetch(`${API_URL}/seed`, { method: 'POST' }).then(r => r.json());
-          console.log('🌱 Seed response:', seedResult.message);
-          
-          // Refetch after seeding
-          const [vListNew, rmListNew, dListNew, sListNew, lrListNew, aListNew, evListNew, pDocNew, uListNew] = await Promise.all([
-            fetch(`${API_URL}/venues`).then(r => r.json()),
-            fetch(`${API_URL}/raw-materials`).then(r => r.json()),
-            fetch(`${API_URL}/dishes`).then(r => r.json()),
-            fetch(`${API_URL}/suppliers`).then(r => r.json()),
-            fetch(`${API_URL}/labor-rates`).then(r => r.json()),
-            fetch(`${API_URL}/agencies`).then(r => r.json()),
-            fetch(`${API_URL}/events`).then(r => r.json()),
-            fetch(`${API_URL}/company-profile`).then(r => r.json()),
-            fetch(`${API_URL}/users`).then(r => r.json()).catch(() => [])
-          ]);
-
-          setVenues(vListNew);
-          setRawMaterials(rmListNew);
-          setDishes(dListNew);
-          setSuppliers(sListNew);
-          setLaborRates(lrListNew);
-          setAgencies(aListNew);
-          setEvents(evListNew);
-          setCompanyProfile(pDocNew);
-          setUsers(uListNew);
-        } else {
-          setVenues(vList);
-          setRawMaterials(rmList);
-          setDishes(dList);
-          setSuppliers(sList);
-          setLaborRates(lrList);
-          setAgencies(aList);
-          setEvents(evList);
-          setCompanyProfile(pDoc);
-          setUsers(uList || []);
-        }
-      } catch (err) {
-        console.error('⚠️ Could not connect to Express API Server. Operating in standalone local-storage fallback mode.', err);
-      }
-    };
     loadData();
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 8000);
+
+    const onFocus = () => loadData(true);
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, []);
 
   useEffect(() => {
@@ -256,6 +255,22 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cater_agencies', JSON.stringify(agencies));
   }, [agencies]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_vessels', JSON.stringify(vessels));
+  }, [vessels]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_provisions', JSON.stringify(provisions));
+  }, [provisions]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_vegetables', JSON.stringify(vegetables));
+  }, [vegetables]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_labour_workers', JSON.stringify(labourWorkers));
+  }, [labourWorkers]);
 
   useEffect(() => {
     localStorage.setItem('cater_events', JSON.stringify(events));
@@ -413,6 +428,130 @@ export const AppProvider = ({ children }) => {
     setAgencies(prev => prev.filter(a => a.id !== id));
     try {
       await fetch(`${API_URL}/agencies/${id}`, { method: 'DELETE' });
+    } catch (e) { console.error(e); }
+  };
+
+  // Vessel Actions
+  const addVessel = async (ves) => {
+    const payload = { ...ves, id: 'ves_' + Date.now() };
+    setVessels(prev => [...prev, payload]);
+    try {
+      await fetch(`${API_URL}/vessels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const updateVessel = async (updated) => {
+    setVessels(prev => prev.map(v => v.id === updated.id ? updated : v));
+    try {
+      await fetch(`${API_URL}/vessels/${updated.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteVessel = async (id) => {
+    setVessels(prev => prev.filter(v => v.id !== id));
+    try {
+      await fetch(`${API_URL}/vessels/${id}`, { method: 'DELETE' });
+    } catch (e) { console.error(e); }
+  };
+
+  // Provision Actions
+  const addProvision = async (prv) => {
+    const payload = { ...prv, id: 'prv_' + Date.now() };
+    setProvisions(prev => [...prev, payload]);
+    try {
+      await fetch(`${API_URL}/provisions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const updateProvision = async (updated) => {
+    setProvisions(prev => prev.map(p => p.id === updated.id ? updated : p));
+    try {
+      await fetch(`${API_URL}/provisions/${updated.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteProvision = async (id) => {
+    setProvisions(prev => prev.filter(p => p.id !== id));
+    try {
+      await fetch(`${API_URL}/provisions/${id}`, { method: 'DELETE' });
+    } catch (e) { console.error(e); }
+  };
+
+  // Vegetable Actions
+  const addVegetable = async (veg) => {
+    const payload = { ...veg, id: 'veg_' + Date.now() };
+    setVegetables(prev => [...prev, payload]);
+    try {
+      await fetch(`${API_URL}/vegetables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const updateVegetable = async (updated) => {
+    setVegetables(prev => prev.map(v => v.id === updated.id ? updated : v));
+    try {
+      await fetch(`${API_URL}/vegetables/${updated.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteVegetable = async (id) => {
+    setVegetables(prev => prev.filter(v => v.id !== id));
+    try {
+      await fetch(`${API_URL}/vegetables/${id}`, { method: 'DELETE' });
+    } catch (e) { console.error(e); }
+  };
+
+  // Labour Worker Actions
+  const addLabourWorker = async (lw) => {
+    const payload = { ...lw, id: 'lw_' + Date.now() };
+    setLabourWorkers(prev => [...prev, payload]);
+    try {
+      await fetch(`${API_URL}/labour-workers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const updateLabourWorker = async (updated) => {
+    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? updated : w));
+    try {
+      await fetch(`${API_URL}/labour-workers/${updated.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteLabourWorker = async (id) => {
+    setLabourWorkers(prev => prev.filter(w => w.id !== id));
+    try {
+      await fetch(`${API_URL}/labour-workers/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -649,6 +788,25 @@ export const AppProvider = ({ children }) => {
       addAgency,
       updateAgency,
       deleteAgency,
+      vessels,
+      addVessel,
+      updateVessel,
+      deleteVessel,
+      provisions,
+      addProvision,
+      updateProvision,
+      deleteProvision,
+      vegetables,
+      addVegetable,
+      updateVegetable,
+      deleteVegetable,
+      labourWorkers,
+      addLabourWorker,
+      updateLabourWorker,
+      deleteLabourWorker,
+      syncStatus,
+      lastSyncedAt,
+      triggerManualSync: () => loadData(false),
       events,
       createEvent,
       updateEvent,

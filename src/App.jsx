@@ -6,6 +6,7 @@ import AuthSetup from './components/AuthSetup';
 import EventBooking from './components/EventBooking';
 import MenuPlanning from './components/MenuPlanning';
 import RawMaterials from './components/RawMaterials';
+import Inventory from './components/Inventory';
 import AgencyLabor from './components/AgencyLabor';
 import QuotationBilling from './components/QuotationBilling';
 import Reports from './components/Reports';
@@ -16,6 +17,7 @@ import {
   CalendarDays,
   UtensilsCrossed,
   Wheat,
+  Package,
   Users,
   Receipt,
   Settings,
@@ -24,11 +26,13 @@ import {
   Lock,
   Unlock,
   ChefHat,
-  BarChart3
+  BarChart3,
+  RefreshCw,
+  Database
 } from 'lucide-react';
 
 const AppContent = () => {
-  const { currentRole, companyProfile, logout } = useContext(AppContext);
+  const { currentRole, companyProfile, logout, syncStatus, lastSyncedAt, triggerManualSync } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -37,6 +41,7 @@ const AppContent = () => {
     dashboard: ['Admin', 'Manager', 'Accountant', 'Agency'],
     bookings: ['Admin', 'Manager', 'Accountant'],
     menu: ['Admin', 'Manager'],
+    inventory: ['Admin', 'Manager', 'Accountant', 'Chef'],
     materials: ['Admin', 'Manager', 'Accountant'],
     labor: ['Admin', 'Manager', 'Accountant', 'Agency'],
     billing: ['Admin', 'Manager', 'Accountant'],
@@ -52,8 +57,9 @@ const AppContent = () => {
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'bookings', name: 'Event Booking', icon: CalendarDays },
     { id: 'menu', name: 'Menu Planning', icon: UtensilsCrossed },
+    { id: 'inventory', name: 'Inventory (Vessels/Veg)', icon: Package },
     { id: 'materials', name: 'Raw Materials', icon: Wheat },
-    { id: 'labor', name: 'Agency & Labour', icon: Users },
+    { id: 'labor', name: 'Labour Management', icon: Users },
     { id: 'billing', name: 'Quotation & Billing', icon: Receipt },
     { id: 'reports', name: 'Reports & Analytics', icon: BarChart3 },
     { id: 'setup', name: 'Setup & Masters', icon: Settings }
@@ -69,6 +75,7 @@ const AppContent = () => {
       case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
       case 'bookings': return <EventBooking />;
       case 'menu': return <MenuPlanning />;
+      case 'inventory': return <Inventory />;
       case 'materials': return <RawMaterials />;
       case 'labor': return <AgencyLabor />;
       case 'billing': return <QuotationBilling />;
@@ -152,9 +159,49 @@ const AppContent = () => {
           })}
         </ul>
 
-        {/* Sidebar Footer with Logout Button */}
+        {/* Sidebar Footer with Logout & Live MongoDB Sync */}
         <div className="sidebar-footer">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {/* MongoDB Live Sync Indicator */}
+            <div style={{
+              padding: '0.5rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(0, 0, 0, 0.03)',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.75rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: syncStatus === 'connected' ? '#10b981' : (syncStatus === 'syncing' ? '#f59e0b' : '#ef4444'),
+                  boxShadow: syncStatus === 'connected' ? '0 0 6px rgba(16, 185, 129, 0.6)' : 'none'
+                }} />
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {syncStatus === 'connected' ? 'MongoDB Live Sync' : (syncStatus === 'syncing' ? 'Syncing DB...' : 'Offline Cache')}
+                </span>
+              </div>
+              <button
+                onClick={triggerManualSync}
+                title="Sync with MongoDB now"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-primary)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <RefreshCw size={14} className={syncStatus === 'syncing' ? 'spin' : ''} />
+              </button>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
               <ChefHat size={16} className="accent-text" />
               <span style={{ color: 'var(--text-secondary)' }}>Logged as: <strong style={{ color: 'var(--text-primary)' }}>{currentRole}</strong></span>

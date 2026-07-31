@@ -1,6 +1,8 @@
 import React from 'react';
+import { Lock } from 'lucide-react';
 
-const CustomChart = ({ sales = 100, expense = 0, currency = '₹' }) => {
+const CustomChart = ({ sales = 100, expense = 0, currency = '₹', currentRole = 'Admin' }) => {
+  const isAdmin = currentRole === 'Admin';
   const profit = Math.max(0, sales - expense);
   const total = sales; // sales is the denominator for shares
   
@@ -13,11 +15,9 @@ const CustomChart = ({ sales = 100, expense = 0, currency = '₹' }) => {
   
   // Dash offset for Expense (starts at 0)
   const expenseStroke = circ * (expensePercentage / 100);
-  const expenseOffset = circ; // starts at the top
   
   // Dash offset for Profit (starts after Expense)
   const profitStroke = circ * (profitPercentage / 100);
-  const profitOffset = circ - expenseStroke;
 
   // Format currency values nicely
   const formatVal = (val) => {
@@ -53,8 +53,8 @@ const CustomChart = ({ sales = 100, expense = 0, currency = '₹' }) => {
               style={{ filter: 'drop-shadow(0 0 4px rgba(239, 68, 68, 0.15))' }}
             />
           )}
-          {/* Profit Segment */}
-          {profitPercentage > 0 && (
+          {/* Profit Segment - ONLY FOR ADMIN */}
+          {isAdmin && profitPercentage > 0 && (
             <circle
               className="donut-segment"
               cx="60"
@@ -80,10 +80,19 @@ const CustomChart = ({ sales = 100, expense = 0, currency = '₹' }) => {
           textAlign: 'center',
           pointerEvents: 'none'
         }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Profit Margin</span>
-          <span style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            {total > 0 ? Math.round(profitPercentage) : 0}%
-          </span>
+          {isAdmin ? (
+            <>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Profit Margin</span>
+              <span style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {total > 0 ? Math.round(profitPercentage) : 0}%
+              </span>
+            </>
+          ) : (
+            <>
+              <Lock size={20} style={{ color: 'var(--text-secondary)', marginBottom: '0.2rem' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', fontWeight: 600 }}>Restricted</span>
+            </>
+          )}
         </div>
       </div>
  
@@ -95,8 +104,16 @@ const CustomChart = ({ sales = 100, expense = 0, currency = '₹' }) => {
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Net Profit</span>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{formatVal(profit)}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{profitPercentage.toFixed(1)}% share</div>
+            {isAdmin ? (
+              <>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{formatVal(profit)}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{profitPercentage.toFixed(1)}% share</div>
+              </>
+            ) : (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                <Lock size={12} /> Admin Only
+              </div>
+            )}
           </div>
         </div>
  

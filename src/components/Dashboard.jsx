@@ -1,10 +1,10 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import CustomChart from './Shared/CustomChart';
-import { Calendar, DollarSign, Award, Bell, Clipboard, PlusCircle, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, DollarSign, Award, Bell, Clipboard, PlusCircle, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 
 const Dashboard = ({ setActiveTab }) => {
-  const { events, venues, companyProfile } = useContext(AppContext);
+  const { events, venues, companyProfile, currentRole } = useContext(AppContext);
 
   const [selectedDateFilter, setSelectedDateFilter] = React.useState(null);
   const bookingsCardRef = React.useRef(null);
@@ -18,6 +18,8 @@ const Dashboard = ({ setActiveTab }) => {
       bookingsCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  const isAdmin = currentRole === 'Admin';
 
   // Dynamic calculations based on stored events
   const totalEvents = events.length;
@@ -124,10 +126,16 @@ const Dashboard = ({ setActiveTab }) => {
         <div className="kpi-card">
           <div className="kpi-details">
             <h3>Net Profit</h3>
-            <div className="kpi-value">{formatVal(netProfit)}</div>
+            {isAdmin ? (
+              <div className="kpi-value">{formatVal(netProfit)}</div>
+            ) : (
+              <div className="kpi-value" style={{ fontSize: '1rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Lock size={16} /> Restricted to Admin
+              </div>
+            )}
           </div>
           <div className="kpi-icon icon-amber">
-            <Award size={22} />
+            {isAdmin ? <Award size={22} /> : <Lock size={22} />}
           </div>
         </div>
       </div>
@@ -354,7 +362,7 @@ const Dashboard = ({ setActiveTab }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="glass-card">
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Expense vs Sales Distribution</h2>
-            <CustomChart sales={totalSales} expense={totalExpense} currency={companyProfile.currency} />
+            <CustomChart sales={totalSales} expense={totalExpense} currency={companyProfile.currency} currentRole={currentRole} />
           </div>
         </div>
       </div>
