@@ -15,15 +15,6 @@ import {
 
 export const AppContext = createContext();
 
-const getApiUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return '/api';
-  }
-  return 'http://localhost:5000/api';
-};
-const API_URL = getApiUrl();
-
 const getSafeLocal = (key, fallback) => {
   try {
     const local = localStorage.getItem(key);
@@ -39,6 +30,48 @@ const getSafeLocal = (key, fallback) => {
 };
 
 export const AppProvider = ({ children }) => {
+  const [activeApiUrl, setActiveApiUrl] = useState(() => {
+    return import.meta.env.VITE_API_URL || '/api';
+  });
+
+  const apiCall = async (endpoint, options = {}) => {
+    const candidates = [
+      import.meta.env.VITE_API_URL,
+      'https://sri-mayyia-caterers-backend.vercel.app',
+      'https://sri-mayyia-caterers-backend.vercel.app/api',
+      activeApiUrl,
+      'http://localhost:5000/api',
+      'http://localhost:5000',
+      '/api'
+    ].filter(Boolean);
+    const uniqueCandidates = Array.from(new Set(candidates));
+
+    for (const baseUrl of uniqueCandidates) {
+      try {
+        const fullUrl = `${baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
+        const res = await fetch(fullUrl, {
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...(options.headers || {}) },
+          ...options
+        });
+        if (!res.ok) continue;
+
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          continue; // Received HTML index.html fallback, skip URL candidate
+        }
+
+        const data = await res.json().catch(() => null);
+        if (data !== null) {
+          if (baseUrl !== activeApiUrl) setActiveApiUrl(baseUrl);
+          return data;
+        }
+      } catch (e) {
+        // Retry next URL candidate
+      }
+    }
+    return null;
+  };
+
   // Session / Role state
   const [currentRole, setCurrentRole] = useState(() => {
     return localStorage.getItem('cater_current_role') || null;
@@ -55,12 +88,10 @@ export const AppProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const res = await fetch(`${API_URL}/users/login`, {
+      const data = await apiCall('/users/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      const data = await res.json();
       if (data && data.success) {
         setCurrentRole(data.role);
         localStorage.setItem('cater_current_role', data.role);
@@ -94,12 +125,11 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cater_users', JSON.stringify(updatedUsers));
 
     try {
-      const res = await fetch(`${API_URL}/users/${user.id}`, {
+      await apiCall(`/users/${user.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword, role: user.role })
       });
-      return { success: res.ok };
+      return { success: true };
     } catch (e) {
       console.error('Offline password update cache only:', e);
       return { success: true };
@@ -151,46 +181,37 @@ export const AppProvider = ({ children }) => {
   const [syncStatus, setSyncStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
 
-  const safeJsonFetch = (url) => {
-    return fetch(url)
-      .then(res => {
-        if (!res.ok) return null;
-        return res.json();
-      })
-      .catch(() => null);
-  };
-
   // Bi-directional MongoDB live load & sync function
   const loadData = async (isBackground = false) => {
     try {
       if (!isBackground) setSyncStatus('syncing');
       
-      const statusRes = await safeJsonFetch(`${API_URL}/status`);
+      const statusRes = await apiCall('/status');
       if (!statusRes || statusRes.status !== 'online') {
         setSyncStatus('offline');
         return;
       }
 
       const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
-        safeJsonFetch(`${API_URL}/venues`),
-        safeJsonFetch(`${API_URL}/raw-materials`),
-        safeJsonFetch(`${API_URL}/dishes`),
-        safeJsonFetch(`${API_URL}/suppliers`),
-        safeJsonFetch(`${API_URL}/labor-rates`),
-        safeJsonFetch(`${API_URL}/agencies`),
-        safeJsonFetch(`${API_URL}/events`),
-        safeJsonFetch(`${API_URL}/company-profile`),
-        safeJsonFetch(`${API_URL}/users`),
-        safeJsonFetch(`${API_URL}/vessels`),
-        safeJsonFetch(`${API_URL}/provisions`),
-        safeJsonFetch(`${API_URL}/vegetables`),
-        safeJsonFetch(`${API_URL}/labour-workers`)
+        apiCall('/venues'),
+        apiCall('/raw-materials'),
+        apiCall('/dishes'),
+        apiCall('/suppliers'),
+        apiCall('/labor-rates'),
+        apiCall('/agencies'),
+        apiCall('/events'),
+        apiCall('/company-profile'),
+        apiCall('/users'),
+        apiCall('/vessels'),
+        apiCall('/provisions'),
+        apiCall('/vegetables'),
+        apiCall('/labour-workers')
       ]);
 
       // Strict array checking to prevent setting error objects as state
       if (Array.isArray(vList) && Array.isArray(rmList) && vList.length === 0 && rmList.length === 0) {
         console.log('🌱 Database empty. Requesting server seed...');
-        await fetch(`${API_URL}/seed`, { method: 'POST' }).then(r => r.json()).catch(() => null);
+        await apiCall('/seed', { method: 'POST' });
         loadData(true);
         return;
       }
@@ -291,29 +312,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...venue, id: 'v_' + Date.now() };
     setVenues(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/venues`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/venues', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateVenue = async (updated) => {
     setVenues(prev => prev.map(v => v.id === updated.id ? updated : v));
     try {
-      await fetch(`${API_URL}/venues/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/venues/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteVenue = async (id) => {
     setVenues(prev => prev.filter(v => v.id !== id));
     try {
-      await fetch(`${API_URL}/venues/${id}`, { method: 'DELETE' });
+      await apiCall(`/venues/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -321,29 +334,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...rm, id: 'rm_' + Date.now() };
     setRawMaterials(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/raw-materials`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateRawMaterial = async (updated) => {
     setRawMaterials(prev => prev.map(r => r.id === updated.id ? updated : r));
     try {
-      await fetch(`${API_URL}/raw-materials/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/raw-materials/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteRawMaterial = async (id) => {
     setRawMaterials(prev => prev.filter(r => r.id !== id));
     try {
-      await fetch(`${API_URL}/raw-materials/${id}`, { method: 'DELETE' });
+      await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -351,29 +356,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...dish, id: 'd_' + Date.now() };
     setDishes(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/dishes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateDish = async (updated) => {
     setDishes(prev => prev.map(d => d.id === updated.id ? updated : d));
     try {
-      await fetch(`${API_URL}/dishes/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/dishes/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteDish = async (id) => {
     setDishes(prev => prev.filter(d => d.id !== id));
     try {
-      await fetch(`${API_URL}/dishes/${id}`, { method: 'DELETE' });
+      await apiCall(`/dishes/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -381,29 +378,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...sup, id: 's_' + Date.now() };
     setSuppliers(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/suppliers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateSupplier = async (updated) => {
     setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s));
     try {
-      await fetch(`${API_URL}/suppliers/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/suppliers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteSupplier = async (id) => {
     setSuppliers(prev => prev.filter(s => s.id !== id));
     try {
-      await fetch(`${API_URL}/suppliers/${id}`, { method: 'DELETE' });
+      await apiCall(`/suppliers/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -411,29 +400,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...ag, id: 'a_' + Date.now() };
     setAgencies(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/agencies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/agencies', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateAgency = async (updated) => {
     setAgencies(prev => prev.map(a => a.id === updated.id ? updated : a));
     try {
-      await fetch(`${API_URL}/agencies/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/agencies/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteAgency = async (id) => {
     setAgencies(prev => prev.filter(a => a.id !== id));
     try {
-      await fetch(`${API_URL}/agencies/${id}`, { method: 'DELETE' });
+      await apiCall(`/agencies/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -442,29 +423,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...ves, id: 'ves_' + Date.now() };
     setVessels(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/vessels`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/vessels', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateVessel = async (updated) => {
     setVessels(prev => prev.map(v => v.id === updated.id ? updated : v));
     try {
-      await fetch(`${API_URL}/vessels/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/vessels/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteVessel = async (id) => {
     setVessels(prev => prev.filter(v => v.id !== id));
     try {
-      await fetch(`${API_URL}/vessels/${id}`, { method: 'DELETE' });
+      await apiCall(`/vessels/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -473,29 +446,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...prv, id: 'prv_' + Date.now() };
     setProvisions(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/provisions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/provisions', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateProvision = async (updated) => {
     setProvisions(prev => prev.map(p => p.id === updated.id ? updated : p));
     try {
-      await fetch(`${API_URL}/provisions/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/provisions/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteProvision = async (id) => {
     setProvisions(prev => prev.filter(p => p.id !== id));
     try {
-      await fetch(`${API_URL}/provisions/${id}`, { method: 'DELETE' });
+      await apiCall(`/provisions/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -504,29 +469,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...veg, id: 'veg_' + Date.now() };
     setVegetables(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/vegetables`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/vegetables', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateVegetable = async (updated) => {
     setVegetables(prev => prev.map(v => v.id === updated.id ? updated : v));
     try {
-      await fetch(`${API_URL}/vegetables/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/vegetables/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteVegetable = async (id) => {
     setVegetables(prev => prev.filter(v => v.id !== id));
     try {
-      await fetch(`${API_URL}/vegetables/${id}`, { method: 'DELETE' });
+      await apiCall(`/vegetables/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -535,29 +492,21 @@ export const AppProvider = ({ children }) => {
     const payload = { ...lw, id: 'lw_' + Date.now() };
     setLabourWorkers(prev => [...prev, payload]);
     try {
-      await fetch(`${API_URL}/labour-workers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(payload) });
     } catch (e) { console.error(e); }
   };
 
   const updateLabourWorker = async (updated) => {
     setLabourWorkers(prev => prev.map(w => w.id === updated.id ? updated : w));
     try {
-      await fetch(`${API_URL}/labour-workers/${updated.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
+      await apiCall(`/labour-workers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
     } catch (e) { console.error(e); }
   };
 
   const deleteLabourWorker = async (id) => {
     setLabourWorkers(prev => prev.filter(w => w.id !== id));
     try {
-      await fetch(`${API_URL}/labour-workers/${id}`, { method: 'DELETE' });
+      await apiCall(`/labour-workers/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -608,11 +557,7 @@ export const AppProvider = ({ children }) => {
     setEvents(prev => [...prev, newEvent]);
 
     try {
-      await fetch(`${API_URL}/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEvent)
-      });
+      await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
     } catch (e) { console.error(e); }
 
     return newId;
@@ -621,18 +566,14 @@ export const AppProvider = ({ children }) => {
   const updateEvent = async (updatedEvent) => {
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
     try {
-      await fetch(`${API_URL}/events/${updatedEvent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEvent)
-      });
+      await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
     } catch (e) { console.error(e); }
   };
 
   const deleteEvent = async (id) => {
     setEvents(prev => prev.filter(e => e.id !== id));
     try {
-      await fetch(`${API_URL}/events/${id}`, { method: 'DELETE' });
+      await apiCall(`/events/${id}`, { method: 'DELETE' });
     } catch (e) { console.error(e); }
   };
 
@@ -742,11 +683,7 @@ export const AppProvider = ({ children }) => {
 
     if (updatedCloned) {
       try {
-        await fetch(`${API_URL}/events/${eventId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedCloned)
-        });
+        await apiCall(`/events/${eventId}`, { method: 'PUT', body: JSON.stringify(updatedCloned) });
       } catch (e) { console.error(e); }
     }
   };
@@ -754,11 +691,7 @@ export const AppProvider = ({ children }) => {
   const updateCompanyProfile = async (newProfile) => {
     setCompanyProfile(newProfile);
     try {
-      await fetch(`${API_URL}/company-profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProfile)
-      });
+      await apiCall('/company-profile', { method: 'PUT', body: JSON.stringify(newProfile) });
     } catch (e) { console.error(e); }
   };
 

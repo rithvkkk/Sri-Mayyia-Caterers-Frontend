@@ -164,42 +164,54 @@ const AppContent = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {/* MongoDB Live Sync Indicator */}
             <div style={{
-              padding: '0.5rem 0.65rem',
-              borderRadius: '6px',
-              background: 'rgba(0, 0, 0, 0.03)',
-              border: '1px solid var(--border-color)',
+              padding: '0.55rem 0.75rem',
+              borderRadius: '8px',
+              background: syncStatus === 'connected' ? 'rgba(16, 185, 129, 0.08)' : (syncStatus === 'syncing' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)'),
+              border: `1px solid ${syncStatus === 'connected' ? 'rgba(16, 185, 129, 0.3)' : (syncStatus === 'syncing' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)')}`,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '0.75rem'
+              flexDirection: 'column',
+              gap: '0.25rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: syncStatus === 'connected' ? '#10b981' : (syncStatus === 'syncing' ? '#f59e0b' : '#ef4444'),
-                  boxShadow: syncStatus === 'connected' ? '0 0 6px rgba(16, 185, 129, 0.6)' : 'none'
-                }} />
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {syncStatus === 'connected' ? 'MongoDB Live Sync' : (syncStatus === 'syncing' ? 'Syncing DB...' : 'Offline Cache')}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: syncStatus === 'connected' ? '#10b981' : (syncStatus === 'syncing' ? '#f59e0b' : '#ef4444'),
+                    boxShadow: syncStatus === 'connected' ? '0 0 8px rgba(16, 185, 129, 0.8)' : 'none'
+                  }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.78rem', color: syncStatus === 'connected' ? '#10b981' : (syncStatus === 'syncing' ? '#d97706' : '#ef4444') }}>
+                    {syncStatus === 'connected' ? 'MongoDB Atlas Sync' : (syncStatus === 'syncing' ? 'Connecting DB...' : 'Offline Cache Mode')}
+                  </span>
+                </div>
+                <button
+                  onClick={triggerManualSync}
+                  title="Click to check backend connection & sync MongoDB now"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: syncStatus === 'connected' ? '#10b981' : 'var(--color-primary)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <RefreshCw size={14} className={syncStatus === 'syncing' ? 'spin' : ''} />
+                </button>
+              </div>
+
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+                {syncStatus === 'connected' ? (
+                  <span>Synced at: {lastSyncedAt || 'Just now'}</span>
+                ) : (
+                  <span>Local Storage Active</span>
+                )}
+                <span style={{ cursor: 'help' }} title="If backend server is running on port 5000 or Vercel, click refresh icon to establish live connection.">
+                  {syncStatus === 'connected' ? '🟢 Live 2-Way' : '⚡ Offline'}
                 </span>
               </div>
-              <button
-                onClick={triggerManualSync}
-                title="Sync with MongoDB now"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-primary)',
-                  cursor: 'pointer',
-                  padding: '2px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <RefreshCw size={14} className={syncStatus === 'syncing' ? 'spin' : ''} />
-              </button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
