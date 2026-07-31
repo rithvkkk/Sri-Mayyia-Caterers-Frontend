@@ -45,20 +45,12 @@ export const AppProvider = ({ children }) => {
   });
 
   const apiCall = async (endpoint, options = {}) => {
-    const candidates = [
-      import.meta.env.VITE_API_URL,
-      'https://sri-mayyia-caterers-backend.vercel.app',
-      'https://sri-mayyia-caterers-backend.vercel.app/api',
-      activeApiUrl,
-      'http://localhost:5000',
-      'http://localhost:5000/api',
-      '/api'
-    ].filter(Boolean);
-    const uniqueCandidates = Array.from(new Set(candidates));
-
-    for (const baseUrl of uniqueCandidates) {
+    const primaryUrl = activeApiUrl || import.meta.env.VITE_API_URL || 'https://sri-mayyia-caterers-backend.vercel.app';
+    
+    const tryUrl = async (baseUrl, timeoutMs = 2500) => {
+      if (!baseUrl) return null;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const fullUrl = `${baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
         const res = await fetch(fullUrl, {
@@ -67,14 +59,9 @@ export const AppProvider = ({ children }) => {
           ...options
         });
         clearTimeout(timeoutId);
-
-        if (!res.ok) continue;
-
+        if (!res.ok) return null;
         const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('text/html')) {
-          continue; // Received HTML index.html fallback, skip URL candidate
-        }
-
+        if (contentType && contentType.includes('text/html')) return null;
         const data = await res.json().catch(() => null);
         if (data !== null) {
           if (baseUrl !== activeApiUrl) setActiveApiUrl(baseUrl);
@@ -82,9 +69,27 @@ export const AppProvider = ({ children }) => {
         }
       } catch (e) {
         clearTimeout(timeoutId);
-        // Timeout or network error, retry next candidate
       }
+      return null;
+    };
+
+    // Fast path 1: Try primary active URL first (resolves in < 300ms)
+    const primaryRes = await tryUrl(primaryUrl, 2500);
+    if (primaryRes !== null) return primaryRes;
+
+    // Fallback path 2: Probe remaining candidates quickly if primary URL fails
+    const fallbacks = [
+      'https://sri-mayyia-caterers-backend.vercel.app',
+      'https://sri-mayyia-caterers-backend.vercel.app/api',
+      'http://localhost:5000',
+      '/api'
+    ].filter(u => u !== primaryUrl);
+
+    for (const url of fallbacks) {
+      const res = await tryUrl(url, 1500);
+      if (res !== null) return res;
     }
+
     return null;
   };
 
@@ -166,32 +171,28 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
   
-  // Database states with safe fallbacks
-  const [venues, setVenues] = useState(() => getSafeLocal('cater_venues', initialVenues));
-  const [rawMaterials, setRawMaterials] = useState(() => getSafeLocal('cater_raw_materials', initialRawMaterials));
-  const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
-  const [suppliers, setSuppliers] = useState(() => getSafeLocal('cater_suppliers', initialSuppliers));
-  const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
-  const [agencies, setAgencies] = useState(() => getSafeLocal('cater_agencies', initialAgencies));
-  const [events, setEvents] = useState(() => getSafeLocal('cater_events', initialEvents));
-  const [vessels, setVessels] = useState(() => getSafeLocal('cater_vessels', initialVessels));
-  const [provisions, setProvisions] = useState(() => getSafeLocal('cater_provisions', initialProvisions));
-  const [vegetables, setVegetables] = useState(() => getSafeLocal('cater_vegetables', initialVegetables));
-  const [labourWorkers, setLabourWorkers] = useState(() => getSafeLocal('cater_labour_workers', initialLabourWorkers));
+  // Database states driven ONLY by MongoDB (No Mock Data Fallbacks)
+  const [venues, setVenues] = useState([]);
+  const [rawMaterials, setRawMaterials] = useState([]);
+  const [dishes, setDishes] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [laborRates, setLaborRates] = useState([]);
+  const [agencies, setAgencies] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [vessels, setVessels] = useState([]);
+  const [provisions, setProvisions] = useState([]);
+  const [vegetables, setVegetables] = useState([]);
+  const [labourWorkers, setLabourWorkers] = useState([]);
 
-  const [companyProfile, setCompanyProfile] = useState(() => {
-    const parsed = getSafeLocal('cater_company_profile', null);
-    if (parsed) return parsed;
-    return {
-      name: 'Sri Mayyia Caterers',
-      tagline: 'Legacy of Royal Flavors Since 1953',
-      phone: '+91 99988 77766',
-      email: 'info@srimayyiacaterers.com',
-      address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
-      gstin: '24AAAAA1111A1Z1',
-      defaultTaxRate: 18,
-      currency: '₹'
-    };
+  const [companyProfile, setCompanyProfile] = useState({
+    name: 'Sri Mayyia Caterers',
+    tagline: 'Legacy of Royal Flavors Since 1953',
+    phone: '+91 99988 77766',
+    email: 'info@srimayyiacaterers.com',
+    address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
+    gstin: '24AAAAA1111A1Z1',
+    defaultTaxRate: 18,
+    currency: '₹'
   });
 
   const [syncStatus, setSyncStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
@@ -229,18 +230,10 @@ export const AppProvider = ({ children }) => {
         fetchEndpoint('/labour-workers')
       ]);
 
-      const isServerReachable = statusRes?.status === 'online' || Array.isArray(vList) || Array.isArray(rmList) || Array.isArray(dList);
+      const isServerReachable = statusRes?.status === 'online' || Array.isArray(vList) || Array.isArray(dList);
 
       if (!isServerReachable) {
         setSyncStatus('offline');
-        return;
-      }
-
-      // If database is brand new and empty, trigger seed
-      if (Array.isArray(vList) && Array.isArray(rmList) && vList.length === 0 && rmList.length === 0) {
-        console.log('🌱 Database empty. Requesting server seed...');
-        await fetchEndpoint('/seed', { method: 'POST' });
-        loadData(true);
         return;
       }
 
@@ -253,15 +246,15 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(evList)) setEvents(evList);
       if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
       if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
-      if (Array.isArray(vesList) && vesList.length > 0) setVessels(vesList);
-      if (Array.isArray(prvList) && prvList.length > 0) setProvisions(prvList);
-      if (Array.isArray(vegList) && vegList.length > 0) setVegetables(vegList);
-      if (Array.isArray(lwList) && lwList.length > 0) setLabourWorkers(lwList);
+      if (Array.isArray(vesList)) setVessels(vesList);
+      if (Array.isArray(prvList)) setProvisions(prvList);
+      if (Array.isArray(vegList)) setVegetables(vegList);
+      if (Array.isArray(lwList)) setLabourWorkers(lwList);
 
       setSyncStatus('connected');
       setLastSyncedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (err) {
-      console.warn('⚠️ MongoDB connection issue, offline fallback active:', err.message);
+      console.warn('⚠️ MongoDB connection offline:', err.message);
       setSyncStatus('offline');
     }
   };

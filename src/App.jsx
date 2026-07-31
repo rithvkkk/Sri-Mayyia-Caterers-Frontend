@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { AppProvider, AppContext } from './context/AppContext';
 import logoImg from './assets/logo.png';
 import Dashboard from './components/Dashboard';
@@ -35,6 +35,26 @@ const AppContent = () => {
   const { currentRole, companyProfile, logout, syncStatus, lastSyncedAt, triggerManualSync } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Splash screen fade-out state
+  const [showSplash, setShowSplash] = useState(syncStatus !== 'connected');
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  useEffect(() => {
+    if (syncStatus === 'connected') {
+      if (showSplash && !isFadingOut) {
+        setIsFadingOut(true);
+        const timer = setTimeout(() => {
+          setShowSplash(false);
+          setIsFadingOut(false);
+        }, 700);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      setShowSplash(true);
+      setIsFadingOut(false);
+    }
+  }, [syncStatus]);
 
   // Tab permissions configuration
   const tabPermissions = {
@@ -87,6 +107,126 @@ const AppContent = () => {
 
   if (!currentRole) {
     return <Login />;
+  }
+
+  // Render "Server Connecting to Cloud" screen with smooth fade-out when MongoDB connects
+  if (showSplash) {
+    return (
+      <div className={isFadingOut ? 'fade-out-screen' : ''} style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #FFFDF9 0%, #F5E6D3 100%)',
+        padding: '2rem',
+        textAlign: 'center',
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        <div className="glass-card" style={{
+          maxWidth: '520px',
+          width: '100%',
+          padding: '3rem 2rem',
+          borderRadius: '24px',
+          boxShadow: '0 20px 40px rgba(128, 0, 32, 0.12)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem',
+          border: '1px solid rgba(128, 0, 32, 0.15)'
+        }}>
+          <img
+            src={logoImg}
+            alt="Logo"
+            className={isFadingOut ? 'logo-success-anim' : ''}
+            style={{
+              width: '85px',
+              height: '85px',
+              objectFit: 'contain',
+              borderRadius: '16px',
+              background: '#FFFDD0',
+              padding: '6px',
+              boxShadow: '0 8px 20px rgba(128, 0, 32, 0.15)',
+              transition: 'all 0.4s ease'
+            }}
+          />
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <h2 style={{ color: 'var(--color-primary)', fontSize: '1.65rem', fontWeight: 800 }}>{companyProfile.name}</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Catering Management System</p>
+          </div>
+
+          {/* Animated Database Cloud Ring */}
+          <div style={{
+            position: 'relative',
+            width: '90px',
+            height: '90px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0.5rem 0'
+          }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              border: isFadingOut ? '4px solid #10b981' : '4px solid rgba(128, 0, 32, 0.12)',
+              borderTopColor: isFadingOut ? '#10b981' : 'var(--color-primary)',
+              animation: isFadingOut ? 'none' : 'spin 1.2s linear infinite',
+              boxShadow: isFadingOut ? '0 0 20px rgba(16, 185, 129, 0.5)' : 'none'
+            }} />
+            <Database size={42} style={{ color: isFadingOut ? '#10b981' : 'var(--color-primary)', transition: 'color 0.3s ease' }} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {isFadingOut ? '🎉 MongoDB Connected! Entering App...' : 'Server Connecting to Cloud...'}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '420px' }}>
+              {isFadingOut ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...' : 'Establishing secure live connection to MongoDB Atlas Database. Real-time master items & data are loading...'}
+            </p>
+          </div>
+
+          <div style={{
+            background: isFadingOut ? 'rgba(16, 185, 129, 0.08)' : 'rgba(128, 0, 32, 0.04)',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '12px',
+            border: isFadingOut ? '1px dashed rgba(16, 185, 129, 0.3)' : '1px dashed rgba(128, 0, 32, 0.2)',
+            fontSize: '0.82rem',
+            color: 'var(--text-secondary)',
+            width: '100%',
+            transition: 'all 0.3s ease'
+          }}>
+            <span style={{ fontWeight: 600 }}>Connection Status: </span>
+            <span style={{ color: isFadingOut ? '#10b981' : (syncStatus === 'syncing' ? '#d97706' : '#ef4444'), fontWeight: 700 }}>
+              {isFadingOut ? '🟢 MongoDB Atlas Connected & Synced!' : (syncStatus === 'syncing' ? '🟡 Contacting MongoDB Atlas...' : '🔴 MongoDB Disconnected / Waiting for Connection')}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.5rem' }}>
+            <button
+              className="btn btn-primary"
+              onClick={triggerManualSync}
+              disabled={isFadingOut}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.85rem' }}
+            >
+              <RefreshCw size={18} className={syncStatus === 'syncing' ? 'spin' : ''} />
+              Retry Connection Now
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={logout}
+              disabled={isFadingOut}
+              style={{ padding: '0.85rem 1.25rem', color: 'var(--color-primary)' }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
