@@ -40,19 +40,24 @@ export const AppProvider = ({ children }) => {
       'https://sri-mayyia-caterers-backend.vercel.app',
       'https://sri-mayyia-caterers-backend.vercel.app/api',
       activeApiUrl,
-      'http://localhost:5000/api',
       'http://localhost:5000',
+      'http://localhost:5000/api',
       '/api'
     ].filter(Boolean);
     const uniqueCandidates = Array.from(new Set(candidates));
 
     for (const baseUrl of uniqueCandidates) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
         const fullUrl = `${baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
         const res = await fetch(fullUrl, {
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...(options.headers || {}) },
+          signal: controller.signal,
           ...options
         });
+        clearTimeout(timeoutId);
+
         if (!res.ok) continue;
 
         const contentType = res.headers.get('content-type');
@@ -66,7 +71,8 @@ export const AppProvider = ({ children }) => {
           return data;
         }
       } catch (e) {
-        // Retry next URL candidate
+        clearTimeout(timeoutId);
+        // Timeout or network error, retry next candidate
       }
     }
     return null;
