@@ -45,7 +45,8 @@ export const AppProvider = ({ children }) => {
   });
 
   const apiCall = async (endpoint, options = {}) => {
-    const primaryUrl = activeApiUrl || import.meta.env.VITE_API_URL || 'https://sri-mayyia-caterers-backend.vercel.app';
+    const envUrl = import.meta.env.VITE_API_URL;
+    const primaryUrl = activeApiUrl || envUrl || '/api';
     
     const tryUrl = async (baseUrl, timeoutMs = 2500) => {
       if (!baseUrl) return null;
@@ -73,17 +74,16 @@ export const AppProvider = ({ children }) => {
       return null;
     };
 
-    // Fast path 1: Try primary active URL first (resolves in < 300ms)
+    // Fast path 1: Try primary URL
     const primaryRes = await tryUrl(primaryUrl, 2500);
     if (primaryRes !== null) return primaryRes;
 
-    // Fallback path 2: Probe remaining candidates quickly if primary URL fails
-    const fallbacks = [
-      'https://sri-mayyia-caterers-backend.vercel.app',
-      'https://sri-mayyia-caterers-backend.vercel.app/api',
-      'http://localhost:5000',
-      '/api'
-    ].filter(u => u !== primaryUrl);
+    // Fallback path 2: Dynamic relative and local fallback
+    const fallbacks = Array.from(new Set([
+      envUrl,
+      '/api',
+      'http://localhost:5000'
+    ])).filter(Boolean).filter(u => u !== primaryUrl);
 
     for (const url of fallbacks) {
       const res = await tryUrl(url, 1500);
@@ -209,9 +209,10 @@ export const AppProvider = ({ children }) => {
       }
 
       const fetchEndpoint = async (path) => {
-        const res = await apiCall(path);
+        const apiPrefixed = path.startsWith('/api') ? path : `/api${path.replace(/^\//, '')}`;
+        const res = await apiCall(apiPrefixed);
         if (res !== null) return res;
-        return await apiCall(`/api${path}`);
+        return await apiCall(path);
       };
 
       const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
