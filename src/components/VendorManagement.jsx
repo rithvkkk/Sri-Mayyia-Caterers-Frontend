@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { calculatePdfReport, generateSupplierPO } from '../utils/pdfGenerator';
-import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search } from 'lucide-react';
+import { calculatePdfReport, generateSupplierPO, printPdfBlob } from '../utils/pdfGenerator';
+import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer } from 'lucide-react';
 
 const VendorManagement = () => {
   const {
@@ -795,7 +795,10 @@ const VendorManagement = () => {
               </button>
             </div>
             <iframe src={poPreview.blobUrl} title="PO Preview" style={{ flex: 1, border: 'none', minHeight: '520px', background: '#fff' }} />
-            <div style={{ display: 'flex', gap: '0.75rem', padding: '0.9rem 1.25rem', borderTop: '1px solid var(--border-color)', flexShrink: 0, justifyContent: 'flex-end', background: 'var(--bg-secondary)' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', padding: '0.9rem 1.25rem', borderTop: '1px solid var(--border-color)', flexShrink: 0, justifyContent: 'flex-end', background: 'var(--bg-secondary)', flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" onClick={() => poPreview && printPdfBlob(poPreview.blobUrl)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Printer size={16} /> Print Document
+              </button>
               <button className="btn btn-secondary" onClick={handleDownloadPO} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Download size={16} /> Download PDF
               </button>

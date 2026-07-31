@@ -378,3 +378,92 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   return { blobUrl, blob, filename };
 };
 
+/**
+ * Universal PDF Print Utility
+ * Compatible with Web Browsers, Desktop EXE (Electron/Tauri), and Mobile APK (Android WebViews)
+ */
+export const printPdfBlob = (blobOrUrl) => {
+  try {
+    let url = blobOrUrl;
+    let isCreatedUrl = false;
+    if (blobOrUrl instanceof Blob) {
+      url = URL.createObjectURL(blobOrUrl);
+      isCreatedUrl = true;
+    }
+    
+    // Check if running in Electron/Desktop wrapper
+    if (window.electronAPI || (window.process && window.process.versions && window.process.versions.electron)) {
+      const win = window.open(url, '_blank');
+      if (win) {
+        win.focus();
+        win.print();
+      }
+      return true;
+    }
+
+    // Standard Browser & Android APK WebView printing frame
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    printFrame.src = url;
+
+    document.body.appendChild(printFrame);
+
+    printFrame.onload = () => {
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow.focus();
+          printFrame.contentWindow.print();
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+            if (isCreatedUrl) URL.revokeObjectURL(url);
+          }, 2000);
+        } catch (e) {
+          window.open(url, '_blank')?.print();
+        }
+      }, 300);
+    };
+    return true;
+  } catch (err) {
+    console.error('Print Error:', err);
+    window.print();
+    return false;
+  }
+};
+
+/**
+ * Universal PDF Download Utility
+ * Compatible with Web Browsers, Desktop EXE, and Mobile APK
+ */
+export const downloadPdfBlob = (blobOrUrl, filename = 'Document.pdf') => {
+  try {
+    let url = blobOrUrl;
+    let isCreatedUrl = false;
+    if (blobOrUrl instanceof Blob) {
+      url = URL.createObjectURL(blobOrUrl);
+      isCreatedUrl = true;
+    }
+
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+      if (document.body.contains(a)) document.body.removeChild(a);
+      if (isCreatedUrl) URL.revokeObjectURL(url);
+    }, 1500);
+    return true;
+  } catch (err) {
+    console.error('Download Error:', err);
+    return false;
+  }
+};
+
+

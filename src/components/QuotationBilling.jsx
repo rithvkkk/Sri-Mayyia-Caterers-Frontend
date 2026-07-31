@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { calculatePdfReport } from '../utils/pdfGenerator';
-import { DollarSign, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert, Sliders, Eye, Download, X, Lock } from 'lucide-react';
+import { calculatePdfReport, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
+import { DollarSign, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert, Sliders, Eye, Download, X, Lock, Printer } from 'lucide-react';
 
 const QuotationBilling = () => {
   const {
@@ -406,7 +406,10 @@ const QuotationBilling = () => {
                 title="Invoice Preview"
               />
             </div>
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" onClick={() => invoicePreview && printPdfBlob(invoicePreview.blobUrl)}>
+                <Printer size={16} /> Print Document
+              </button>
               <button className="btn btn-secondary" onClick={handleDownloadInvoice}>
                 <Download size={16} /> Download PDF
               </button>
