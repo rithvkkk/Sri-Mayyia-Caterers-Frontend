@@ -53,7 +53,16 @@ export const AppProvider = ({ children }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const fullUrl = `${baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
+        const cleanBase = baseUrl.replace(/\/$/, '');
+        const cleanEndpoint = endpoint.replace(/^\//, '');
+        
+        let path = cleanEndpoint;
+        // Auto-prepend 'api/' if baseUrl doesn't end with '/api' and endpoint isn't 'status'
+        if (!cleanBase.endsWith('/api') && !cleanEndpoint.startsWith('api/') && cleanEndpoint !== 'status') {
+          path = `api/${cleanEndpoint}`;
+        }
+        
+        const fullUrl = `${cleanBase}/${path}`;
         const res = await fetch(fullUrl, {
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...(options.headers || {}) },
           signal: controller.signal,
