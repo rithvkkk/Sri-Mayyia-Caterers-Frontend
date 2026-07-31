@@ -723,8 +723,22 @@ export const AppProvider = ({ children }) => {
     } catch (e) { console.error(e); }
   };
 
+  const resetMasterDatabase = async () => {
+    localStorage.setItem('cater_dishes', JSON.stringify(initialDishes));
+    localStorage.setItem('cater_events', JSON.stringify(initialEvents));
+    setDishes(initialDishes);
+    setEvents(initialEvents);
+    try {
+      await apiCall('/seed', { method: 'POST' });
+      await apiCall('/api/seed', { method: 'POST' });
+    } catch (e) {
+      console.warn('Backend seed offline, local state updated');
+    }
+  };
+
   return (
     <AppContext.Provider value={{
+      resetMasterDatabase,
       currentRole,
       setCurrentRole,
       login,
