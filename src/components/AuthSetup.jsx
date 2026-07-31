@@ -25,6 +25,14 @@ const AuthSetup = () => {
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [materialQty, setMaterialQty] = useState('');
 
+  // User creation modal state
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [userForm, setUserForm] = useState({
+    username: '',
+    password: '',
+    role: 'Sales Executive'
+  });
+
   // Check role authorization
   if (currentRole !== 'Admin') {
     return (
@@ -617,22 +625,7 @@ const AuthSetup = () => {
         <div className="glass-card" style={{ maxWidth: '800px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h2>System Accounts & Passwords</h2>
-            <button className="btn btn-primary btn-small" onClick={() => {
-              const newId = prompt('Enter new Username:');
-              if (!newId) return;
-              if (users.find(u => u.id.toLowerCase() === newId.toLowerCase())) {
-                alert('Username already exists!'); return;
-              }
-              const newRole = prompt('Enter role (Admin, Manager, Accountant, Agency):', 'Manager');
-              if (!['Admin', 'Manager', 'Accountant', 'Agency'].includes(newRole)) {
-                alert('Invalid role! Must be Admin, Manager, Accountant, or Agency.'); return;
-              }
-              const newPassword = prompt('Enter password for new user:', `${newId}123`);
-              if (newPassword) {
-                addUser({ id: newId, password: newPassword, role: newRole });
-                alert(`User ${newId} created successfully.`);
-              }
-            }}>
+            <button className="btn btn-primary btn-small" onClick={() => setIsUserModalOpen(true)}>
               <Plus size={16} /> Add User
             </button>
           </div>
@@ -708,6 +701,85 @@ const AuthSetup = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Add User In-App Modal */}
+      {isUserModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsUserModalOpen(false)}>
+          <div className="glass-card modal-card" style={{ maxWidth: '480px', width: '90%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Add New System Account</h2>
+              <button onClick={() => setIsUserModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const username = userForm.username.trim();
+              if (!username || !userForm.password) {
+                alert('Please enter Username and Password');
+                return;
+              }
+              if (users.find(u => u.id.toLowerCase() === username.toLowerCase())) {
+                alert('Username already exists!');
+                return;
+              }
+              addUser({ id: username, password: userForm.password, role: userForm.role });
+              alert(`User ${username} created successfully with role ${userForm.role}!`);
+              setIsUserModalOpen(false);
+              setUserForm({ username: '', password: '', role: 'Sales Executive' });
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Username</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. sales_john"
+                  value={userForm.username}
+                  onChange={e => setUserForm({ ...userForm, username: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Password</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter password"
+                  value={userForm.password}
+                  onChange={e => setUserForm({ ...userForm, password: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>System Role (Dropdown)</label>
+                <select
+                  value={userForm.role}
+                  onChange={e => setUserForm({ ...userForm, role: e.target.value })}
+                  style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                >
+                  <option value="Sales Executive">Sales Executive</option>
+                  <option value="Provision Store Manager">Provision Store Manager</option>
+                  <option value="Storage Store Manager">Storage Store Manager</option>
+                  <option value="Store Manager">Store Manager</option>
+                  <option value="Accounts Manager">Accounts Manager</option>
+                  <option value="Accountant">Accountant</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsUserModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create User Account</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

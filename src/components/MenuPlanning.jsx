@@ -5,22 +5,28 @@ import { ClipboardCopy, Package, ArrowRight, ShieldAlert, CheckCircle, HelpCircl
 const MenuPlanning = () => {
   const {
     currentRole,
+    currentUser,
     events,
     updateEvent,
     dishes,
     refreshEventTotals
   } = useContext(AppContext);
 
+  const isSalesExec = currentRole === 'Sales Executive' || currentRole === 'Sales';
+  const visibleEvents = isSalesExec
+    ? events.filter(e => e.createdBy === currentUser || e.createdByName === currentUser || e.salesExecutive === currentUser)
+    : events;
+
   // States
-  const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
+  const [selectedEventId, setSelectedEventId] = useState(visibleEvents[0]?.id || '');
   const [selectedSubId, setSelectedSubId] = useState('');
   const [cloneSourceId, setCloneSourceId] = useState('');
 
   const [draftSubFunctions, setDraftSubFunctions] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const isEditable = currentRole === 'Admin' || currentRole === 'Manager';
-  const currentEvent = events.find(e => e.id === selectedEventId);
+  const isEditable = currentRole === 'Admin' || currentRole === 'Manager' || isSalesExec;
+  const currentEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
 
   // Sync draft when event changes
   React.useEffect(() => {
@@ -128,13 +134,13 @@ const MenuPlanning = () => {
     alert(`Menu configurations cloned successfully from ${sourceEvent.id}! Please click Save Menu to apply.`);
   };
 
-  if (currentRole === 'Accountant' || currentRole === 'Agency') {
+  if (currentRole === 'Accountant' || currentRole.includes('Store')) {
     return (
       <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', marginTop: '2rem' }}>
         <ShieldAlert size={64} style={{ color: 'var(--color-danger)', marginBottom: '1rem' }} />
         <h2 style={{ marginBottom: '0.5rem' }}>Access Restricted</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Operational menu planning details are restricted for Accountant and Agency roles. Please log in as an Admin, Manager, or Chef.
+          Operational menu planning details are restricted for this role. Please log in as an Admin, Manager, or Sales Executive.
         </p>
       </div>
     );
@@ -169,7 +175,7 @@ const MenuPlanning = () => {
             <div className="form-group">
               <label className="form-label">Select Event ID</label>
               <select className="form-select" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
-                {events.map(e => (
+                {visibleEvents.map(e => (
                   <option key={e.id} value={e.id}>{e.id} - {e.customer.name}</option>
                 ))}
               </select>

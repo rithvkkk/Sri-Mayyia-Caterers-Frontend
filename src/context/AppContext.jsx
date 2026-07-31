@@ -102,9 +102,13 @@ export const AppProvider = ({ children }) => {
     return null;
   };
 
-  // Session / Role state
+  // Session / Role / User state
   const [currentRole, setCurrentRole] = useState(() => {
     return localStorage.getItem('cater_current_role') || null;
+  });
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    return localStorage.getItem('cater_current_user') || '';
   });
 
   const [users, setUsers] = useState([]);
@@ -120,8 +124,10 @@ export const AppProvider = ({ children }) => {
       });
       if (data && data.success) {
         setCurrentRole(data.role);
+        setCurrentUser(data.username || username);
         localStorage.setItem('cater_current_role', data.role);
-        return { success: true, role: data.role };
+        localStorage.setItem('cater_current_user', data.username || username);
+        return { success: true, role: data.role, username: data.username || username };
       }
       return { success: false, message: (data && data.message) || 'Invalid credentials' };
     } catch (e) {
@@ -131,7 +137,9 @@ export const AppProvider = ({ children }) => {
 
   const logout = () => {
     setCurrentRole(null);
+    setCurrentUser('');
     localStorage.removeItem('cater_current_role');
+    localStorage.removeItem('cater_current_user');
   };
 
   const updateUserPassword = async (username, newPassword) => {
@@ -578,6 +586,9 @@ export const AppProvider = ({ children }) => {
       id: newId,
       customer: eventDetails.customer || { name: '', phone: '', email: '' },
       eventType: eventDetails.eventType || 'Event',
+      createdBy: currentUser || currentRole || 'admin',
+      createdByName: currentUser || currentRole || 'admin',
+      salesExecutive: currentUser || currentRole || 'admin',
       venueId: eventDetails.venueId || '',
       date: eventDetails.date || new Date().toISOString().split('T')[0],
       status: 'Inquiry',
@@ -772,6 +783,7 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       resetMasterDatabase,
       currentRole,
+      currentUser,
       setCurrentRole,
       login,
       logout,

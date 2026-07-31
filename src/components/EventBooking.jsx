@@ -11,6 +11,7 @@ const X = ({ size = 16 }) => (
 const EventBooking = () => {
   const {
     currentRole,
+    currentUser,
     events,
     createEvent,
     updateEvent,
@@ -40,8 +41,15 @@ const EventBooking = () => {
     { name: '', guestCount: '', menuItems: [] }
   ]);
 
-  const isEditable = currentRole === 'Admin' || currentRole === 'Manager';
-  const selectedEvent = events.find(e => e.id === selectedEventId);
+  const isSalesExec = currentRole === 'Sales Executive' || currentRole === 'Sales';
+  const isEditable = currentRole === 'Admin' || currentRole === 'Manager' || isSalesExec;
+
+  // Filter visible events for Sales Executives so they only see sales assigned/created by them
+  const visibleEvents = isSalesExec
+    ? events.filter(e => e.createdBy === currentUser || e.createdByName === currentUser || e.salesExecutive === currentUser)
+    : events;
+
+  const selectedEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
 
   // When selected event changes, exit edit mode
   React.useEffect(() => { setEditDraft(null); }, [selectedEventId]);
@@ -177,7 +185,7 @@ const EventBooking = () => {
           {/* Result count when filtering */}
           {searchQuery && (
             <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-              {events.filter(e =>
+              {visibleEvents.filter(e =>
                 e.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (e.customer.phone || '').includes(searchQuery)
               ).length} result(s) for "{searchQuery}"
@@ -185,7 +193,7 @@ const EventBooking = () => {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {events.filter(e =>
+            {visibleEvents.filter(e =>
               !searchQuery ||
               e.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
               (e.customer.phone || '').includes(searchQuery)

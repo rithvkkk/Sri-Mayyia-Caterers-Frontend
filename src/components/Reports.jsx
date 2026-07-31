@@ -1,24 +1,33 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { BarChart3, TrendingUp, Users, CalendarDays, DollarSign } from 'lucide-react';
+import { TrendingUp, Users, CalendarDays, DollarSign, Lock, Award } from 'lucide-react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, LineChart, Line 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line 
 } from 'recharts';
 
 const Reports = () => {
-  const { events, companyProfile } = useContext(AppContext);
+  const { events, companyProfile, currentRole } = useContext(AppContext);
+
+  const isAdmin = currentRole === 'Admin';
 
   // Calculate KPIs
   const totalEvents = events.length;
-  const totalPax = events.reduce((sum, e) => sum + e.guestCount, 0);
+  const totalPax = events.reduce((sum, e) => sum + (e.subFunctions ? e.subFunctions.reduce((s, sf) => s + (sf.guestCount || 0), 0) : (e.guestCount || 0)), 0);
   
-  // Calculate revenue based on financials if available
+  // Revenue calculations
   const totalRevenue = events.reduce((sum, e) => {
-    return sum + (e.financials?.grandTotal || 0);
+    return sum + (e.billing?.totalAmount || e.financials?.grandTotal || 0);
   }, 0);
 
-  const upcomingEvents = events.filter(e => new Date(e.date) >= new Date()).length;
+  // Expense & Net Profit calculations
+  const totalExpense = events.reduce((sum, e) => {
+    const costs = e.execution?.costs || {};
+    const manualCosts = (e.manualMaterials || []).reduce((mSum, m) => mSum + (m.totalCost || 0), 0);
+    return sum + (costs.rawMaterialsCost || manualCosts || 0) + (costs.laborCost || 0) + (costs.venueRent || 0) + (costs.otherExpenses || 0);
+  }, 0);
+
+  const netProfit = Math.max(0, totalRevenue - totalExpense);
+  const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0.0';
 
   // Chart Data Processing
   const revenueByMonth = events.reduce((acc, e) => {
@@ -28,25 +37,17 @@ const Reports = () => {
     const key = `${month} ${year}`;
     
     if (!acc[key]) acc[key] = { name: key, revenue: 0 };
-    acc[key].revenue += (e.financials?.grandTotal || 0);
+    const rev = (e.billing?.totalAmount || e.financials?.grandTotal || 0);
+    acc[key].revenue += rev;
     return acc;
   }, {});
   const chartDataRevenue = Object.values(revenueByMonth);
-
-  const eventTypesDist = events.reduce((acc, e) => {
-    const type = e.eventType || 'Other';
-    if (!acc[type]) acc[type] = { name: type, count: 0 };
-    acc[type].count += 1;
-    return acc;
-  }, {});
-  const chartDataTypes = Object.values(eventTypesDist);
-  const COLORS = ['#800020', '#FF9933', '#0f766e', '#0891b2', '#8b5cf6'];
 
   return (
     <div>
       <div style={{ marginBottom: '2rem' }}>
         <h1 className="gradient-text" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>Reports & Analytics</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>High-level overview of your catering business performance.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>High-level overview of catering business performance, sales, and analytics.</p>
       </div>
 
       <div className="grid-kpis">
@@ -82,17 +83,35 @@ const Reports = () => {
 
         <div className="kpi-card">
           <div className="kpi-details">
-            <h3>Upcoming Events</h3>
-            <div className="kpi-value">{upcomingEvents}</div>
+            <h3>Net Profit Margin</h3>
+            {isAdmin ? (
+              <div>
+                <div className="kpi-value" style={{ color: 'var(--color-success)' }}>
+                  {companyProfile.currency} {netProfit.toLocaleString('en-IN')}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Margin: <strong>{profitMargin}%</strong>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="kpi-value" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Lock size={15} /> Restricted to Admin
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Admin clearance required
+                </div>
+              </div>
+            )}
           </div>
           <div className="kpi-icon icon-amber">
-            <TrendingUp size={24} />
+            {isAdmin ? <Award size={24} /> : <Lock size={24} />}
           </div>
         </div>
       </div>
       
-      <div className="responsive-grid two-cols" style={{ marginTop: '2rem' }}>
-        <div className="glass-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginTop: '2rem' }}>
+        <div className="glass-card" style={{ height: '420px', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Revenue Over Time</h3>
           <div style={{ flexGrow: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -107,39 +126,6 @@ const Reports = () => {
                 <Line type="monotone" dataKey="revenue" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--color-primary)', strokeWidth: 0 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Event Category Distribution</h3>
-          <div style={{ flexGrow: 1, minHeight: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartDataTypes}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="count"
-                >
-                  {chartDataTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-md)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
-            {chartDataTypes.map((entry, index) => (
-              <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: COLORS[index % COLORS.length] }}></span>
-                <span style={{ color: 'var(--text-secondary)' }}>{entry.name}</span>
-                <span style={{ fontWeight: 600 }}>({entry.count})</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>

@@ -60,14 +60,14 @@ const AppContent = () => {
 
   // Tab permissions configuration
   const tabPermissions = {
-    dashboard: ['Admin', 'Manager', 'Accountant', 'Agency'],
-    bookings: ['Admin', 'Manager', 'Accountant'],
-    menu: ['Admin', 'Manager'],
-    vendors: ['Admin', 'Manager', 'Accountant'],
-    provisions: ['Admin', 'Manager', 'Accountant', 'Chef'],
-    storage: ['Admin', 'Manager', 'Accountant', 'Chef'],
-    labor: ['Admin', 'Manager', 'Accountant', 'Agency'],
-    billing: ['Admin', 'Manager', 'Accountant'],
+    dashboard: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
+    bookings: ['Admin', 'Manager', 'Accountant', 'Sales Executive', 'Sales'],
+    menu: ['Admin', 'Manager', 'Sales Executive', 'Sales'],
+    vendors: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
+    provisions: ['Admin', 'Manager', 'Accountant', 'Provision Store Manager', 'Store Manager'],
+    storage: ['Admin', 'Manager', 'Accountant', 'Storage Store Manager', 'Storage Manager', 'Store Manager'],
+    labor: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
+    billing: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
     reports: ['Admin', 'Manager', 'Accountant'],
     setup: ['Admin']
   };
@@ -75,6 +75,24 @@ const AppContent = () => {
   const checkPermission = (tab) => {
     return tabPermissions[tab]?.includes(currentRole);
   };
+
+  // Redirect to first permitted tab when currentRole changes or activeTab is unpermitted
+  useEffect(() => {
+    if (currentRole && !checkPermission(activeTab)) {
+      if (currentRole === 'Sales Executive' || currentRole === 'Sales') {
+        setActiveTab('bookings');
+      } else if (currentRole === 'Provision Store Manager') {
+        setActiveTab('provisions');
+      } else if (currentRole === 'Storage Store Manager' || currentRole === 'Storage Manager') {
+        setActiveTab('storage');
+      } else if (currentRole.includes('Store')) {
+        setActiveTab('provisions');
+      } else {
+        const firstAllowed = navigationItems.find(item => checkPermission(item.id))?.id || 'bookings';
+        setActiveTab(firstAllowed);
+      }
+    }
+  }, [currentRole, activeTab]);
 
   const navigationItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
