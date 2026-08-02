@@ -140,7 +140,46 @@ export const AppProvider = ({ children }) => {
     setCurrentUser('');
     localStorage.removeItem('cater_current_role');
     localStorage.removeItem('cater_current_user');
+    localStorage.removeItem('cater_last_activity');
   };
+
+  // 1-Hour Inactivity Auto-Logout Handler (3,600,000 ms)
+  const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
+
+  useEffect(() => {
+    if (!currentRole) return;
+
+    let timeoutId;
+
+    const resetInactivityTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      localStorage.setItem('cater_last_activity', String(Date.now()));
+      timeoutId = setTimeout(() => {
+        logout();
+        alert('🔒 Session Expired: You have been automatically logged out due to 1 hour of inactivity.');
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    // Check if session already expired while idle / backgrounded
+    const lastActivity = parseInt(localStorage.getItem('cater_last_activity') || '0', 10);
+    if (lastActivity && Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS) {
+      logout();
+      alert('🔒 Session Expired: You have been automatically logged out due to inactivity.');
+      return;
+    }
+
+    // Global user activity event listeners
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
+    
+    // Start initial inactivity timer
+    resetInactivityTimer();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
+    };
+  }, [currentRole]);
 
   const updateUserPassword = async (username, newPassword) => {
     if (syncStatus !== 'connected') {

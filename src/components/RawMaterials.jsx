@@ -199,14 +199,10 @@ const RawMaterials = () => {
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Event ID: {currentEvent.id} | Total Items: {materialList.length}</p>
               </div>
 
-              {/* PDF Share buttons in English, Hindi, Gujarati */}
               <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Share2 size={12} /> Share:
-                </span>
-                <button className="btn btn-secondary btn-small" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => handleShareReport('EN')}>EN</button>
-                <button className="btn btn-secondary btn-small" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => handleShareReport('HI')}>HI</button>
-                <button className="btn btn-secondary btn-small" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => handleShareReport('GUJ')}>GUJ</button>
+                <button className="btn btn-secondary btn-small" style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={() => handleShareReport('EN')}>
+                  <Share2 size={13} /> Export PDF Report
+                </button>
               </div>
             </div>
 

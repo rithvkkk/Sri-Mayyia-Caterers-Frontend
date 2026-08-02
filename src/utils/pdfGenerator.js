@@ -26,59 +26,11 @@ const translations = {
     totalCost: 'Est. Total Cost',
     supplier: 'Allocated Supplier',
     footerMsg: 'Thank you for choosing our services. Shreeji Catering Services.'
-  },
-  HI: {
-    titleInvoice: 'टैक्स इनवॉइस / बिल',
-    titleMaterials: 'कच्ची सामग्री आवश्यकता रिपोर्ट',
-    eventId: 'इवेंट आईडी',
-    clientName: 'ग्राहक का नाम',
-    eventDate: 'दिनांक',
-    venue: 'आयोजन स्थल',
-    subtotal: 'उप-योग राशि',
-    tax: 'वस्तु एवं सेवा कर (GST)',
-    grandTotal: 'कुल देय राशि',
-    advance: 'अग्रिम भुगतान जमा',
-    balance: 'शेष देय राशि',
-    pax: 'अतिथि संख्या',
-    rate: 'दर प्रति प्लेट',
-    desc: 'बिल विवरण',
-    amount: 'कुल राशि',
-    ingName: 'कच्ची सामग्री का नाम',
-    category: 'श्रेणी',
-    qty: 'आवश्यक मात्रा',
-    unitCost: 'इकाई लागत',
-    totalCost: 'कुल अनुमानित लागत',
-    supplier: 'आपूर्तिकर्ता',
-    footerMsg: 'हमारे साथ जुड़ने के लिए धन्यवाद। श्रीजी कैटरिंग सर्विसेज।'
-  },
-  GUJ: {
-    titleInvoice: 'ટેક્સ ઇન્વોઇસ / બિલ',
-    titleMaterials: 'કાચા માલની જરૂરિયાતનો અહેવાલ',
-    eventId: 'ઇવેન્ટ આઈડી',
-    clientName: 'ગ્રાહકનું નામ',
-    eventDate: 'તારીખ',
-    venue: 'યોજના સ્થળ',
-    subtotal: 'પેટા-સરવાળો રકમ',
-    tax: 'વસ્તુ અને સેવા કર (GST)',
-    grandTotal: 'કુલ ઇન્વોઇસ રકમ',
-    advance: 'એડવાન્સ જમા રકમ',
-    balance: 'બાકી લેણી રકમ',
-    pax: 'મેહમાન સંખ્યા',
-    rate: 'ભાવ પ્રતિ પ્લેટ',
-    desc: 'બિલ વિગત',
-    amount: 'કુલ રકમ',
-    ingName: 'કાચી સામગ્રીનું નામ',
-    category: 'કેટેગરી',
-    qty: 'જરૂરી જથ્થો',
-    unitCost: 'એકમ કિંમત',
-    totalCost: 'કુલ અંદાજિત કિંમત',
-    supplier: 'સપ્લાયર',
-    footerMsg: 'અમારી સેવાઓ પસંદ કરવા બદલ આભાર. શ્રીજી કેટરિંગ સર્વિસીસ.'
   }
 };
 
 export const calculatePdfReport = async (event, dataList, companyProfile, lang = 'EN', type = 'invoice') => {
-  const t = translations[lang] || translations.EN;
+  const t = translations.EN;
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
