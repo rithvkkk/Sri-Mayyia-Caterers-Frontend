@@ -5,7 +5,6 @@ import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText } from 'luc
 const AuthSetup = () => {
   const {
     currentRole,
-    resetMasterDatabase,
     users, updateUserPassword, addUser, deleteUser,
     venues, addVenue, updateVenue, deleteVenue,
     rawMaterials, addRawMaterial, updateRawMaterial, deleteRawMaterial,
@@ -347,9 +346,6 @@ const AuthSetup = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <h2>Master Dishes Database & Recipes ({dishes.length} Items)</h2>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn btn-secondary btn-small" onClick={() => { if(window.confirm('Reset all dishes to the 180+ Real Master Production Items?')) resetMasterDatabase(); }}>
-                🔄 Load 180+ Real Master Items
-              </button>
               <button className="btn btn-primary btn-small" onClick={() => createNewItem('dish')}>
                 <Plus size={16} /> Add New Dish
               </button>

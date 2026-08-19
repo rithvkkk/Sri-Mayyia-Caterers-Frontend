@@ -3,7 +3,7 @@ import { AppContext } from '../context/AppContext';
 import {
   Calendar, Phone, Mail, MapPin, Users, Plus, PlusCircle, Trash2,
   ShieldAlert, CheckCircle, Clipboard, Search, Save, ArrowUpDown,
-  Filter, Bell, Clock, AlertCircle, Check, CalendarDays, X as LucideX
+  Filter, Bell, Clock, AlertCircle, Check, CalendarDays, Edit2, X as LucideX
 } from 'lucide-react';
 
 const X = ({ size = 16 }) => (
@@ -564,7 +564,8 @@ const EventBooking = () => {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {isEditable && !editDraft && (
                     <button className="btn btn-secondary btn-small" onClick={startEdit} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      ✏️ Edit
+                      <Edit2 size={13} />
+                      <span>Edit</span>
                     </button>
                   )}
                   {editDraft && (
@@ -754,9 +755,9 @@ const EventBooking = () => {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{sf.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
-                          <span>📅 {sf.date || selectedEvent.date}</span>
-                          <span>🍽️ {(sf.menuItems || []).length} Dishes</span>
-                          {sf.clientNotes && <span style={{ color: '#fcd34d' }}>💬 Special Instructions</span>}
+                          <span>{sf.date || selectedEvent.date}</span>
+                          <span>{(sf.menuItems || []).length} Dishes</span>
+                          {sf.clientNotes && <span style={{ color: '#fcd34d' }}>Special Instructions</span>}
                         </div>
                       </div>
                       <span className="badge badge-info">{sf.guestCount} Pax</span>
@@ -828,9 +829,9 @@ const EventBooking = () => {
                           onChange={e => setReminderPriority(e.target.value)}
                           style={{ fontSize: '0.82rem' }}
                         >
-                          <option value="High">🔴 High Priority</option>
-                          <option value="Medium">🟡 Medium</option>
-                          <option value="Low">🟢 Low</option>
+                          <option value="High">High Priority</option>
+                          <option value="Medium">Medium Priority</option>
+                          <option value="Low">Low Priority</option>
                         </select>
                       </div>
                     </div>
@@ -892,7 +893,7 @@ const EventBooking = () => {
                               {rem.note}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              <span>📅 {rem.date} at {rem.time || '10:00'}</span>
+                              <span>{rem.date} at {rem.time || '10:00'}</span>
                               <span style={{
                                 color: rem.priority === 'High' ? '#ef4444' : rem.priority === 'Medium' ? '#f59e0b' : '#10b981',
                                 fontWeight: 600

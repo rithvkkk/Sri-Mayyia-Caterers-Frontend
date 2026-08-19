@@ -46,7 +46,7 @@ class ErrorBoundary extends React.Component {
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
           }}>
             <h1 style={{ fontSize: '1.8rem', color: '#ef4444', marginBottom: '1rem' }}>
-              👑 CaterFlow Recovery Console
+              CaterFlow Recovery Console
             </h1>
             <p style={{ color: '#a1a1aa', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
               An unexpected error occurred while initializing application state on Vercel.

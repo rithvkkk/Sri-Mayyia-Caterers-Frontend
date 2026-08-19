@@ -344,7 +344,7 @@ const AgencyLabor = () => {
             <h3>Registered Labour Staff</h3>
             <div className="kpi-value">{totalStaffCount} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>members</span></div>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.25rem', fontWeight: 600 }}>
-              ✅ {activeStaffCount} active & on roll
+              {activeStaffCount} active & on roll
             </div>
           </div>
           <div className="kpi-icon icon-blue">
@@ -357,7 +357,7 @@ const AgencyLabor = () => {
             <h3>Working Days Logged</h3>
             <div className="kpi-value">{totalAttendanceDays} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>shifts</span></div>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', marginTop: '0.25rem', fontWeight: 600 }}>
-              💼 {formatCurrency(totalAttendanceWages)} accumulated
+              {formatCurrency(totalAttendanceWages)} accumulated
             </div>
           </div>
           <div className="kpi-icon icon-purple">
@@ -383,7 +383,7 @@ const AgencyLabor = () => {
             <h3>Pending Shift Payouts</h3>
             <div className="kpi-value">{formatCurrency(totalPendingPayouts)}</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginTop: '0.25rem', fontWeight: 600 }}>
-              ⏳ Awaiting clearance
+              Awaiting clearance
             </div>
           </div>
           <div className="kpi-icon icon-green">

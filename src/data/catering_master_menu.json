@@ -1,565 +1,4286 @@
-{
-  "menuTitle": "Sri Mayyia Caterers Master Menu & Enterprise Culinary Intelligence",
-  "version": "3.0",
-  "provider": "Sri Mayyia Caterers (Since 1953)",
-  "totalCategories": 8,
-  "categories": [
-    {
-      "id": "cat_beverages",
-      "name": "Beverages & Welcome Drinks",
-      "subCategories": [
-        {
-          "name": "Fresh Fruit Juices",
-          "items": [
-            { "id": "bev_ffj_1", "name": "Fresh Orange Juice", "price": 60, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_2", "name": "Sweet Lime (Mosambi) Juice", "price": 60, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_3", "name": "Fresh Amla Juice", "price": 50, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free", "Healthy"] },
-            { "id": "bev_ffj_4", "name": "Fresh Anar (Pomegranate) Juice", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_5", "name": "Muskmelon Juice", "price": 50, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_6", "name": "Watermelon Juice", "price": 45, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_7", "name": "Pudina Lime Cooler", "price": 40, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_8", "name": "Anar Amla Mix Health Juice", "price": 70, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free", "Immunity"] },
-            { "id": "bev_ffj_9", "name": "Pudina Pineapple Juice", "price": 55, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_10", "name": "Fresh Fruit Soda", "price": 45, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "bev_ffj_11", "name": "Tender Coconut Juice (Elaneer)", "price": 65, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free", "Pure Natural"] },
-            { "id": "bev_ffj_12", "name": "Arabian Pulpy Grape Juice", "price": 60, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_13", "name": "Spicy Guava Juice", "price": 55, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Spicy"] },
-            { "id": "bev_ffj_14", "name": "Plain Guava Juice", "price": 50, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] },
-            { "id": "bev_ffj_15", "name": "Fresh Sugar Cane Juice", "price": 40, "category": "Beverages & Welcome Drinks", "subCategory": "Fresh Fruit Juices", "dietary": ["Vegetarian", "Vegan", "Gluten-Free"] }
-          ]
-        },
-        {
-          "name": "Falooda (Seasonal)",
-          "items": [
-            { "id": "bev_fal_1", "name": "Mango Falooda", "price": 90, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_2", "name": "Litchi Falooda", "price": 90, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_3", "name": "Rose Milk Falooda", "price": 80, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_4", "name": "Gulkand Falooda", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_5", "name": "Kesar Falooda", "price": 95, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_6", "name": "Kulfi Falooda", "price": 95, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_7", "name": "Royal Fruit Falooda", "price": 100, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] },
-            { "id": "bev_fal_8", "name": "Belgian Chocolate Falooda", "price": 95, "category": "Beverages & Welcome Drinks", "subCategory": "Falooda (Seasonal)", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Milkshakes & Shell Juices",
-          "items": [
-            { "id": "bev_mls_1", "name": "Oreo Milkshake", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_2", "name": "Kitkat Milkshake", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_3", "name": "Vanilla Milkshake", "price": 70, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_4", "name": "Apple Shake", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_5", "name": "Chickoo Shake", "price": 70, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_6", "name": "Dryfruit Royal Shake", "price": 110, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "bev_mls_7", "name": "Chocolate Shake", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_8", "name": "Blueberry Shake", "price": 90, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_9", "name": "Red Velvet Shake", "price": 95, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_10", "name": "Butterscotch Shake", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_11", "name": "Blackcurrant Shake", "price": 80, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_12", "name": "Litchi Gulkand Shake", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_13", "name": "Ferrero Rocher Shake", "price": 120, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "bev_mls_14", "name": "Banana Caramel Shake", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_15", "name": "Fresh Mango Shake", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_16", "name": "Seethapal (Custard Apple) Shake", "price": 95, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_17", "name": "Strawberry Shake", "price": 80, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_18", "name": "Butter Fruit (Avocado) Shake", "price": 105, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Superfood"] },
-            { "id": "bev_mls_19", "name": "Pineapple Shell Juice", "price": 90, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Natural Shell"] },
-            { "id": "bev_mls_20", "name": "Muskmelon Shell Juice", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Natural Shell"] },
-            { "id": "bev_mls_21", "name": "Watermelon Shell Juice", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Natural Shell"] },
-            { "id": "bev_mls_22", "name": "Guava Shell Juice", "price": 85, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian", "Natural Shell"] },
-            { "id": "bev_mls_23", "name": "2-Layered Rainbow Shake", "price": 100, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] },
-            { "id": "bev_mls_24", "name": "3-Layered Royal Fusion Shake", "price": 120, "category": "Beverages & Welcome Drinks", "subCategory": "Milkshakes & Shell Juices", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Special Cold Drinks & Mocktails",
-          "items": [
-            { "id": "bev_mkl_1", "name": "Jigar Thanda (Madurai Spl)", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Special Cold Drinks & Mocktails", "dietary": ["Vegetarian", "Authentic Heritage"] },
-            { "id": "bev_mkl_2", "name": "Sweet Lassi with Fruit Juice", "price": 60, "category": "Beverages & Welcome Drinks", "subCategory": "Special Cold Drinks & Mocktails", "dietary": ["Vegetarian"] },
-            { "id": "bev_mkl_3", "name": "Royal Fruit Punch", "price": 65, "category": "Beverages & Welcome Drinks", "subCategory": "Special Cold Drinks & Mocktails", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "bev_mkl_4", "name": "Traditional Aam Panna", "price": 50, "category": "Beverages & Welcome Drinks", "subCategory": "Special Cold Drinks & Mocktails", "dietary": ["Vegetarian", "Vegan", "Summer Cooler"] },
-            { "id": "bev_mkl_5", "name": "Mango Strawberry Mocktail", "price": 75, "category": "Beverages & Welcome Drinks", "subCategory": "Special Cold Drinks & Mocktails", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "bev_mkl_6", "name": "Live Mocktail Counter (6-8 Varieties)", "price": 120, "category": "Beverages & Welcome Drinks", "subCategory": "Special Cold Drinks & Mocktails", "dietary": ["Vegetarian", "Live Counter"] }
-          ]
-        },
-        {
-          "name": "Hot Beverages",
-          "items": [
-            { "id": "bev_hot_1", "name": "South Indian Filter Coffee", "price": 30, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian", "Traditional"] },
-            { "id": "bev_hot_2", "name": "Caramel Coffee", "price": 45, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian"] },
-            { "id": "bev_hot_3", "name": "Almond Coffee", "price": 50, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian"] },
-            { "id": "bev_hot_4", "name": "Walnut Coffee", "price": 50, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian"] },
-            { "id": "bev_hot_5", "name": "Masala Chai", "price": 25, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian"] },
-            { "id": "bev_hot_6", "name": "Fresh Mint Tea", "price": 25, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "bev_hot_7", "name": "Organic Green Tea", "price": 30, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian", "Vegan", "Healthy"] },
-            { "id": "bev_hot_8", "name": "Ginger (Adrak) Tea", "price": 25, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian"] },
-            { "id": "bev_hot_9", "name": "Elaichi (Cardamom) Tea", "price": 25, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian"] },
-            { "id": "bev_hot_10", "name": "Honey Lemon Tea", "price": 30, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "bev_hot_11", "name": "Jasmine Green Tea", "price": 35, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "bev_hot_12", "name": "Royal Saffron Badam Milk", "price": 55, "category": "Beverages & Welcome Drinks", "subCategory": "Hot Beverages", "dietary": ["Vegetarian", "Nuts Rich"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_appetizers",
-      "name": "Appetizers, Chaats & Street Food",
-      "subCategories": [
-        {
-          "name": "Starters & Finger Foods",
-          "items": [
-            { "id": "app_str_op1", "name": "Operation Capsicum Bonda (Stuffed Bell Pepper)", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Signature Item"] },
-            { "id": "app_str_op2", "name": "Operation Long Chilli Bajji (Seasoned Filling)", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "app_str_op3", "name": "Operation Mirchi Bajji Stuffed with Paneer Tikka", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Chef Special"] },
-            { "id": "app_str_sp1", "name": "Spider Paneer (Crispy Noodle Encasement)", "price": 95, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Fusion"] },
-            { "id": "app_str_sp2", "name": "Spanish Bite Tikki / Manchurian", "price": 80, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_gc1", "name": "Gold Coin with White Till (Sesame Bread Coins)", "price": 70, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_md1", "name": "Crispy Maddur Vada", "price": 50, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Karnataka Heritage"] },
-            { "id": "app_str_1", "name": "Crispy Spring Rolls", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_2", "name": "Harabhara Kabab", "price": 80, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_3", "name": "Italian Cheese Roll", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_4", "name": "Paneer Roll", "price": 90, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_5", "name": "Schezwan Veg Roll", "price": 80, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "app_str_6", "name": "Corn Cheese Nuggets", "price": 80, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_7", "name": "Babycorn Cigars on Mayo", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_8", "name": "Crispy Babycorn Lollipops", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_9", "name": "Tandoori Veg Tikka", "price": 90, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_10", "name": "Paneer Tikka Angara", "price": 120, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_11", "name": "Sugarcane Skewer Tikka", "price": 100, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_12", "name": "Raw Jackfruit Tikka", "price": 110, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Chef Special"] },
-            { "id": "app_str_13", "name": "Steamed Veg Dimsum / Momos", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_14", "name": "Sizzler Momos", "price": 95, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_15", "name": "Crispy Kothey Momos", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_16", "name": "Dahi Kabab", "price": 90, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_17", "name": "Veg Seekh Kabab", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_18", "name": "Broccoli Cheese Bites", "price": 95, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_19", "name": "Beetroot Cheese Cutlet", "price": 70, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian"] },
-            { "id": "app_str_20", "name": "Live Barbeque Grill Counter", "price": 140, "category": "Appetizers, Chaats & Street Food", "subCategory": "Starters & Finger Foods", "dietary": ["Vegetarian", "Live Counter"] }
-          ]
-        },
-        {
-          "name": "Soups & Shorbas",
-          "items": [
-            { "id": "app_sop_1", "name": "Badam Broccoli Soup", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "app_sop_2", "name": "Walnut Spinach Soup", "price": 80, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian", "Healthy"] },
-            { "id": "app_sop_3", "name": "Veg Manchow Soup (+ Crispy Noodles)", "price": 70, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian"] },
-            { "id": "app_sop_4", "name": "Sweet Corn Veg Soup", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian"] },
-            { "id": "app_sop_5", "name": "Tomato Basil Soup", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian"] },
-            { "id": "app_sop_6", "name": "Hot n Sour Veg Soup", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "app_sop_7", "name": "Tulsi Ka Shorba", "price": 70, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian", "Ayurvedic"] },
-            { "id": "app_sop_8", "name": "Tomato Dhaniya Shorba", "price": 60, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian"] },
-            { "id": "app_sop_9", "name": "Cold Watermelon Gazpacho Soup", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian", "Vegan", "Chilled"] },
-            { "id": "app_sop_10", "name": "Classic Italian Minestrone Soup", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian"] },
-            { "id": "app_sop_11", "name": "Roasted Bell Pepper Soup", "price": 80, "category": "Appetizers, Chaats & Street Food", "subCategory": "Soups & Shorbas", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Regional Chaats",
-          "items": [
-            { "id": "app_cht_1", "name": "Bangarpet Pani Poori (Clear Water)", "price": 50, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian", "Karnataka Special"] },
-            { "id": "app_cht_2", "name": "Masala Poori", "price": 50, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_3", "name": "Floating Pani Poori", "price": 60, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_4", "name": "Nippat Masala", "price": 45, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_5", "name": "Bangalore Ghee Bhel", "price": 55, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_6", "name": "Mini Chakli Masala", "price": 45, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_7", "name": "Chintamani Congress Masala", "price": 40, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_8", "name": "Aloo Tikki Chaat", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_9", "name": "Mumbai Pav Bhaji", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_10", "name": "Mongolian Pav Bhaji", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_11", "name": "Pav Bhaji Fondue", "price": 95, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian", "Fusion"] },
-            { "id": "app_cht_12", "name": "Dahi Bhalla", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_13", "name": "Banarasi Tamatar Chaat", "price": 60, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian", "UP Special"] },
-            { "id": "app_cht_14", "name": "Banarasi Paneer Chaat", "price": 75, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_15", "name": "Dahi Poori", "price": 60, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_16", "name": "Bun Nippat Masala", "price": 50, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_17", "name": "Palak Patta Chaat", "price": 65, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] },
-            { "id": "app_cht_18", "name": "Paneer Shawarma Roll", "price": 85, "category": "Appetizers, Chaats & Street Food", "subCategory": "Regional Chaats", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Quick Snacks",
-          "items": [
-            { "id": "app_snk_1", "name": "Mumbai Vada Pav", "price": 35, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_2", "name": "Grilled Cheese Vada Pav", "price": 50, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_3", "name": "Assorted Club Sandwiches", "price": 55, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_4", "name": "Hindupur Masala Toast", "price": 50, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_5", "name": "Sabakki (Sago) Bonda", "price": 45, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_6", "name": "Curd Kodubale", "price": 45, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_7", "name": "Khakhra Cheese Sandwich", "price": 55, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] },
-            { "id": "app_snk_8", "name": "Assorted Bajji Platter (Mirchi, Alu, Raw Banana)", "price": 45, "category": "Appetizers, Chaats & Street Food", "subCategory": "Quick Snacks", "dietary": ["Vegetarian"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_global",
-      "name": "Global & Fusion Cuisines",
-      "subCategories": [
-        {
-          "name": "Italian & Continental",
-          "items": [
-            { "id": "glb_ita_1", "name": "Red Sauce Arrabbiata Pasta", "price": 120, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_2", "name": "White Sauce Alfredo Pasta", "price": 130, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_3", "name": "Green Pesto Basil Pasta", "price": 140, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_4", "name": "Pink Sauce (Mama Rosa) Pasta", "price": 135, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_5", "name": "Wood-Fired Mini Margherita Pizza", "price": 90, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_6", "name": "Cheesy Garlic Bread", "price": 65, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_7", "name": "Tomato Basil & Olive Bruschetta", "price": 70, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_8", "name": "Stuffed Loaded Nachos & Tacos", "price": 85, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_9", "name": "Falafel Roll with Hummus", "price": 80, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian", "Mediterranean"] },
-            { "id": "glb_ita_10", "name": "Mexican Enchiladas", "price": 95, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] },
-            { "id": "glb_ita_11", "name": "Mini Veg Gourmet Burgers", "price": 75, "category": "Global & Fusion Cuisines", "subCategory": "Italian & Continental", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Chinese",
-          "items": [
-            { "id": "glb_chn_1", "name": "Veg Fried Rice", "price": 100, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_2", "name": "Schezwan Fried Rice", "price": 110, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "glb_chn_3", "name": "Shanghai Fried Rice", "price": 115, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_4", "name": "Singapore Fried Rice", "price": 120, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_5", "name": "Burnt Garlic Fried Rice", "price": 115, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_6", "name": "Chilli Garlic Fried Rice", "price": 110, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "glb_chn_7", "name": "Paneer Fried Rice", "price": 130, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_8", "name": "Manchurian Fried Rice Bowl", "price": 130, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_9", "name": "Veg Hakka Noodles", "price": 105, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_10", "name": "Schezwan Noodles", "price": 115, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "glb_chn_11", "name": "Garlic Babycorn Noodles", "price": 120, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_12", "name": "Paneer Noodles", "price": 130, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] },
-            { "id": "glb_chn_13", "name": "Burnt Garlic Noodles", "price": 115, "category": "Global & Fusion Cuisines", "subCategory": "Chinese", "dietary": ["Vegetarian"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_south_indian",
-      "name": "South Indian Specialties",
-      "subCategories": [
-        {
-          "name": "Breakfast & Tiffins (Dosas & Idlis)",
-          "items": [
-            { "id": "si_idl_moode", "name": "Moode Idly (Steamed in Kedaki Leaves)", "price": 60, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Coastal Heritage"] },
-            { "id": "si_dsa_dav", "name": "Davanagere Benne Dosa", "price": 75, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Heritage Butter"] },
-            { "id": "si_dsa_adai", "name": "Adai Dosa with Aviyal", "price": 80, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Protein Rich"] },
-            { "id": "si_idl_sbk", "name": "Sabakki (Sago) Rawa Idly", "price": 50, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_dsa_1", "name": "Mysore Masala Dosa", "price": 70, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_dsa_2", "name": "Mulbagilu Masala Dosa", "price": 75, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Heritage"] },
-            { "id": "si_dsa_3", "name": "MLA Pesarattu with Upma", "price": 80, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Andhra Special"] },
-            { "id": "si_dsa_4", "name": "Neer Dosa with Chutneys", "price": 60, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Gluten-Free"] },
-            { "id": "si_dsa_5", "name": "Kerala Appam with Veg Stew", "price": 75, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_dsa_6", "name": "Tuppa Kali Dosa (Ghee Dosa)", "price": 65, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_dsa_7", "name": "Healthy Ragi Dosa", "price": 60, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Millet Healthy"] },
-            { "id": "si_dsa_8", "name": "Red Rice Masala Dosa", "price": 70, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_dsa_9", "name": "Spring Veggie Dosa", "price": 75, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_idl_1", "name": "Bidadi Thatte Idly (+ Butter)", "price": 45, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_idl_2", "name": "Akki Thari Idly", "price": 45, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_idl_3", "name": "Traditional Rava Idly with Sagu", "price": 50, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_idl_4", "name": "Kanchipuram Temple Idly", "price": 55, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Temple Heritage"] },
-            { "id": "si_idl_5", "name": "Kotte Kadubu (Jackfruit Leaf Idly)", "price": 60, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_idl_6", "name": "Guntur Spicy Mini Ghee Idly", "price": 60, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "si_idl_7", "name": "Idly Sandwich & Toast", "price": 50, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian"] },
-            { "id": "si_idl_8", "name": "Millet & Red Rice Idly", "price": 50, "category": "South Indian Specialties", "subCategory": "Breakfast & Tiffins (Dosas & Idlis)", "dietary": ["Vegetarian", "Millet Healthy"] }
-          ]
-        },
-        {
-          "name": "Breads (Rotis & Pooris)",
-          "items": [
-            { "id": "si_brd_m2", "name": "Masala Two-Layer Roti", "price": 45, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian", "Signature Roti"] },
-            { "id": "si_brd_red", "name": "Red Rice Akki Roti", "price": 50, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian", "Healthy Grain"] },
-            { "id": "si_brd_pop", "name": "Popcorn Talipattu", "price": 55, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian", "Specialty"] },
-            { "id": "si_brd_1", "name": "Masala Akki Roti with Butter", "price": 50, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_2", "name": "Traditional Ragi Roti", "price": 45, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian", "Millet Healthy"] },
-            { "id": "si_brd_3", "name": "Jolada Roti (Jowar Bhakri) with Butter", "price": 45, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian", "Gluten-Free"] },
-            { "id": "si_brd_4", "name": "Sabakki (Sago) Talipattu", "price": 50, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_5", "name": "Bili Holige (Soft Rice Roti)", "price": 45, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_6", "name": "Kara Holige Varieties", "price": 55, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_7", "name": "Methi Poori with Saagu", "price": 50, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_8", "name": "Palak Poori with Chana", "price": 50, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_9", "name": "Jolada Poori", "price": 45, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] },
-            { "id": "si_brd_10", "name": "Soft Layered Chapathi", "price": 30, "category": "South Indian Specialties", "subCategory": "Breads (Rotis & Pooris)", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Rice Varieties",
-          "items": [
-            { "id": "si_rc_kotte", "name": "Kotte Pulav (Steamed in Jackfruit Leaf Cups)", "price": 85, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Authentic Heritage"] },
-            { "id": "si_rc_potali", "name": "Jackfruit Potali Biryani (Wrapped Parcel)", "price": 165, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Chef Special"] },
-            { "id": "si_rc_bamb", "name": "Jackfruit Bamboo / Donne Biryani", "price": 160, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Rustic Special"] },
-            { "id": "si_rc_flw", "name": "Hyderabadi Biryani in Banana Flower", "price": 170, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Royal Presentation"] },
-            { "id": "si_rc_gong", "name": "Gongura Avakai Rice", "price": 75, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Tangy Andhra"] },
-            { "id": "si_rc_har", "name": "Hariyali Jeera Rice", "price": 70, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "si_rc_nav", "name": "Navane Bisi Bele Bath (Foxtail Millet)", "price": 80, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Millet Healthy"] },
-            { "id": "si_rc_mudde", "name": "Ragi Mudde with Nati Style Kalu Saaru", "price": 90, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Nutritious Millet"] },
-            { "id": "si_rc_1", "name": "Bisi Bele Bath (+ Boondi)", "price": 75, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Iconic Karnataka"] },
-            { "id": "si_rc_2", "name": "Melkote Temple Puliyogare", "price": 65, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Temple Recipe"] },
-            { "id": "si_rc_3", "name": "Mysore Vangibath", "price": 65, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "si_rc_4", "name": "Raw Mango Rice (Mavinakayi Chitranna)", "price": 60, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "si_rc_5", "name": "Traditional Lemon Rice", "price": 50, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "si_rc_6", "name": "Menthya Bath (Fenugreek Rice)", "price": 65, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "si_rc_7", "name": "Avarekalu Chitranna (Seasonal)", "price": 80, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Seasonal Spl"] },
-            { "id": "si_rc_8", "name": "Hyderabadi Veg Biryani", "price": 140, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "si_rc_9", "name": "Raw Jackfruit Dum Biryani", "price": 160, "category": "South Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Chef Special"] }
-          ]
-        },
-        {
-          "name": "Gravies, Sambars & Rasams",
-          "items": [
-            { "id": "si_grv_1", "name": "Ennegai Brinjal Curry", "price": 95, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_2", "name": "Ennegai Capsicum", "price": 95, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_3", "name": "Ennegai Paneer", "price": 120, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_4", "name": "Hithakavare Saaru", "price": 90, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_5", "name": "South Veg Kurma", "price": 85, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_6", "name": "Hotel Style Veg Sagoo", "price": 80, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_7", "name": "Drumstick Sambar", "price": 60, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_8", "name": "Majjige Huli (Ash Gourd Buttermilk Sambar)", "price": 65, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_9", "name": "Brahmin's Style Mixed Veg Kootu", "price": 70, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Pure Jain/No Onion"] },
-            { "id": "si_grv_10", "name": "Fresh Amla Tambuli", "price": 45, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Ayurvedic"] },
-            { "id": "si_grv_11", "name": "Palak Tambuli", "price": 45, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_12", "name": "Ginger (Shunti) Tambuli", "price": 45, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_13", "name": "Traditional Kerala Avial", "price": 85, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_14", "name": "Chettinad Kara Kozhambu", "price": 75, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "si_grv_15", "name": "Vatha Kozhambu", "price": 70, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_16", "name": "Mysore Royal Rasam", "price": 40, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_17", "name": "Tomato Dhaniya Rasam", "price": 40, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_18", "name": "Milagu (Black Pepper) Rasam", "price": 45, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_19", "name": "Jeera Cumin Rasam", "price": 40, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_20", "name": "Pineapple Rasam", "price": 50, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Chef Special"] },
-            { "id": "si_grv_21", "name": "Raw Mango Rasam", "price": 45, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian"] },
-            { "id": "si_grv_22", "name": "Ape Kai (Havyaka Special) Rasam", "price": 50, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Heritage"] },
-            { "id": "si_grv_23", "name": "Betel Leaf (Vettilai) Rasam Drink", "price": 50, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Ayurvedic"] },
-            { "id": "si_grv_24", "name": "Masala Majjige (Spiced Buttermilk)", "price": 25, "category": "South Indian Specialties", "subCategory": "Gravies, Sambars & Rasams", "dietary": ["Vegetarian", "Refreshing"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_north_indian",
-      "name": "North Indian Specialties",
-      "subCategories": [
-        {
-          "name": "Breads",
-          "items": [
-            { "id": "ni_brd_chur", "name": "Chur Chur Naan Amritsari", "price": 70, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian", "Crispy Layered"] },
-            { "id": "ni_brd_naw", "name": "Nawabi Thava Soft Naan/Roti", "price": 55, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_1", "name": "Butter Naan", "price": 45, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_2", "name": "Pista Naan", "price": 60, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "ni_brd_3", "name": "Baby Garlic Naan", "price": 50, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_4", "name": "Amritsari Kulcha", "price": 65, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_5", "name": "Delhi Stuffed Kulcha", "price": 65, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_6", "name": "Stuffed Aloo Paratha", "price": 60, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_7", "name": "Paneer Paratha", "price": 75, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_8", "name": "Green Peas Paratha", "price": 55, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_9", "name": "Missi Roti", "price": 40, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_10", "name": "Tandoori Butter Roti", "price": 30, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_11", "name": "Rumali Roti", "price": 35, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] },
-            { "id": "ni_brd_12", "name": "Phulkas with Pure Ghee", "price": 20, "category": "North Indian Specialties", "subCategory": "Breads", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Gravies & Curries",
-          "items": [
-            { "id": "ni_grv_1", "name": "Paneer Butter Masala", "price": 140, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_2", "name": "Paneer Tikka Masala", "price": 150, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_3", "name": "Veg Kolhapuri", "price": 125, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "ni_grv_4", "name": "Veg Kadai", "price": 120, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_5", "name": "Nargis Kofta Curry", "price": 145, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_6", "name": "Dal Makhani (Slow Cooked)", "price": 130, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_7", "name": "Dhaba Dal Tadka", "price": 100, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_8", "name": "Amritsari Chana Masala", "price": 110, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_9", "name": "Methi Malai Mutter", "price": 135, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] },
-            { "id": "ni_grv_10", "name": "Dum Aloo Do Pyaza", "price": 115, "category": "North Indian Specialties", "subCategory": "Gravies & Curries", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Rice Varieties",
-          "items": [
-            { "id": "ni_rc_makh", "name": "Paneer Carrot Makhani Biryani", "price": 160, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Rich Gravy Rice"] },
-            { "id": "ni_rc_1", "name": "Royal Veg Dum Biryani", "price": 140, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "ni_rc_2", "name": "Mughlai Biryani", "price": 150, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "ni_rc_3", "name": "Paneer Dum Biryani", "price": 155, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "ni_rc_4", "name": "Bamboo Biryani", "price": 165, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Chef Special"] },
-            { "id": "ni_rc_5", "name": "Handi / Claypot Biryani", "price": 150, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "ni_rc_6", "name": "Kashmiri Pulao (with Dry Fruits)", "price": 130, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "ni_rc_7", "name": "Fragrant Ghee Rice", "price": 85, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] },
-            { "id": "ni_rc_8", "name": "Moong Dal Khichdi (+ Ghee & Papad)", "price": 80, "category": "North Indian Specialties", "subCategory": "Rice Varieties", "dietary": ["Vegetarian"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_sides",
-      "name": "Sides, Accompaniments & Salads",
-      "subCategories": [
-        {
-          "name": "Palyas (Stir-fries & Dry Curries)",
-          "items": [
-            { "id": "sd_ply_1", "name": "French Beans Palya", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "sd_ply_2", "name": "Mixed Vegetable Steamed Palya", "price": 55, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian", "Vegan"] },
-            { "id": "sd_ply_3", "name": "Avarekalu Usli", "price": 70, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_4", "name": "Groundnut (Peanut) Usli", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_5", "name": "Cabbage Coconut Palya", "price": 45, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_6", "name": "Akki Unde Palya", "price": 55, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_7", "name": "Bhendi Jaipuri (Crispy Okra)", "price": 65, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_8", "name": "Bhendi Vepudu (Andhra Style)", "price": 65, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_9", "name": "Aloo Finger Fry", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_10", "name": "Thondekai (Tindora) Fry", "price": 55, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_11", "name": "Crispy Corn Boondi Fry", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] },
-            { "id": "sd_ply_12", "name": "Lotus Stem (Kamal Kakdi) Fry", "price": 75, "category": "Sides, Accompaniments & Salads", "subCategory": "Palyas (Stir-fries & Dry Curries)", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Salads & Kosambaris",
-          "items": [
-            { "id": "sd_sld_1", "name": "Hesaru Bele Kosambari (Moong Dal)", "price": 40, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian", "Traditional"] },
-            { "id": "sd_sld_2", "name": "Kadle Bele Kosambari (Chana Dal)", "price": 40, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian"] },
-            { "id": "sd_sld_3", "name": "Sprouted Moong Kosambari", "price": 45, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian", "Healthy"] },
-            { "id": "sd_sld_4", "name": "Guava & Sweet Corn Kosambari", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian"] },
-            { "id": "sd_sld_5", "name": "Grapes Pineapple Fruit Kosambari", "price": 55, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian"] },
-            { "id": "sd_sld_6", "name": "Russian Salad", "price": 55, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian"] },
-            { "id": "sd_sld_7", "name": "Mexican Fiesta Salad", "price": 60, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian"] },
-            { "id": "sd_sld_8", "name": "Corn Capsicum Crunchy Salad", "price": 45, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian"] },
-            { "id": "sd_sld_9", "name": "Sprouts Power Salad", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian", "Healthy"] },
-            { "id": "sd_sld_10", "name": "Rainbow Tossed Fresh Salad", "price": 50, "category": "Sides, Accompaniments & Salads", "subCategory": "Salads & Kosambaris", "dietary": ["Vegetarian", "Vegan"] }
-          ]
-        },
-        {
-          "name": "Accompaniments (Chutneys, Raitas, Gojjus, Papads & Pickles)",
-          "items": [
-            { "id": "sd_acc_1", "name": "Fresh Coconut Chutney", "price": 25, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_2", "name": "Pudina Mint Chutney", "price": 25, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_3", "name": "Kara Tomato Chutney", "price": 25, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_4", "name": "Shenga (Peanut) Chutney", "price": 30, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_5", "name": "Jamkai (Guava) Chutney", "price": 35, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_6", "name": "Raw Mango (Mavinakayi) Chutney", "price": 30, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_7", "name": "Neer Chutney", "price": 20, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_8", "name": "Boondi Raita", "price": 30, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_9", "name": "Cucumber Mint Raita", "price": 30, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_10", "name": "Pineapple Sweet & Tangy Gojju", "price": 40, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_11", "name": "Dates & Tamarind Gojju", "price": 40, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_12", "name": "Ripe Mango Sweet Gojju", "price": 45, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_13", "name": "Palak Papad", "price": 20, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_14", "name": "Carrot Papad", "price": 20, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_15", "name": "Traditional Rice Appalam", "price": 15, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_16", "name": "Peni Sandige (Fryums)", "price": 20, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_17", "name": "Avakai Mango Pickle", "price": 20, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian", "Spicy"] },
-            { "id": "sd_acc_18", "name": "Amtekai (Hog Plum) Pickle", "price": 25, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] },
-            { "id": "sd_acc_19", "name": "Green Chilli & Whole Amla Pickle", "price": 20, "category": "Sides, Accompaniments & Salads", "subCategory": "Accompaniments", "dietary": ["Vegetarian"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_desserts",
-      "name": "Desserts, Sweets & Ice Creams",
-      "subCategories": [
-        {
-          "name": "Traditional South Indian Sweets & Holige",
-          "items": [
-            { "id": "sw_hol_jkp", "name": "Jackfruit (Halasina Hannu) Payasa", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Seasonal Hero"] },
-            { "id": "sw_hol_mngp", "name": "Mango Sabakki Payasa", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Summer Special"] },
-            { "id": "sw_hol_godh", "name": "Godhi Lychee Payasa", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Specialty Kheer"] },
-            { "id": "sw_hol_appi", "name": "Appi Payasam Udupi Brahmin Style", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Temple Heritage"] },
-            { "id": "sw_hol_ada", "name": "Ada Pradanam Kerala Payasa", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Traditional"] },
-            { "id": "sw_hol_mag", "name": "Magaja Seeds Payasa with Chikki Powder", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Nutrient Dense"] },
-            { "id": "sw_hol_cova", "name": "Carrot Cova Holige + Ghee", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Rich Mawa"] },
-            { "id": "sw_hol_anj", "name": "Anjura (Fig) Holige", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Dry Fruit"] },
-            { "id": "sw_hol_anjh", "name": "Anjur Halwa in Jackfruit with Honey", "price": 95, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Royal Platter"] },
-            { "id": "sw_hol_1", "name": "Bele Holige (Dal Puran Poli)", "price": 50, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Pure Ghee"] },
-            { "id": "sw_hol_2", "name": "Kai Holige (Coconut Poli)", "price": 55, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_3", "name": "Kova Holige", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Rich Mawa"] },
-            { "id": "sw_hol_4", "name": "Badam Holige", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "sw_hol_5", "name": "Dry Fruit Royal Holige", "price": 90, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "sw_hol_6", "name": "Gulkand Holige", "price": 65, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_7", "name": "Kashi Halwa Holige (Ash Gourd)", "price": 65, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_8", "name": "Gasagase Payasa (Poppy Seeds Kheer)", "price": 65, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Traditional"] },
-            { "id": "sw_hol_9", "name": "Shavige (Vermicelli) Payasa", "price": 55, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_10", "name": "Hayagreeva Maddi (Chana Dal Sweet)", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Temple Special"] },
-            { "id": "sw_hol_11", "name": "Melt-in-Mouth Mysore Pak (Ghee)", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Pure Ghee"] },
-            { "id": "sw_hol_12", "name": "Motichur Ladoo", "price": 45, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_13", "name": "Badusha", "price": 45, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_14", "name": "Pheni Chiroti (+ Warm Badam Milk)", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] },
-            { "id": "sw_hol_15", "name": "Live Crispy Jalebi with Rabdi", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian", "Live Counter"] },
-            { "id": "sw_hol_16", "name": "Royal Imarti", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Traditional South Indian Sweets & Holige", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "North Indian, Bengali & Dry Fruit Sweets",
-          "items": [
-            { "id": "sw_nor_seeth", "name": "Seethapal (Custard Apple) Rasmalai", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Signature Milk Sweet"] },
-            { "id": "sw_nor_mras", "name": "Fresh Mango Rasmalai", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Seasonal Spl"] },
-            { "id": "sw_nor_litch", "name": "Litchi Sandesh", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] },
-            { "id": "sw_nor_rgud", "name": "Rose Gudwala Sandesh", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Jaggery Sweet"] },
-            { "id": "sw_nor_chan", "name": "Chandraharam (Royal Flaky Sweet)", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Heritage"] },
-            { "id": "sw_nor_1", "name": "Kaju Katli (Silver-Foil Free)", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Rich Cashew", "Foil Free"] },
-            { "id": "sw_nor_2", "name": "Kaju Pista Roll", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Rich Nuts"] },
-            { "id": "sw_nor_3", "name": "Badam Barfi", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian", "Rich Almond"] },
-            { "id": "sw_nor_4", "name": "Spongy Kolkata Rasgulla", "price": 50, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] },
-            { "id": "sw_nor_5", "name": "Kesar Rasmalai", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] },
-            { "id": "sw_nor_6", "name": "Cham Cham", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] },
-            { "id": "sw_nor_7", "name": "Bengali Nolen Gur Sandesh", "price": 65, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] },
-            { "id": "sw_nor_8", "name": "Malpua with Rabdi", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] },
-            { "id": "sw_nor_9", "name": "Shahi Tukda with Dry Fruits", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "North Indian, Bengali & Dry Fruit Sweets", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Modern Desserts, Cakes & Puddings",
-          "items": [
-            { "id": "sw_mod_panc", "name": "Red Velvet Pancake & Nutella Tacos", "price": 90, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian", "Fusion"] },
-            { "id": "sw_mod_1", "name": "Black Forest Pastry", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian", "Eggless"] },
-            { "id": "sw_mod_2", "name": "Red Velvet Pastry with Cream Cheese", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian", "Eggless"] },
-            { "id": "sw_mod_3", "name": "Butterscotch Pastry", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian", "Eggless"] },
-            { "id": "sw_mod_4", "name": "Gourmet Assorted Cupcakes", "price": 50, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian", "Eggless"] },
-            { "id": "sw_mod_5", "name": "Fresh Litchi Pudding", "price": 65, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian"] },
-            { "id": "sw_mod_6", "name": "Chocolate Silk Mousse Pudding", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian"] },
-            { "id": "sw_mod_7", "name": "Sapota (Chikoo) Caramel Pudding", "price": 65, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian"] },
-            { "id": "sw_mod_8", "name": "Sugar-Free / Diabetic Sweets Platter", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Modern Desserts, Cakes & Puddings", "dietary": ["Vegetarian", "Diabetic Friendly", "Sugar-Free"] }
-          ]
-        },
-        {
-          "name": "Ice Creams & Fruits",
-          "items": [
-            { "id": "sw_ice_triv", "name": "Triveni Ice Cream (Vanilla + Gulkan + Banana)", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Signature Ice Cream"] },
-            { "id": "sw_ice_guav", "name": "Guava Chilli Artisan Ice Cream", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Spicy Sweet"] },
-            { "id": "sw_ice_kulf", "name": "Mango Matka Kulfi on Stick", "price": 70, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian"] },
-            { "id": "sw_ice_fig", "name": "Naturals Fig-Honey & Rajbhog Ice Cream", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian"] },
-            { "id": "sw_ice_1", "name": "Fresh Cut Exotic Fruit Platter", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Vegan", "Fresh"] },
-            { "id": "sw_ice_2", "name": "Matka Malai Kulfi on Stick", "price": 60, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian"] },
-            { "id": "sw_ice_3", "name": "Natural Sitaphal (Custard Apple) Ice Cream", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Natural Fruit"] },
-            { "id": "sw_ice_4", "name": "Natural Tender Coconut Ice Cream", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Natural Fruit"] },
-            { "id": "sw_ice_5", "name": "Natural Alphonso Mango Ice Cream", "price": 75, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Natural Fruit"] },
-            { "id": "sw_ice_6", "name": "Avocado Fusion Ice Cream", "price": 95, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Exotic Fusion"] },
-            { "id": "sw_ice_7", "name": "Betel Leaf (Paan) Ice Cream", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Exotic Fusion"] },
-            { "id": "sw_ice_8", "name": "Activated Charcoal Vanilla Ice Cream", "price": 85, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Exotic Fusion"] },
-            { "id": "sw_ice_9", "name": "Jaggery Ginger Artisan Ice Cream", "price": 80, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Exotic Fusion"] },
-            { "id": "sw_ice_10", "name": "Wasabi Fusion Ice Cream Scoop", "price": 95, "category": "Desserts, Sweets & Ice Creams", "subCategory": "Ice Creams & Fruits", "dietary": ["Vegetarian", "Exotic Fusion"] }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_finishers",
-      "name": "After-Meal / Traditional Finishers",
-      "subCategories": [
-        {
-          "name": "Paan (Mouth Freshners)",
-          "items": [
-            { "id": "fin_pan_1", "name": "Banarasi Meetha Paan", "price": 30, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian", "Traditional"] },
-            { "id": "fin_pan_2", "name": "Magai Sweet Paan", "price": 35, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian"] },
-            { "id": "fin_pan_3", "name": "Calcutta Mithi Patti Paan", "price": 35, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian"] },
-            { "id": "fin_pan_4", "name": "Belgian Chocolate Paan", "price": 45, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian", "Fusion"] },
-            { "id": "fin_pan_5", "name": "Live Fire Paan", "price": 50, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian", "Live Counter"] },
-            { "id": "fin_pan_6", "name": "Karjura (Dates) Paan", "price": 40, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian", "Sugar Free Choice"] },
-            { "id": "fin_pan_7", "name": "Traditional Sada Paan", "price": 25, "category": "After-Meal / Traditional Finishers", "subCategory": "Paan (Mouth Freshners)", "dietary": ["Vegetarian"] }
-          ]
-        },
-        {
-          "name": "Tambula",
-          "items": [
-            { "id": "fin_tam_1", "name": "Special Packaged Tambula", "price": 35, "category": "After-Meal / Traditional Finishers", "subCategory": "Tambula", "dietary": ["Vegetarian", "Traditional"] },
-            { "id": "fin_tam_2", "name": "Traditional South Indian Tambula (Betel, Nut, Banana & Coconut)", "price": 45, "category": "After-Meal / Traditional Finishers", "subCategory": "Tambula", "dietary": ["Vegetarian", "Auspicious"] },
-            { "id": "fin_tam_3", "name": "Royal Tambula with Mukhwas Sweets", "price": 55, "category": "After-Meal / Traditional Finishers", "subCategory": "Tambula", "dietary": ["Vegetarian", "Premium"] }
-          ]
-        }
-      ]
-    }
-  ]
-}
+[
+  {
+    "_id": "bev_ffj_1",
+    "name": "Fresh Orange Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_2",
+    "name": "Sweet Lime (Mosambi) Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_3",
+    "name": "Fresh Amla Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free",
+      "Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_4",
+    "name": "Fresh Anar (Pomegranate) Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_5",
+    "name": "Muskmelon Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_6",
+    "name": "Watermelon Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_7",
+    "name": "Pudina Lime Cooler",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 40,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_8",
+    "name": "Anar Amla Mix Health Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free",
+      "Immunity"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_9",
+    "name": "Pudina Pineapple Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_10",
+    "name": "Fresh Fruit Soda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_11",
+    "name": "Tender Coconut Juice (Elaneer)",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 65,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free",
+      "Pure Natural"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_12",
+    "name": "Arabian Pulpy Grape Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_13",
+    "name": "Spicy Guava Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_14",
+    "name": "Plain Guava Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_ffj_15",
+    "name": "Fresh Sugar Cane Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Fresh Fruit Juices",
+    "price": 40,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_1",
+    "name": "Mango Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_2",
+    "name": "Litchi Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_3",
+    "name": "Rose Milk Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_4",
+    "name": "Gulkand Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_5",
+    "name": "Kesar Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_6",
+    "name": "Kulfi Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_7",
+    "name": "Royal Fruit Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 100,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_fal_8",
+    "name": "Belgian Chocolate Falooda",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Falooda (Seasonal)",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_1",
+    "name": "Oreo Milkshake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_2",
+    "name": "Kitkat Milkshake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_3",
+    "name": "Vanilla Milkshake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_4",
+    "name": "Apple Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_5",
+    "name": "Chickoo Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_6",
+    "name": "Dryfruit Royal Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 110,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_7",
+    "name": "Chocolate Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_8",
+    "name": "Blueberry Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_9",
+    "name": "Red Velvet Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_10",
+    "name": "Butterscotch Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_11",
+    "name": "Blackcurrant Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_12",
+    "name": "Litchi Gulkand Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_13",
+    "name": "Ferrero Rocher Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 120,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_14",
+    "name": "Banana Caramel Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_15",
+    "name": "Fresh Mango Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_16",
+    "name": "Seethapal (Custard Apple) Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_17",
+    "name": "Strawberry Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_18",
+    "name": "Butter Fruit (Avocado) Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 105,
+    "dietary": [
+      "Vegetarian",
+      "Superfood"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_19",
+    "name": "Pineapple Shell Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 90,
+    "dietary": [
+      "Vegetarian",
+      "Natural Shell"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_20",
+    "name": "Muskmelon Shell Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Natural Shell"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_21",
+    "name": "Watermelon Shell Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Natural Shell"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_22",
+    "name": "Guava Shell Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Natural Shell"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_23",
+    "name": "2-Layered Rainbow Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 100,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mls_24",
+    "name": "3-Layered Royal Fusion Shake",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Milkshakes & Shell Juices",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mkl_1",
+    "name": "Jigar Thanda (Madurai Spl)",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Special Cold Drinks & Mocktails",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Authentic Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mkl_2",
+    "name": "Sweet Lassi with Fruit Juice",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Special Cold Drinks & Mocktails",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mkl_3",
+    "name": "Royal Fruit Punch",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Special Cold Drinks & Mocktails",
+    "price": 65,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mkl_4",
+    "name": "Traditional Aam Panna",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Special Cold Drinks & Mocktails",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Summer Cooler"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mkl_5",
+    "name": "Mango Strawberry Mocktail",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Special Cold Drinks & Mocktails",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_mkl_6",
+    "name": "Live Mocktail Counter (6-8 Varieties)",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Special Cold Drinks & Mocktails",
+    "price": 120,
+    "dietary": [
+      "Vegetarian",
+      "Live Counter"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_1",
+    "name": "South Indian Filter Coffee",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 30,
+    "dietary": [
+      "Vegetarian",
+      "Traditional"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_2",
+    "name": "Caramel Coffee",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_3",
+    "name": "Almond Coffee",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_4",
+    "name": "Walnut Coffee",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_5",
+    "name": "Masala Chai",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_6",
+    "name": "Fresh Mint Tea",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 25,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_7",
+    "name": "Organic Green Tea",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 30,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_8",
+    "name": "Ginger (Adrak) Tea",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_9",
+    "name": "Elaichi (Cardamom) Tea",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_10",
+    "name": "Honey Lemon Tea",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 30,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_11",
+    "name": "Jasmine Green Tea",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 35,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "bev_hot_12",
+    "name": "Royal Saffron Badam Milk",
+    "category": "Beverages & Welcome Drinks",
+    "subCategory": "Hot Beverages",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Nuts Rich"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_op1",
+    "name": "Operation Capsicum Bonda (Stuffed Bell Pepper)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Signature Item"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_op2",
+    "name": "Operation Long Chilli Bajji (Seasoned Filling)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 65,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_op3",
+    "name": "Operation Mirchi Bajji Stuffed with Paneer Tikka",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Chef Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_sp1",
+    "name": "Spider Paneer (Crispy Noodle Encasement)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 95,
+    "dietary": [
+      "Vegetarian",
+      "Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_sp2",
+    "name": "Spanish Bite Tikki / Manchurian",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_gc1",
+    "name": "Gold Coin with White Till (Sesame Bread Coins)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_md1",
+    "name": "Crispy Maddur Vada",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Karnataka Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_1",
+    "name": "Crispy Spring Rolls",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_2",
+    "name": "Harabhara Kabab",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_3",
+    "name": "Italian Cheese Roll",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_4",
+    "name": "Paneer Roll",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_5",
+    "name": "Schezwan Veg Roll",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_6",
+    "name": "Corn Cheese Nuggets",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_7",
+    "name": "Babycorn Cigars on Mayo",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_8",
+    "name": "Crispy Babycorn Lollipops",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_9",
+    "name": "Tandoori Veg Tikka",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_10",
+    "name": "Paneer Tikka Angara",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_11",
+    "name": "Sugarcane Skewer Tikka",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 100,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_12",
+    "name": "Raw Jackfruit Tikka",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 110,
+    "dietary": [
+      "Vegetarian",
+      "Chef Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_13",
+    "name": "Steamed Veg Dimsum / Momos",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_14",
+    "name": "Sizzler Momos",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_15",
+    "name": "Crispy Kothey Momos",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_16",
+    "name": "Dahi Kabab",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_17",
+    "name": "Veg Seekh Kabab",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_18",
+    "name": "Broccoli Cheese Bites",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_19",
+    "name": "Beetroot Cheese Cutlet",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_str_20",
+    "name": "Live Barbeque Grill Counter",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Starters & Finger Foods",
+    "price": 140,
+    "dietary": [
+      "Vegetarian",
+      "Live Counter"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_1",
+    "name": "Badam Broccoli Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_2",
+    "name": "Walnut Spinach Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_3",
+    "name": "Veg Manchow Soup (+ Crispy Noodles)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_4",
+    "name": "Sweet Corn Veg Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_5",
+    "name": "Tomato Basil Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_6",
+    "name": "Hot n Sour Veg Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 65,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_7",
+    "name": "Tulsi Ka Shorba",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Ayurvedic"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_8",
+    "name": "Tomato Dhaniya Shorba",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_9",
+    "name": "Cold Watermelon Gazpacho Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Chilled"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_10",
+    "name": "Classic Italian Minestrone Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_sop_11",
+    "name": "Roasted Bell Pepper Soup",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Soups & Shorbas",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_1",
+    "name": "Bangarpet Pani Poori (Clear Water)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Karnataka Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_2",
+    "name": "Masala Poori",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_3",
+    "name": "Floating Pani Poori",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_4",
+    "name": "Nippat Masala",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_5",
+    "name": "Bangalore Ghee Bhel",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_6",
+    "name": "Mini Chakli Masala",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_7",
+    "name": "Chintamani Congress Masala",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_8",
+    "name": "Aloo Tikki Chaat",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_9",
+    "name": "Mumbai Pav Bhaji",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_10",
+    "name": "Mongolian Pav Bhaji",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_11",
+    "name": "Pav Bhaji Fondue",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 95,
+    "dietary": [
+      "Vegetarian",
+      "Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_12",
+    "name": "Dahi Bhalla",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_13",
+    "name": "Banarasi Tamatar Chaat",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "UP Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_14",
+    "name": "Banarasi Paneer Chaat",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_15",
+    "name": "Dahi Poori",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_16",
+    "name": "Bun Nippat Masala",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_17",
+    "name": "Palak Patta Chaat",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_cht_18",
+    "name": "Paneer Shawarma Roll",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Regional Chaats",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_1",
+    "name": "Mumbai Vada Pav",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 35,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_2",
+    "name": "Grilled Cheese Vada Pav",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_3",
+    "name": "Assorted Club Sandwiches",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_4",
+    "name": "Hindupur Masala Toast",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_5",
+    "name": "Sabakki (Sago) Bonda",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_6",
+    "name": "Curd Kodubale",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_7",
+    "name": "Khakhra Cheese Sandwich",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "app_snk_8",
+    "name": "Assorted Bajji Platter (Mirchi, Alu, Raw Banana)",
+    "category": "Appetizers, Chaats & Street Food",
+    "subCategory": "Quick Snacks",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_1",
+    "name": "Red Sauce Arrabbiata Pasta",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_2",
+    "name": "White Sauce Alfredo Pasta",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 130,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_3",
+    "name": "Green Pesto Basil Pasta",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 140,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_4",
+    "name": "Pink Sauce (Mama Rosa) Pasta",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 135,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_5",
+    "name": "Wood-Fired Mini Margherita Pizza",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_6",
+    "name": "Cheesy Garlic Bread",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_7",
+    "name": "Tomato Basil & Olive Bruschetta",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_8",
+    "name": "Stuffed Loaded Nachos & Tacos",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_9",
+    "name": "Falafel Roll with Hummus",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Mediterranean"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_10",
+    "name": "Mexican Enchiladas",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_ita_11",
+    "name": "Mini Veg Gourmet Burgers",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Italian & Continental",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_1",
+    "name": "Veg Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 100,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_2",
+    "name": "Schezwan Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 110,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_3",
+    "name": "Shanghai Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 115,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_4",
+    "name": "Singapore Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_5",
+    "name": "Burnt Garlic Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 115,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_6",
+    "name": "Chilli Garlic Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 110,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_7",
+    "name": "Paneer Fried Rice",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 130,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_8",
+    "name": "Manchurian Fried Rice Bowl",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 130,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_9",
+    "name": "Veg Hakka Noodles",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 105,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_10",
+    "name": "Schezwan Noodles",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 115,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_11",
+    "name": "Garlic Babycorn Noodles",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_12",
+    "name": "Paneer Noodles",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 130,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "glb_chn_13",
+    "name": "Burnt Garlic Noodles",
+    "category": "Global & Fusion Cuisines",
+    "subCategory": "Chinese",
+    "price": 115,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_moode",
+    "name": "Moode Idly (Steamed in Kedaki Leaves)",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Coastal Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_dav",
+    "name": "Davanagere Benne Dosa",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Heritage Butter"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_adai",
+    "name": "Adai Dosa with Aviyal",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Protein Rich"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_sbk",
+    "name": "Sabakki (Sago) Rawa Idly",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_1",
+    "name": "Mysore Masala Dosa",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_2",
+    "name": "Mulbagilu Masala Dosa",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_3",
+    "name": "MLA Pesarattu with Upma",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Andhra Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_4",
+    "name": "Neer Dosa with Chutneys",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_5",
+    "name": "Kerala Appam with Veg Stew",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_6",
+    "name": "Tuppa Kali Dosa (Ghee Dosa)",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_7",
+    "name": "Healthy Ragi Dosa",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Millet Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_8",
+    "name": "Red Rice Masala Dosa",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_dsa_9",
+    "name": "Spring Veggie Dosa",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_1",
+    "name": "Bidadi Thatte Idly (+ Butter)",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_2",
+    "name": "Akki Thari Idly",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_3",
+    "name": "Traditional Rava Idly with Sagu",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_4",
+    "name": "Kanchipuram Temple Idly",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Temple Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_5",
+    "name": "Kotte Kadubu (Jackfruit Leaf Idly)",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_6",
+    "name": "Guntur Spicy Mini Ghee Idly",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_7",
+    "name": "Idly Sandwich & Toast",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_idl_8",
+    "name": "Millet & Red Rice Idly",
+    "category": "South Indian Specialties",
+    "subCategory": "Breakfast & Tiffins (Dosas & Idlis)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Millet Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_m2",
+    "name": "Masala Two-Layer Roti",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Signature Roti"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_red",
+    "name": "Red Rice Akki Roti",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Healthy Grain"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_pop",
+    "name": "Popcorn Talipattu",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Specialty"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_1",
+    "name": "Masala Akki Roti with Butter",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_2",
+    "name": "Traditional Ragi Roti",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Millet Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_3",
+    "name": "Jolada Roti (Jowar Bhakri) with Butter",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Gluten-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_4",
+    "name": "Sabakki (Sago) Talipattu",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_5",
+    "name": "Bili Holige (Soft Rice Roti)",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_6",
+    "name": "Kara Holige Varieties",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_7",
+    "name": "Methi Poori with Saagu",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_8",
+    "name": "Palak Poori with Chana",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_9",
+    "name": "Jolada Poori",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_brd_10",
+    "name": "Soft Layered Chapathi",
+    "category": "South Indian Specialties",
+    "subCategory": "Breads (Rotis & Pooris)",
+    "price": 30,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_kotte",
+    "name": "Kotte Pulav (Steamed in Jackfruit Leaf Cups)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Authentic Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_potali",
+    "name": "Jackfruit Potali Biryani (Wrapped Parcel)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 165,
+    "dietary": [
+      "Vegetarian",
+      "Chef Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_bamb",
+    "name": "Jackfruit Bamboo / Donne Biryani",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 160,
+    "dietary": [
+      "Vegetarian",
+      "Rustic Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_flw",
+    "name": "Hyderabadi Biryani in Banana Flower",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 170,
+    "dietary": [
+      "Vegetarian",
+      "Royal Presentation"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_gong",
+    "name": "Gongura Avakai Rice",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Tangy Andhra"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_har",
+    "name": "Hariyali Jeera Rice",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_nav",
+    "name": "Navane Bisi Bele Bath (Foxtail Millet)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Millet Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_mudde",
+    "name": "Ragi Mudde with Nati Style Kalu Saaru",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 90,
+    "dietary": [
+      "Vegetarian",
+      "Nutritious Millet"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_1",
+    "name": "Bisi Bele Bath (+ Boondi)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Iconic Karnataka"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_2",
+    "name": "Melkote Temple Puliyogare",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 65,
+    "dietary": [
+      "Vegetarian",
+      "Temple Recipe"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_3",
+    "name": "Mysore Vangibath",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_4",
+    "name": "Raw Mango Rice (Mavinakayi Chitranna)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_5",
+    "name": "Traditional Lemon Rice",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_6",
+    "name": "Menthya Bath (Fenugreek Rice)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_7",
+    "name": "Avarekalu Chitranna (Seasonal)",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Seasonal Spl"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_8",
+    "name": "Hyderabadi Veg Biryani",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 140,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_rc_9",
+    "name": "Raw Jackfruit Dum Biryani",
+    "category": "South Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 160,
+    "dietary": [
+      "Vegetarian",
+      "Chef Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_1",
+    "name": "Ennegai Brinjal Curry",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_2",
+    "name": "Ennegai Capsicum",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 95,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_3",
+    "name": "Ennegai Paneer",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_4",
+    "name": "Hithakavare Saaru",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 90,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_5",
+    "name": "South Veg Kurma",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_6",
+    "name": "Hotel Style Veg Sagoo",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_7",
+    "name": "Drumstick Sambar",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_8",
+    "name": "Majjige Huli (Ash Gourd Buttermilk Sambar)",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_9",
+    "name": "Brahmin's Style Mixed Veg Kootu",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Pure Jain/No Onion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_10",
+    "name": "Fresh Amla Tambuli",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Ayurvedic"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_11",
+    "name": "Palak Tambuli",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_12",
+    "name": "Ginger (Shunti) Tambuli",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_13",
+    "name": "Traditional Kerala Avial",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_14",
+    "name": "Chettinad Kara Kozhambu",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_15",
+    "name": "Vatha Kozhambu",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_16",
+    "name": "Mysore Royal Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_17",
+    "name": "Tomato Dhaniya Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_18",
+    "name": "Milagu (Black Pepper) Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_19",
+    "name": "Jeera Cumin Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_20",
+    "name": "Pineapple Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Chef Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_21",
+    "name": "Raw Mango Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_22",
+    "name": "Ape Kai (Havyaka Special) Rasam",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_23",
+    "name": "Betel Leaf (Vettilai) Rasam Drink",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Ayurvedic"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "si_grv_24",
+    "name": "Masala Majjige (Spiced Buttermilk)",
+    "category": "South Indian Specialties",
+    "subCategory": "Gravies, Sambars & Rasams",
+    "price": 25,
+    "dietary": [
+      "Vegetarian",
+      "Refreshing"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_chur",
+    "name": "Chur Chur Naan Amritsari",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Crispy Layered"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_naw",
+    "name": "Nawabi Thava Soft Naan/Roti",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_1",
+    "name": "Butter Naan",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_2",
+    "name": "Pista Naan",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_3",
+    "name": "Baby Garlic Naan",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_4",
+    "name": "Amritsari Kulcha",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_5",
+    "name": "Delhi Stuffed Kulcha",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_6",
+    "name": "Stuffed Aloo Paratha",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_7",
+    "name": "Paneer Paratha",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_8",
+    "name": "Green Peas Paratha",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_9",
+    "name": "Missi Roti",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_10",
+    "name": "Tandoori Butter Roti",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 30,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_11",
+    "name": "Rumali Roti",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 35,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_brd_12",
+    "name": "Phulkas with Pure Ghee",
+    "category": "North Indian Specialties",
+    "subCategory": "Breads",
+    "price": 20,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_1",
+    "name": "Paneer Butter Masala",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 140,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_2",
+    "name": "Paneer Tikka Masala",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 150,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_3",
+    "name": "Veg Kolhapuri",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 125,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_4",
+    "name": "Veg Kadai",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 120,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_5",
+    "name": "Nargis Kofta Curry",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 145,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_6",
+    "name": "Dal Makhani (Slow Cooked)",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 130,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_7",
+    "name": "Dhaba Dal Tadka",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 100,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_8",
+    "name": "Amritsari Chana Masala",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 110,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_9",
+    "name": "Methi Malai Mutter",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 135,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_grv_10",
+    "name": "Dum Aloo Do Pyaza",
+    "category": "North Indian Specialties",
+    "subCategory": "Gravies & Curries",
+    "price": 115,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_makh",
+    "name": "Paneer Carrot Makhani Biryani",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 160,
+    "dietary": [
+      "Vegetarian",
+      "Rich Gravy Rice"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_1",
+    "name": "Royal Veg Dum Biryani",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 140,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_2",
+    "name": "Mughlai Biryani",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 150,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_3",
+    "name": "Paneer Dum Biryani",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 155,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_4",
+    "name": "Bamboo Biryani",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 165,
+    "dietary": [
+      "Vegetarian",
+      "Chef Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_5",
+    "name": "Handi / Claypot Biryani",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 150,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_6",
+    "name": "Kashmiri Pulao (with Dry Fruits)",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 130,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_7",
+    "name": "Fragrant Ghee Rice",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "ni_rc_8",
+    "name": "Moong Dal Khichdi (+ Ghee & Papad)",
+    "category": "North Indian Specialties",
+    "subCategory": "Rice Varieties",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_1",
+    "name": "French Beans Palya",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_2",
+    "name": "Mixed Vegetable Steamed Palya",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_3",
+    "name": "Avarekalu Usli",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_4",
+    "name": "Groundnut (Peanut) Usli",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_5",
+    "name": "Cabbage Coconut Palya",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_6",
+    "name": "Akki Unde Palya",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_7",
+    "name": "Bhendi Jaipuri (Crispy Okra)",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_8",
+    "name": "Bhendi Vepudu (Andhra Style)",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_9",
+    "name": "Aloo Finger Fry",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_10",
+    "name": "Thondekai (Tindora) Fry",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_11",
+    "name": "Crispy Corn Boondi Fry",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_ply_12",
+    "name": "Lotus Stem (Kamal Kakdi) Fry",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Palyas (Stir-fries & Dry Curries)",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_1",
+    "name": "Hesaru Bele Kosambari (Moong Dal)",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 40,
+    "dietary": [
+      "Vegetarian",
+      "Traditional"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_2",
+    "name": "Kadle Bele Kosambari (Chana Dal)",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_3",
+    "name": "Sprouted Moong Kosambari",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_4",
+    "name": "Guava & Sweet Corn Kosambari",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_5",
+    "name": "Grapes Pineapple Fruit Kosambari",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_6",
+    "name": "Russian Salad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_7",
+    "name": "Mexican Fiesta Salad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_8",
+    "name": "Corn Capsicum Crunchy Salad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_9",
+    "name": "Sprouts Power Salad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Healthy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_sld_10",
+    "name": "Rainbow Tossed Fresh Salad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Salads & Kosambaris",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_1",
+    "name": "Fresh Coconut Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_2",
+    "name": "Pudina Mint Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_3",
+    "name": "Kara Tomato Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_4",
+    "name": "Shenga (Peanut) Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 30,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_5",
+    "name": "Jamkai (Guava) Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 35,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_6",
+    "name": "Raw Mango (Mavinakayi) Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 30,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_7",
+    "name": "Neer Chutney",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 20,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_8",
+    "name": "Boondi Raita",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 30,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_9",
+    "name": "Cucumber Mint Raita",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 30,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_10",
+    "name": "Pineapple Sweet & Tangy Gojju",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_11",
+    "name": "Dates & Tamarind Gojju",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 40,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_12",
+    "name": "Ripe Mango Sweet Gojju",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_13",
+    "name": "Palak Papad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 20,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_14",
+    "name": "Carrot Papad",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 20,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_15",
+    "name": "Traditional Rice Appalam",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 15,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_16",
+    "name": "Peni Sandige (Fryums)",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 20,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_17",
+    "name": "Avakai Mango Pickle",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 20,
+    "dietary": [
+      "Vegetarian",
+      "Spicy"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_18",
+    "name": "Amtekai (Hog Plum) Pickle",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sd_acc_19",
+    "name": "Green Chilli & Whole Amla Pickle",
+    "category": "Sides, Accompaniments & Salads",
+    "subCategory": "Accompaniments",
+    "price": 20,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_jkp",
+    "name": "Jackfruit (Halasina Hannu) Payasa",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Seasonal Hero"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_mngp",
+    "name": "Mango Sabakki Payasa",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Summer Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_godh",
+    "name": "Godhi Lychee Payasa",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Specialty Kheer"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_appi",
+    "name": "Appi Payasam Udupi Brahmin Style",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Temple Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_ada",
+    "name": "Ada Pradanam Kerala Payasa",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Traditional"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_mag",
+    "name": "Magaja Seeds Payasa with Chikki Powder",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Nutrient Dense"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_cova",
+    "name": "Carrot Cova Holige + Ghee",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Rich Mawa"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_anj",
+    "name": "Anjura (Fig) Holige",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Dry Fruit"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_anjh",
+    "name": "Anjur Halwa in Jackfruit with Honey",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 95,
+    "dietary": [
+      "Vegetarian",
+      "Royal Platter"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_1",
+    "name": "Bele Holige (Dal Puran Poli)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Pure Ghee"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_2",
+    "name": "Kai Holige (Coconut Poli)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_3",
+    "name": "Kova Holige",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Rich Mawa"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_4",
+    "name": "Badam Holige",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_5",
+    "name": "Dry Fruit Royal Holige",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 90,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_6",
+    "name": "Gulkand Holige",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_7",
+    "name": "Kashi Halwa Holige (Ash Gourd)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_8",
+    "name": "Gasagase Payasa (Poppy Seeds Kheer)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 65,
+    "dietary": [
+      "Vegetarian",
+      "Traditional"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_9",
+    "name": "Shavige (Vermicelli) Payasa",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 55,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_10",
+    "name": "Hayagreeva Maddi (Chana Dal Sweet)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Temple Special"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_11",
+    "name": "Melt-in-Mouth Mysore Pak (Ghee)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Pure Ghee"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_12",
+    "name": "Motichur Ladoo",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_13",
+    "name": "Badusha",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 45,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_14",
+    "name": "Pheni Chiroti (+ Warm Badam Milk)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_15",
+    "name": "Live Crispy Jalebi with Rabdi",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Live Counter"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_hol_16",
+    "name": "Royal Imarti",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Traditional South Indian Sweets & Holige",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_seeth",
+    "name": "Seethapal (Custard Apple) Rasmalai",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Signature Milk Sweet"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_mras",
+    "name": "Fresh Mango Rasmalai",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Seasonal Spl"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_litch",
+    "name": "Litchi Sandesh",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_rgud",
+    "name": "Rose Gudwala Sandesh",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Jaggery Sweet"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_chan",
+    "name": "Chandraharam (Royal Flaky Sweet)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Heritage"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_1",
+    "name": "Kaju Katli (Silver-Foil Free)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 70,
+    "dietary": [
+      "Vegetarian",
+      "Rich Cashew",
+      "Foil Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_2",
+    "name": "Kaju Pista Roll",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Rich Nuts"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_3",
+    "name": "Badam Barfi",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Rich Almond"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_4",
+    "name": "Spongy Kolkata Rasgulla",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 50,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_5",
+    "name": "Kesar Rasmalai",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_6",
+    "name": "Cham Cham",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_7",
+    "name": "Bengali Nolen Gur Sandesh",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_8",
+    "name": "Malpua with Rabdi",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 80,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_nor_9",
+    "name": "Shahi Tukda with Dry Fruits",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "North Indian, Bengali & Dry Fruit Sweets",
+    "price": 75,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_panc",
+    "name": "Red Velvet Pancake & Nutella Tacos",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 90,
+    "dietary": [
+      "Vegetarian",
+      "Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_1",
+    "name": "Black Forest Pastry",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Eggless"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_2",
+    "name": "Red Velvet Pastry with Cream Cheese",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Eggless"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_3",
+    "name": "Butterscotch Pastry",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 60,
+    "dietary": [
+      "Vegetarian",
+      "Eggless"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_4",
+    "name": "Gourmet Assorted Cupcakes",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Eggless"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_5",
+    "name": "Fresh Litchi Pudding",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_6",
+    "name": "Chocolate Silk Mousse Pudding",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_7",
+    "name": "Sapota (Chikoo) Caramel Pudding",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 65,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_mod_8",
+    "name": "Sugar-Free / Diabetic Sweets Platter",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Modern Desserts, Cakes & Puddings",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Diabetic Friendly",
+      "Sugar-Free"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_triv",
+    "name": "Triveni Ice Cream (Vanilla + Gulkan + Banana)",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Signature Ice Cream"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_guav",
+    "name": "Guava Chilli Artisan Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Spicy Sweet"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_kulf",
+    "name": "Mango Matka Kulfi on Stick",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 70,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_fig",
+    "name": "Naturals Fig-Honey & Rajbhog Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 85,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_1",
+    "name": "Fresh Cut Exotic Fruit Platter",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Vegan",
+      "Fresh"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_2",
+    "name": "Matka Malai Kulfi on Stick",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 60,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_3",
+    "name": "Natural Sitaphal (Custard Apple) Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Natural Fruit"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_4",
+    "name": "Natural Tender Coconut Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Natural Fruit"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_5",
+    "name": "Natural Alphonso Mango Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 75,
+    "dietary": [
+      "Vegetarian",
+      "Natural Fruit"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_6",
+    "name": "Avocado Fusion Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 95,
+    "dietary": [
+      "Vegetarian",
+      "Exotic Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_7",
+    "name": "Betel Leaf (Paan) Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Exotic Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_8",
+    "name": "Activated Charcoal Vanilla Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 85,
+    "dietary": [
+      "Vegetarian",
+      "Exotic Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_9",
+    "name": "Jaggery Ginger Artisan Ice Cream",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 80,
+    "dietary": [
+      "Vegetarian",
+      "Exotic Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "sw_ice_10",
+    "name": "Wasabi Fusion Ice Cream Scoop",
+    "category": "Desserts, Sweets & Ice Creams",
+    "subCategory": "Ice Creams & Fruits",
+    "price": 95,
+    "dietary": [
+      "Vegetarian",
+      "Exotic Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_1",
+    "name": "Banarasi Meetha Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 30,
+    "dietary": [
+      "Vegetarian",
+      "Traditional"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_2",
+    "name": "Magai Sweet Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 35,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_3",
+    "name": "Calcutta Mithi Patti Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 35,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_4",
+    "name": "Belgian Chocolate Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Fusion"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_5",
+    "name": "Live Fire Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 50,
+    "dietary": [
+      "Vegetarian",
+      "Live Counter"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_6",
+    "name": "Karjura (Dates) Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 40,
+    "dietary": [
+      "Vegetarian",
+      "Sugar Free Choice"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_pan_7",
+    "name": "Traditional Sada Paan",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Paan (Mouth Freshners)",
+    "price": 25,
+    "dietary": [
+      "Vegetarian"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_tam_1",
+    "name": "Special Packaged Tambula",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Tambula",
+    "price": 35,
+    "dietary": [
+      "Vegetarian",
+      "Traditional"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_tam_2",
+    "name": "Traditional South Indian Tambula (Betel, Nut, Banana & Coconut)",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Tambula",
+    "price": 45,
+    "dietary": [
+      "Vegetarian",
+      "Auspicious"
+    ],
+    "recipe": []
+  },
+  {
+    "_id": "fin_tam_3",
+    "name": "Royal Tambula with Mukhwas Sweets",
+    "category": "After-Meal / Traditional Finishers",
+    "subCategory": "Tambula",
+    "price": 55,
+    "dietary": [
+      "Vegetarian",
+      "Premium"
+    ],
+    "recipe": []
+  }
+]

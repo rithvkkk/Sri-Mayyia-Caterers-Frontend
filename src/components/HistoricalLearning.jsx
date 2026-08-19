@@ -335,7 +335,7 @@ const HistoricalLearning = () => {
               <div style={{ padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                    🌾 Cooked Rice Requirement (Biryani / Pulav / Sambar Rice)
+                    Cooked Rice Requirement (Biryani / Pulav / Sambar Rice)
                   </span>
                   <span className={`badge ${riceEstimate.confidence === 'High' ? 'badge-success' : 'badge-warning'}`}>
                     Confidence: {riceEstimate.confidence} ({riceEstimate.sampleSize} comparable events)
@@ -370,7 +370,7 @@ const HistoricalLearning = () => {
               <div style={{ padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                    💧 300ml Packaged Mineral Water Units
+                    300ml Packaged Mineral Water Units
                   </span>
                   <span className={`badge ${waterEstimate.confidence === 'High' ? 'badge-success' : 'badge-warning'}`}>
                     Confidence: {waterEstimate.confidence} ({waterEstimate.sampleSize} comparable events)
@@ -456,8 +456,9 @@ const HistoricalLearning = () => {
                   {m.matchFactors.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
                       {m.matchFactors.map((fact, fIdx) => (
-                        <span key={fIdx} style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontWeight: 600 }}>
-                          ✓ {fact}
+                        <span key={fIdx} style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Check size={11} />
+                          <span>{fact}</span>
                         </span>
                       ))}
                     </div>
@@ -465,7 +466,7 @@ const HistoricalLearning = () => {
 
                   {m.historicalEvent.postEventNotes && (
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', background: 'rgba(0,0,0,0.15)', padding: '0.4rem 0.6rem', borderRadius: '6px' }}>
-                      💬 <strong>Post-Event Log:</strong> {m.historicalEvent.postEventNotes}
+                      <strong>Post-Event Log:</strong> {m.historicalEvent.postEventNotes}
                     </div>
                   )}
                 </div>

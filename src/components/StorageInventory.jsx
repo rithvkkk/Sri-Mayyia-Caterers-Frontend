@@ -50,7 +50,7 @@ const StorageInventory = () => {
           <div className="kpi-details">
             <h3>Total Vessels & Utensils</h3>
             <div className="kpi-value">{totalCount} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>units</span></div>
-            {damagedCount > 0 && (<div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.25rem', fontWeight: 600 }}>⚠️ {damagedCount} damaged/lost</div>)}
+            {damagedCount > 0 && (<div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.25rem', fontWeight: 600 }}>{damagedCount} damaged/lost</div>)}
           </div>
           <div className="kpi-icon icon-blue"><Utensils size={22} /></div>
         </div>

@@ -274,7 +274,7 @@ const Inventory = () => {
             <div className="kpi-value">{totalVesselsCount} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>units</span></div>
             {damagedVesselsCount > 0 && (
               <div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.25rem', fontWeight: 600 }}>
-                ⚠️ {damagedVesselsCount} damaged/lost
+                {damagedVesselsCount} damaged/lost
               </div>
             )}
           </div>
@@ -289,11 +289,11 @@ const Inventory = () => {
             <div className="kpi-value">{provisions.length} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>categories</span></div>
             {lowStockProvisionsCount > 0 ? (
               <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginTop: '0.25rem', fontWeight: 600 }}>
-                ⚠️ {lowStockProvisionsCount} items low stock
+                {lowStockProvisionsCount} items low stock
               </div>
             ) : (
               <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.25rem', fontWeight: 600 }}>
-                ✅ All stock healthy
+                All stock healthy
               </div>
             )}
           </div>
@@ -308,11 +308,11 @@ const Inventory = () => {
             <div className="kpi-value">{vegetables.length} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>items</span></div>
             {urgentVegCount > 0 ? (
               <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem', fontWeight: 600 }}>
-                🚨 {urgentVegCount} expiring / urgent use
+                {urgentVegCount} expiring / urgent use
               </div>
             ) : (
               <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.25rem', fontWeight: 600 }}>
-                🌿 Fresh daily stock
+                Fresh daily stock
               </div>
             )}
           </div>

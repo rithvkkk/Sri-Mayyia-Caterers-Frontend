@@ -206,7 +206,7 @@ const AppContent = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {isFadingOut ? '🎉 MongoDB Connected! Entering App...' : 'Server Connecting to Cloud...'}
+              {isFadingOut ? 'MongoDB Connected! Entering App...' : 'Server Connecting to Cloud...'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '420px' }}>
               {isFadingOut ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...' : 'Establishing secure live connection. Please wait while database initializes...'}
@@ -362,7 +362,7 @@ const AppContent = () => {
                   <span>Local Storage Active</span>
                 )}
                 <span style={{ cursor: 'help' }} title="If backend server is running on port 5000 or Vercel, click refresh icon to establish live connection.">
-                  {syncStatus === 'connected' ? '🟢 Live 2-Way' : '⚡ Offline'}
+                  {syncStatus === 'connected' ? 'Live 2-Way' : 'Offline'}
                 </span>
               </div>
             </div>

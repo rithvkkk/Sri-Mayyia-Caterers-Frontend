@@ -58,7 +58,7 @@ const ProvisionInventory = () => {
             <h3>Low Stock Alerts</h3>
             <div className="kpi-value" style={{ color: lowStockCount > 0 ? 'var(--color-warning)' : 'var(--color-success)' }}>{lowStockCount}</div>
             <div style={{ fontSize: '0.75rem', color: lowStockCount > 0 ? 'var(--color-warning)' : 'var(--color-success)', marginTop: '0.25rem', fontWeight: 600 }}>
-              {lowStockCount > 0 ? `⚠️ ${lowStockCount} items need reorder` : '✅ All stock healthy'}
+              {lowStockCount > 0 ? `${lowStockCount} items need reorder` : 'All stock healthy'}
             </div>
           </div>
           <div className="kpi-icon icon-blue"><AlertTriangle size={22} /></div>

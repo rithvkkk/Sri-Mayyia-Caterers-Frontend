@@ -76,7 +76,7 @@ const EVENT_ARCHETYPES = [
 const OPERATIONAL_DIRECTIVES = [
   {
     id: 'jeera_rice',
-    title: '🌾 Jeera Rice Mandatory',
+    title: 'Jeera Rice Mandatory',
     shortLabel: 'Jeera Rice Rule',
     tag: '[DIRECTIVE: Mandatory Jeera Rice (Shristi Village Protocol) - All Biryani & Rice dishes must use premium Jeera Sambha Rice]',
     desc: 'Shristi Village Protocol: Substitutes all Basmati with short-grain fragrant Jeera Rice',
@@ -84,7 +84,7 @@ const OPERATIONAL_DIRECTIVES = [
   },
   {
     id: 'sattvic_brahmin',
-    title: '🪔 Sattvic Brahmin (No Onion / Garlic)',
+    title: 'Sattvic Brahmin (No Onion / Garlic)',
     shortLabel: 'Sattvic Brahmin',
     tag: '[DIRECTIVE: Sattvic Brahmin Style - Pure No Onion & No Garlic + 1.5kg/100 Pax Satyanarayan Vratha Prasadam]',
     desc: 'Pure Udupi Brahmin standard. Excludes all alliums and includes sacred prasadam',
@@ -93,7 +93,7 @@ const OPERATIONAL_DIRECTIVES = [
   },
   {
     id: 'no_soppu',
-    title: '🚫 No Soppu Rule (Zero Greens)',
+    title: 'No Soppu Rule (Zero Greens)',
     shortLabel: 'No Soppu (Greens)',
     tag: '[DIRECTIVE: Zero Leafy Greens (No Soppu) - Strictly strip Palak, Methi, Fenugreek, Spinach from all preparations]',
     desc: 'Swarga Heritage directive: Zero leafy vegetables across all gravies & fries',
@@ -102,7 +102,7 @@ const OPERATIONAL_DIRECTIVES = [
   },
   {
     id: 'foil_free',
-    title: '✨ Silver-Foil Free Confections',
+    title: 'Silver-Foil Free Confections',
     shortLabel: 'Silver-Foil Free',
     tag: '[DIRECTIVE: Silver-Foil Free Sweets - 100% Ahimsa Pure Vegetarian standard on Kaju Katli & Barfis]',
     desc: 'Zero non-vegetarian silver vark/foil on all traditional sweets',
@@ -110,7 +110,7 @@ const OPERATIONAL_DIRECTIVES = [
   },
   {
     id: 'pomegranate_curd',
-    title: '🍇 Pomegranate Curd Rice',
+    title: 'Pomegranate Curd Rice',
     shortLabel: 'Pomegranate Curd Rice',
     tag: '[DIRECTIVE: Pure Pomegranate Curd Rice - No grapes or raisins; garnish exclusively with fresh ruby pomegranate pearls]',
     desc: 'Digestive Curd Rice standard without sweet/sour grapes',
@@ -118,7 +118,7 @@ const OPERATIONAL_DIRECTIVES = [
   },
   {
     id: 'return_parcels',
-    title: '🎁 Bride & Groom Return Parcels',
+    title: 'Bride & Groom Return Parcels',
     shortLabel: 'Return Gift Parcels',
     tag: '[DIRECTIVE: Return Gift Parcels - 100-200 Packaged Boxes per side containing Peni + Ladoo + 1/4kg Mysorepak + 200g Kara Boondi]',
     desc: 'Pre-packaged bridal confectionery takeaway packages for guest departure',
@@ -160,14 +160,14 @@ const MenuPlanning = () => {
 
   // Quick Dietary & Client Request Tags
   const quickTags = [
-    { label: '🌿 Pure Jain', text: '[Pure Jain - No Onion/Garlic]' },
-    { label: '🌶️ Mild Spice', text: '[Mild Spice / Less Oil]' },
-    { label: '🔥 Extra Spicy', text: '[Authentic Spicy & Tangy]' },
-    { label: '🥛 Dairy/Nut Free', text: '[Dairy & Nut Allergy Warning]' },
-    { label: '👑 VIP Service', text: '[VIP Table Dedicated Service]' },
-    { label: '⚡ Fast Refill', text: '[High Demand - Continuous Refill]' },
-    { label: '🍲 Live Counter Hot', text: '[Serve Sizzling Hot from Live Counter]' },
-    { label: '🍃 Organic Banana Leaf', text: '[Traditional Banana Leaf Dining]' }
+    { label: 'Pure Jain', text: '[Pure Jain - No Onion/Garlic]' },
+    { label: 'Mild Spice', text: '[Mild Spice / Less Oil]' },
+    { label: 'Extra Spicy', text: '[Authentic Spicy & Tangy]' },
+    { label: 'Dairy/Nut Free', text: '[Dairy & Nut Allergy Warning]' },
+    { label: 'VIP Service', text: '[VIP Table Dedicated Service]' },
+    { label: 'Fast Refill', text: '[High Demand - Continuous Refill]' },
+    { label: 'Live Counter Hot', text: '[Serve Sizzling Hot from Live Counter]' },
+    { label: 'Organic Banana Leaf', text: '[Traditional Banana Leaf Dining]' }
   ];
 
   // Sync draft when event changes
@@ -773,12 +773,12 @@ const MenuPlanning = () => {
                                       )}
                                       {getHistoricalPortionHint(dish) && (
                                         <span style={{ color: '#818cf8', fontWeight: 600, background: 'rgba(99, 102, 241, 0.1)', padding: '0.05rem 0.3rem', borderRadius: '4px' }}>
-                                          🧠 {getHistoricalPortionHint(dish)}
+                                          {getHistoricalPortionHint(dish)}
                                         </span>
                                       )}
                                       {conflictWarning && (
                                         <span style={{ color: '#ef4444', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
-                                          ⚠️ {conflictWarning}
+                                          {conflictWarning}
                                         </span>
                                       )}
                                     </div>

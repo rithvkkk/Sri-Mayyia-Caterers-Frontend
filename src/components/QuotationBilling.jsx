@@ -682,7 +682,7 @@ const QuotationBilling = () => {
                     <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>20 Events Telemetry</span>
                   </div>
                   <div style={{ color: 'var(--text-secondary)', lineHeight: 1.35 }}>
-                    Historical benchmark for <strong>{currentEvent.eventType}</strong> averages <strong>42.8% net margin</strong> (₹342/Pax food cost). Current quote delivers <strong>{profitMarginPercent.toFixed(1)}%</strong> ({profitMarginPercent >= 40 ? '🟢 On Target' : '⚠️ Below Historical Target'}).
+                    Historical benchmark for <strong>{currentEvent.eventType}</strong> averages <strong>42.8% net margin</strong> (₹342/Pax food cost). Current quote delivers <strong>{profitMarginPercent.toFixed(1)}%</strong> ({profitMarginPercent >= 40 ? 'On Target' : 'Below Historical Target'}).
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { ChefHat, ArrowRight, ShieldAlert, Utensils, HelpCircle } from 'lucide-react';
+import { ChefHat, ArrowRight, ShieldAlert, Utensils, HelpCircle, MessageSquare } from 'lucide-react';
 
 const MenuExecution = () => {
   const {
@@ -135,7 +135,8 @@ const MenuExecution = () => {
               marginBottom: '1.25rem'
             }}>
               <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                <span>💬 Client Kitchen Directives & Dietary Instructions:</span>
+                <MessageSquare size={16} />
+                <span>Client Kitchen Directives & Dietary Instructions:</span>
               </div>
               {currentEvent.menuNotes && (
                 <div style={{ fontSize: '0.82rem', color: '#fcd34d', marginBottom: '0.25rem' }}>

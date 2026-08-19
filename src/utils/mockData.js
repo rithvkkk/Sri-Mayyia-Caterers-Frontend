@@ -42,19 +42,31 @@ export const masterMenuCategories = [
   'After-Meal / Traditional Finishers'
 ];
 
-export const initialDishes = masterMenuData.categories.flatMap(cat =>
-  cat.subCategories.flatMap(sub =>
-    sub.items.map(item => ({
-      id: item.id,
+export const initialDishes = Array.isArray(masterMenuData)
+  ? masterMenuData.map(item => ({
+      id: item.id || item._id,
+      _id: item._id || item.id,
       name: item.name,
       category: item.category,
       subCategory: item.subCategory,
       price: item.price,
       dietary: item.dietary || ['Vegetarian'],
-      recipe: []
+      recipe: item.recipe || []
     }))
-  )
-);
+  : (masterMenuData.categories || []).flatMap(cat =>
+      (cat.subCategories || []).flatMap(sub =>
+        (sub.items || []).map(item => ({
+          id: item.id || item._id,
+          _id: item._id || item.id,
+          name: item.name,
+          category: item.category || cat.name,
+          subCategory: item.subCategory || sub.name,
+          price: item.price,
+          dietary: item.dietary || ['Vegetarian'],
+          recipe: item.recipe || []
+        }))
+      )
+    );
 
 export const initialSuppliers = [
   { id: 's1', name: 'Krishna Grocery Wholesalers', category: 'Grocery', contact: 'Ramesh Patel', phone: '+91 98765 43210' },
