@@ -27,7 +27,7 @@ const RawMaterials = () => {
   const [saving, setSaving] = useState(false);
 
   const currentEvent = events.find(e => e.id === selectedEventId);
-  const isOps = currentRole === 'Admin' || currentRole === 'Manager';
+  const isOps = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager';
   const hasAccess = currentRole !== 'Agency';
 
   if (!hasAccess) {
@@ -36,7 +36,7 @@ const RawMaterials = () => {
         <ShieldAlert size={64} style={{ color: 'var(--color-danger)', marginBottom: '1rem' }} />
         <h2 style={{ marginBottom: '0.5rem' }}>Access Restricted</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Raw material distribution reports are restricted for external Agency profiles. Please log in as an Admin, Manager, Accountant, or Chef.
+          Raw material distribution reports are restricted for external Agency profiles. Please log in as an Admin, HR, Accountant, or Chef.
         </p>
       </div>
     );

@@ -13,7 +13,7 @@ const MenuExecution = () => {
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
   const currentEvent = events.find(e => e.id === selectedEventId);
 
-  const isOps = currentRole === 'Admin' || currentRole === 'Manager';
+  const isOps = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager';
   const isChef = currentRole === 'Chef';
   const hasAccess = isOps || isChef;
 
@@ -92,7 +92,7 @@ const MenuExecution = () => {
         <ShieldAlert size={64} style={{ color: 'var(--color-danger)', marginBottom: '1rem' }} />
         <h2 style={{ marginBottom: '0.5rem' }}>Access Restricted</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Kitchen execution board controls are restricted for Accountants and Agencies. Please switch user to Admin, Manager, or Chef.
+          Kitchen execution board controls are restricted for Accountants and Agencies. Please switch user to Admin, HR, or Chef.
         </p>
       </div>
     );
@@ -103,18 +103,21 @@ const MenuExecution = () => {
   const cookingDishes = eventDishes.filter(d => d.status === 'Cooking');
   const servedDishes = eventDishes.filter(d => d.status === 'Ready' || d.status === 'Served');
 
+  // Collect client instructions across all subfunctions
+  const subFunctionNotes = (currentEvent?.subFunctions || []).filter(sf => sf.clientNotes);
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="gradient-text" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>Kitchen Execution Board</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Route menu items to designated kitchen channels and track preparation steps.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Route menu items to designated kitchen channels and track preparation steps in real time.</p>
         </div>
         
         <div className="form-group" style={{ marginBottom: 0 }}>
           <select className="form-select" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
             {events.map(e => (
-              <option key={e.id} value={e.id}>{e.id} - {e.customer.name}</option>
+              <option key={e.id} value={e.id}>{e.id} - {e.customer?.name}</option>
             ))}
           </select>
         </div>
@@ -122,11 +125,36 @@ const MenuExecution = () => {
 
       {currentEvent ? (
         <div>
+          {/* Client Instructions Alert Banner if present */}
+          {(subFunctionNotes.length > 0 || currentEvent.menuNotes) && (
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              borderRadius: '10px',
+              padding: '0.85rem 1.25rem',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                <span>💬 Client Kitchen Directives & Dietary Instructions:</span>
+              </div>
+              {currentEvent.menuNotes && (
+                <div style={{ fontSize: '0.82rem', color: '#fcd34d', marginBottom: '0.25rem' }}>
+                  <strong>Master Directive:</strong> {currentEvent.menuNotes}
+                </div>
+              )}
+              {subFunctionNotes.map(sf => (
+                <div key={sf.id} style={{ fontSize: '0.82rem', color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+                  <strong>{sf.name}:</strong> <span style={{ color: '#fcd34d' }}>{sf.clientNotes}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Legend and Overview details */}
           <div className="glass-card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ChefHat size={18} className="accent-text" />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Active Event: {currentEvent.customer.name} ({currentEvent.eventType})</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Active Event: {currentEvent.customer?.name} ({currentEvent.eventType})</span>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

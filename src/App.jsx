@@ -12,6 +12,7 @@ import AgencyLabor from './components/AgencyLabor';
 import QuotationBilling from './components/QuotationBilling';
 import Reports from './components/Reports';
 import Login from './components/Login';
+import HistoricalLearning from './components/HistoricalLearning';
 
 import {
   LayoutDashboard,
@@ -30,7 +31,8 @@ import {
   ChefHat,
   BarChart3,
   RefreshCw,
-  Database
+  Database,
+  Brain
 } from 'lucide-react';
 
 const AppContent = () => {
@@ -60,15 +62,16 @@ const AppContent = () => {
 
   // Tab permissions configuration
   const tabPermissions = {
-    dashboard: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    bookings: ['Admin', 'Manager', 'Accountant', 'Accounts Manager', 'Sales Executive', 'Sales'],
-    menu: ['Admin', 'Manager', 'Sales Executive', 'Sales'],
-    vendors: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    provisions: ['Admin', 'Manager', 'Accountant', 'Accounts Manager', 'Store Manager', 'Provision Store Manager'],
-    storage: ['Admin', 'Manager', 'Accountant', 'Accounts Manager', 'Store Manager', 'Storage Store Manager', 'Storage Manager'],
-    labor: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    billing: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
-    reports: ['Admin', 'Manager', 'Accountant', 'Accounts Manager'],
+    dashboard: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
+    bookings: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Sales Executive', 'Sales'],
+    menu: ['Admin', 'HR', 'HR Manager', 'Manager', 'Sales Executive', 'Sales'],
+    historical: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Sales Executive', 'Sales'],
+    vendors: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
+    provisions: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Inhouse Inventory Manager', 'Inhouse Inventory', 'Inhouse Provision Manager', 'Store Manager', 'Provision Store Manager'],
+    storage: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Inhouse Inventory Manager', 'Inhouse Inventory', 'Inhouse Storage Manager', 'Store Manager', 'Storage Store Manager', 'Storage Manager'],
+    labor: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
+    billing: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
+    reports: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
     setup: ['Admin']
   };
 
@@ -81,11 +84,11 @@ const AppContent = () => {
     if (currentRole && !checkPermission(activeTab)) {
       if (currentRole === 'Sales Executive' || currentRole === 'Sales') {
         setActiveTab('bookings');
-      } else if (currentRole === 'Provision Store Manager') {
+      } else if (currentRole === 'Inhouse Provision Manager' || currentRole === 'Provision Store Manager') {
         setActiveTab('provisions');
-      } else if (currentRole === 'Storage Store Manager' || currentRole === 'Storage Manager') {
+      } else if (currentRole === 'Inhouse Storage Manager' || currentRole === 'Storage Store Manager' || currentRole === 'Storage Manager') {
         setActiveTab('storage');
-      } else if (currentRole.includes('Store')) {
+      } else if (currentRole.includes('Inventory') || currentRole.includes('Store')) {
         setActiveTab('provisions');
       } else {
         const firstAllowed = navigationItems.find(item => checkPermission(item.id))?.id || 'bookings';
@@ -98,6 +101,7 @@ const AppContent = () => {
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'bookings', name: 'Event Booking', icon: CalendarDays },
     { id: 'menu', name: 'Menu Planning', icon: UtensilsCrossed },
+    { id: 'historical', name: 'Historical Learning', icon: Brain },
     { id: 'vendors', name: 'Vendor Management', icon: Store },
     { id: 'provisions', name: 'Provision Inventory', icon: Boxes },
     { id: 'storage', name: 'Storage Inventory', icon: Package },
@@ -117,6 +121,7 @@ const AppContent = () => {
       case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
       case 'bookings': return <EventBooking />;
       case 'menu': return <MenuPlanning />;
+      case 'historical': return <HistoricalLearning />;
       case 'vendors': return <VendorManagement />;
       case 'provisions': return <ProvisionInventory />;
       case 'storage': return <StorageInventory />;

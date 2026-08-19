@@ -10,7 +10,8 @@ import {
   initialVessels,
   initialProvisions,
   initialVegetables,
-  initialLabourWorkers
+  initialLabourWorkers,
+  initialLabourAttendance
 } from '../utils/mockData';
 
 export const AppContext = createContext();
@@ -252,6 +253,7 @@ export const AppProvider = ({ children }) => {
   const [provisions, setProvisions] = useState([]);
   const [vegetables, setVegetables] = useState([]);
   const [labourWorkers, setLabourWorkers] = useState([]);
+  const [labourAttendance, setLabourAttendance] = useState(() => getSafeLocal('cater_labour_attendance', initialLabourAttendance));
 
   const [companyProfile, setCompanyProfile] = useState({
     name: 'Sri Mayyia Caterers',
@@ -284,7 +286,7 @@ export const AppProvider = ({ children }) => {
         return await apiCall(path);
       };
 
-      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList] = await Promise.all([
+      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList, laList] = await Promise.all([
         fetchEndpoint('/venues'),
         fetchEndpoint('/raw-materials'),
         fetchEndpoint('/dishes'),
@@ -297,7 +299,8 @@ export const AppProvider = ({ children }) => {
         fetchEndpoint('/vessels'),
         fetchEndpoint('/provisions'),
         fetchEndpoint('/vegetables'),
-        fetchEndpoint('/labour-workers')
+        fetchEndpoint('/labour-workers'),
+        fetchEndpoint('/labour-attendance')
       ]);
 
       const isServerReachable = statusRes?.status === 'online' || Array.isArray(vList) || Array.isArray(dList);
@@ -320,6 +323,7 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(prvList)) setProvisions(prvList);
       if (Array.isArray(vegList)) setVegetables(vegList);
       if (Array.isArray(lwList)) setLabourWorkers(lwList);
+      if (Array.isArray(laList)) setLabourAttendance(laList);
 
       setSyncStatus('connected');
       setLastSyncedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -389,6 +393,10 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cater_labour_workers', JSON.stringify(labourWorkers));
   }, [labourWorkers]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_labour_attendance', JSON.stringify(labourAttendance));
+  }, [labourAttendance]);
 
   useEffect(() => {
     localStorage.setItem('cater_events', JSON.stringify(events));
@@ -609,6 +617,29 @@ export const AppProvider = ({ children }) => {
     setLabourWorkers(prev => prev.filter(w => w.id !== id));
   };
 
+  // Labour Attendance Actions
+  const addLabourAttendance = async (log) => {
+    if (!requireMongoConnection()) return;
+    const payload = { ...log, id: log.id || 'att_' + Date.now() };
+    const res = await apiCall('/labour-attendance', { method: 'POST', body: JSON.stringify(payload) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setLabourAttendance(prev => [...prev, res || payload]);
+  };
+
+  const updateLabourAttendance = async (updated) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/labour-attendance/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setLabourAttendance(prev => prev.map(a => a.id === updated.id ? (res || updated) : a));
+  };
+
+  const deleteLabourAttendance = async (id) => {
+    if (!requireMongoConnection()) return;
+    const res = await apiCall(`/labour-attendance/${id}`, { method: 'DELETE' });
+    if (!res) { alert('❌ Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
+    setLabourAttendance(prev => prev.filter(a => a.id !== id));
+  };
+
   // Event actions
   const createEvent = async (eventDetails) => {
     if (!requireMongoConnection()) return null;
@@ -621,6 +652,11 @@ export const AppProvider = ({ children }) => {
     }
     const newId = `EV-${year}-${String(nextNum).padStart(3, '0')}`;
 
+    const primaryDate = eventDetails.date || (eventDetails.dates && eventDetails.dates[0]) || new Date().toISOString().split('T')[0];
+    const eventDates = eventDetails.dates && eventDetails.dates.length > 0 
+      ? eventDetails.dates 
+      : [primaryDate];
+
     const newEvent = {
       id: newId,
       customer: eventDetails.customer || { name: '', phone: '', email: '' },
@@ -629,15 +665,31 @@ export const AppProvider = ({ children }) => {
       createdByName: currentUser || currentRole || 'admin',
       salesExecutive: currentUser || currentRole || 'admin',
       venueId: eventDetails.venueId || '',
-      date: eventDetails.date || new Date().toISOString().split('T')[0],
-      status: 'Inquiry',
-      subFunctions: eventDetails.subFunctions || [],
+      date: primaryDate,
+      dates: eventDates,
+      status: eventDetails.status || 'Inquiry',
+      reminders: eventDetails.reminders || [],
+      subFunctions: (eventDetails.subFunctions || []).map((sf, idx) => ({
+        id: sf.id || `sf-${Date.now()}-${idx}`,
+        name: sf.name,
+        date: sf.date || primaryDate,
+        guestCount: parseInt(sf.guestCount, 10) || 100,
+        menuItems: sf.menuItems || [],
+        clientNotes: sf.clientNotes || ''
+      })),
+      manualMaterials: eventDetails.manualMaterials || [],
+      transport: eventDetails.transport || {
+        vehicles: [],
+        porters: [],
+        totalTransportCost: 0
+      },
       execution: {
         teamRoutes: {},
         dishStatuses: {},
         costs: {
           rawMaterialsCost: 0,
           laborCost: 0,
+          transportCost: 0,
           venueRent: 0,
           otherExpenses: 0
         }
@@ -697,7 +749,7 @@ export const AppProvider = ({ children }) => {
       const guestCount = parseInt(sub.guestCount, 10) || 0;
       if (guestCount <= 0) return;
 
-      sub.menuItems.forEach(dishId => {
+      (sub.menuItems || []).forEach(dishId => {
         const dish = dishes.find(d => d.id === dishId);
         if (!dish || !dish.recipe) return;
 
@@ -742,6 +794,16 @@ export const AppProvider = ({ children }) => {
       return sum + (parseFloat(alloc.totalPayout) || 0);
     }, 0);
 
+    // Transport calculation (Vehicles + Porters)
+    const vehicleCost = (event.transport?.vehicles || []).reduce((sum, v) => sum + (parseFloat(v.totalCost) || 0), 0);
+    const porterCost = (event.transport?.porters || []).reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
+    const transportCost = vehicleCost + porterCost;
+    if (!event.transport) {
+      event.transport = { vehicles: [], porters: [], totalTransportCost: transportCost };
+    } else {
+      event.transport.totalTransportCost = parseFloat(transportCost.toFixed(2));
+    }
+
     const venue = venues.find(v => v.id === event.venueId);
     const venueRent = venue ? venue.price : 0;
 
@@ -762,9 +824,11 @@ export const AppProvider = ({ children }) => {
       paymentStatus = 'Partially Paid';
     }
 
+    if (!event.execution) event.execution = {};
     event.execution.costs = {
       rawMaterialsCost: parseFloat(rawMaterialsCost.toFixed(2)),
       laborCost: parseFloat(laborCost.toFixed(2)),
+      transportCost: parseFloat(transportCost.toFixed(2)),
       venueRent,
       otherExpenses: event.execution.costs?.otherExpenses || 0
     };
@@ -808,8 +872,10 @@ export const AppProvider = ({ children }) => {
   const resetMasterDatabase = async () => {
     localStorage.setItem('cater_dishes', JSON.stringify(initialDishes));
     localStorage.setItem('cater_events', JSON.stringify(initialEvents));
+    localStorage.setItem('cater_labour_attendance', JSON.stringify(initialLabourAttendance));
     setDishes(initialDishes);
     setEvents(initialEvents);
+    setLabourAttendance(initialLabourAttendance);
     try {
       await apiCall('/seed', { method: 'POST' });
       await apiCall('/api/seed', { method: 'POST' });
@@ -868,6 +934,10 @@ export const AppProvider = ({ children }) => {
       addLabourWorker,
       updateLabourWorker,
       deleteLabourWorker,
+      labourAttendance,
+      addLabourAttendance,
+      updateLabourAttendance,
+      deleteLabourAttendance,
       syncStatus,
       lastSyncedAt,
       triggerManualSync: () => loadData(false),
@@ -884,3 +954,4 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+

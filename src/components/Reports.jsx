@@ -23,7 +23,8 @@ const Reports = () => {
   const totalExpense = events.reduce((sum, e) => {
     const costs = e.execution?.costs || {};
     const manualCosts = (e.manualMaterials || []).reduce((mSum, m) => mSum + (m.totalCost || 0), 0);
-    return sum + (costs.rawMaterialsCost || manualCosts || 0) + (costs.laborCost || 0) + (costs.venueRent || 0) + (costs.otherExpenses || 0);
+    const transportCost = e.transport?.totalTransportCost || costs.transportCost || 0;
+    return sum + (costs.rawMaterialsCost || manualCosts || 0) + (costs.laborCost || 0) + (transportCost || 0) + (costs.venueRent || 0) + (costs.otherExpenses || 0);
   }, 0);
 
   const netProfit = Math.max(0, totalRevenue - totalExpense);

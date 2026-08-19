@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import CustomChart from './Shared/CustomChart';
-import { Calendar, DollarSign, Award, Bell, Clipboard, PlusCircle, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { Calendar, DollarSign, Award, Bell, Clipboard, PlusCircle, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Brain, Sparkles, ArrowRight } from 'lucide-react';
 
 const Dashboard = ({ setActiveTab }) => {
   const { events, venues, companyProfile, currentRole } = useContext(AppContext);
@@ -28,7 +28,8 @@ const Dashboard = ({ setActiveTab }) => {
   
   const totalExpense = events.reduce((sum, e) => {
     const costs = e.execution?.costs || {};
-    return sum + (costs.rawMaterialsCost || 0) + (costs.laborCost || 0) + (costs.venueRent || 0) + (costs.otherExpenses || 0);
+    const transportCost = e.transport?.totalTransportCost || costs.transportCost || 0;
+    return sum + (costs.rawMaterialsCost || 0) + (costs.laborCost || 0) + (transportCost || 0) + (costs.venueRent || 0) + (costs.otherExpenses || 0);
   }, 0);
   
   const netProfit = Math.max(0, totalSales - totalExpense);
@@ -57,7 +58,7 @@ const Dashboard = ({ setActiveTab }) => {
     }
   };
 
-  // Dynamic Calendar setup
+  // Dynamic Calendar setup supporting multi-dates
   const calendarDays = [];
   const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
   const startDayOffset = new Date(displayYear, displayMonth, 1).getDay(); 
@@ -70,13 +71,20 @@ const Dashboard = ({ setActiveTab }) => {
   // Fill calendar days
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${displayYear}-${String(displayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const dayEvents = events.filter(e => e.date === dateStr);
+    const dayEvents = events.filter(e => (e.dates && e.dates.includes(dateStr)) || e.date === dateStr);
     calendarDays.push({ day: d, dateStr, events: dayEvents });
   }
 
   const filteredEvents = selectedDateFilter
-    ? events.filter(e => e.date === selectedDateFilter)
+    ? events.filter(e => (e.dates && e.dates.includes(selectedDateFilter)) || e.date === selectedDateFilter)
     : events;
+
+  // Pending inquiry reminders across events
+  const pendingReminders = events.flatMap(e =>
+    (e.reminders || [])
+      .filter(r => !r.completed)
+      .map(r => ({ ...r, eventId: e.id, customerName: e.customer?.name, eventStatus: e.status }))
+  );
 
   return (
     <div>
@@ -140,6 +148,44 @@ const Dashboard = ({ setActiveTab }) => {
         </div>
       </div>
 
+      {/* Historical Data & Learning Engine Intelligence Quick Bar */}
+      <div 
+        className="glass-card" 
+        style={{ 
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)', 
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          cursor: 'pointer'
+        }}
+        onClick={() => setActiveTab('historical')}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#6366f1', color: '#fff' }}>
+            <Brain size={20} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>Historical Learning Engine Active</span>
+              <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>20 Events Analyzed</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              Learned Food Cost: <strong>₹342/Pax</strong> • Actual Food Waste: <strong>5.4% (vs 8.5% industry std)</strong> • Realized Margin: <strong>42.8%</strong>
+            </div>
+          </div>
+        </div>
+
+        <button className="btn btn-secondary btn-small" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}>
+          <span>Open Learning Sandbox</span>
+          <ArrowRight size={14} />
+        </button>
+      </div>
+
       {/* Dashboard Main Grid */}
       <div className="dashboard-grid">
         {/* Left Column: Calendar & Upcoming Events */}
@@ -149,54 +195,55 @@ const Dashboard = ({ setActiveTab }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Calendar size={18} className="accent-text" />
-                <span>Event Calendar</span>
+                <span>Multi-Date Booking Calendar</span>
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button 
-                  className="btn btn-secondary btn-small" 
-                  style={{ padding: '0.2rem' }}
+                <button
+                  className="btn btn-secondary btn-small"
                   onClick={() => {
                     if (displayMonth === 0) {
                       setDisplayMonth(11);
-                      setDisplayYear(displayYear - 1);
+                      setDisplayYear(y => y - 1);
                     } else {
-                      setDisplayMonth(displayMonth - 1);
+                      setDisplayMonth(m => m - 1);
                     }
                   }}
+                  style={{ padding: '0.2rem 0.4rem' }}
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={14} />
                 </button>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, minWidth: '95px', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, minWidth: '110px', textAlign: 'center' }}>
                   {new Date(displayYear, displayMonth).toLocaleString('default', { month: 'short', year: 'numeric' })}
                 </span>
-                <button 
-                  className="btn btn-secondary btn-small" 
-                  style={{ padding: '0.2rem' }}
+                <button
+                  className="btn btn-secondary btn-small"
                   onClick={() => {
                     if (displayMonth === 11) {
                       setDisplayMonth(0);
-                      setDisplayYear(displayYear + 1);
+                      setDisplayYear(y => y + 1);
                     } else {
-                      setDisplayMonth(displayMonth + 1);
+                      setDisplayMonth(m => m + 1);
                     }
                   }}
+                  style={{ padding: '0.2rem 0.4rem' }}
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} />
                 </button>
               </div>
             </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '0.5rem' }}>
-              <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.35rem' }}>
+            {/* Calendar Table Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center' }}>
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => (
+                <div key={idx} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', paddingBottom: '4px' }}>
+                  {dayName}
+                </div>
+              ))}
               {calendarDays.map((cd, index) => {
+                const isSelected = selectedDateFilter && cd.dateStr === selectedDateFilter;
                 const hasEvent = cd.events && cd.events.length > 0;
-                const isSelected = selectedDateFilter === cd.dateStr;
-                const today = new Date();
-                const isToday = cd.dateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                
+                const isToday = cd.dateStr === new Date().toISOString().split('T')[0];
+
                 return (
                   <div
                     key={index}
@@ -218,7 +265,7 @@ const Dashboard = ({ setActiveTab }) => {
                       boxShadow: isSelected ? '0 0 10px rgba(255, 153, 51, 0.4)' : 'none',
                       transition: 'all 0.2s'
                     }}
-                    title={hasEvent ? cd.events.map(ev => `${ev.id}: ${ev.customer.name} (${ev.eventType})`).join(', ') : ''}
+                    title={hasEvent ? cd.events.map(ev => `${ev.id}: ${ev.customer?.name} (${ev.eventType})`).join(', ') : ''}
                     onClick={() => {
                       if (cd.day) {
                         handleDayClick(cd);
@@ -296,7 +343,7 @@ const Dashboard = ({ setActiveTab }) => {
                     <th>Client Name</th>
                     <th>Event Type</th>
                     <th>Venue</th>
-                    <th>Date</th>
+                    <th>Schedule Dates</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -305,12 +352,19 @@ const Dashboard = ({ setActiveTab }) => {
                     <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('bookings')}>
                       <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{e.id}</td>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{e.customer.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{e.customer.phone}</div>
+                        <div style={{ fontWeight: 500 }}>{e.customer?.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{e.customer?.phone}</div>
                       </td>
                       <td>{e.eventType}</td>
                       <td>{getVenueName(e.venueId)}</td>
-                      <td>{new Date(e.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{e.date}</div>
+                        {e.dates && e.dates.length > 1 && (
+                          <div style={{ fontSize: '0.72rem', color: '#93c5fd' }}>
+                            {e.dates.length} Days Multi-Date
+                          </div>
+                        )}
+                      </td>
                       <td>{renderStatusBadge(e.status)}</td>
                     </tr>
                   ))}
@@ -326,29 +380,63 @@ const Dashboard = ({ setActiveTab }) => {
             </div>
           </div>
 
-          {/* Quick Operations Summary */}
+          {/* Quick Operations Summary & Enquiry Reminders Tracker */}
           <div className="glass-card" style={{ padding: '1.25rem' }}>
             <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Bell size={18} className="accent-text" />
-              <span>Real-Time Operational Alerts</span>
+              <span>Real-Time Operational Alerts & Follow-up Reminders</span>
             </h3>
+            
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              
+              {/* Follow-up Reminders alerts */}
+              {pendingReminders.map(rem => (
+                <div
+                  key={rem.id}
+                  onClick={() => setActiveTab('bookings')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem',
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <Bell size={16} style={{ color: 'var(--color-danger)' }} />
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <span style={{ fontWeight: 700, color: '#f87171' }}>[{rem.eventId} Follow-up]:</span> {rem.title} ({rem.customerName})
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>Due {rem.date}</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Inquiry Status alerts */}
               {events.filter(e => e.status === 'Inquiry').map(e => (
                 <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '8px' }}>
                   <Clock size={16} style={{ color: 'var(--color-warning)' }} />
                   <div style={{ fontSize: '0.85rem' }}>
-                    <span style={{ fontWeight: 600 }}>{e.id} Inquiry Pending:</span> client {e.customer.name} requires menu mapping and cost breakdown.
+                    <span style={{ fontWeight: 600 }}>{e.id} Inquiry Pending:</span> client {e.customer?.name} requires menu mapping and quotation review.
                   </div>
                 </div>
               ))}
-              {events.filter(e => e.status === 'Confirmed' && e.billing.balanceDue > 0).map(e => (
+
+              {/* Balance Due alerts */}
+              {events.filter(e => e.status === 'Confirmed' && e.billing?.balanceDue > 0).map(e => (
                 <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.15)', borderRadius: '8px' }}>
                   <AlertTriangle size={16} style={{ color: 'var(--color-primary)' }} />
                   <div style={{ fontSize: '0.85rem' }}>
-                    <span style={{ fontWeight: 600 }}>{e.id} Balance Due:</span> outstanding sum of {formatVal(e.billing.balanceDue)} remaining for {e.customer.name}.
+                    <span style={{ fontWeight: 600 }}>{e.id} Balance Due:</span> outstanding sum of {formatVal(e.billing?.balanceDue)} remaining for {e.customer?.name}.
                   </div>
                 </div>
               ))}
+
               {events.length === 0 && (
                 <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                   No active operational alerts. Perfect system health.

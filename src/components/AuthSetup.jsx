@@ -120,7 +120,7 @@ const AuthSetup = () => {
     } else if (type === 'material') {
       addRawMaterial({ name: 'New Material', category: 'Grocery', unit: 'kg', costPerUnit: 50 });
     } else if (type === 'dish') {
-      addDish({ name: 'New Dish', category: 'Starters', price: 100, recipe: [] });
+      addDish({ name: 'New Dish', category: 'Beverages & Welcome Drinks', subCategory: 'General Items', price: 100, recipe: [] });
     } else if (type === 'supplier') {
       addSupplier({ name: 'New Supplier', category: 'Grocery', contact: 'Name', phone: '+91' });
     } else if (type === 'agency') {
@@ -410,10 +410,14 @@ const AuthSetup = () => {
                     <div className="form-group">
                       <label className="form-label">Category</label>
                       <select className="form-select" value={tempData.category || ''} onChange={e => setTempData({ ...tempData, category: e.target.value })}>
-                        <option>Starters</option>
-                        <option>Mains</option>
-                        <option>Desserts</option>
-                        <option>Beverages</option>
+                        <option value="Beverages & Welcome Drinks">Beverages & Welcome Drinks</option>
+                        <option value="Appetizers, Chaats & Street Food">Appetizers, Chaats & Street Food</option>
+                        <option value="Global & Fusion Cuisines">Global & Fusion Cuisines</option>
+                        <option value="South Indian Specialties">South Indian Specialties</option>
+                        <option value="North Indian Specialties">North Indian Specialties</option>
+                        <option value="Sides, Accompaniments & Salads">Sides, Accompaniments & Salads</option>
+                        <option value="Desserts, Sweets & Ice Creams">Desserts, Sweets & Ice Creams</option>
+                        <option value="After-Meal / Traditional Finishers">After-Meal / Traditional Finishers</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -648,8 +652,9 @@ const AuthSetup = () => {
                       <td>
                         <span className={`badge ${
                           u.role === 'Admin' ? 'badge-danger' :
-                          u.role === 'Manager' ? 'badge-info' :
-                          u.role === 'Accountant' ? 'badge-success' : 'badge-purple'
+                          (u.role === 'HR' || u.role === 'HR Manager' || u.role === 'Manager') ? 'badge-info' :
+                          (u.role.includes('Inventory') || u.role.includes('Store')) ? 'badge-warning' :
+                          (u.role === 'Accountant' || u.role === 'Accounts Manager') ? 'badge-success' : 'badge-purple'
                         }`}>{u.role}</span>
                       </td>
                       <td>
@@ -765,11 +770,13 @@ const AuthSetup = () => {
                   style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
                 >
                   <option value="Sales Executive">Sales Executive</option>
-                  <option value="Store Manager">Store Manager (Both Provision & Storage Inventory)</option>
-                  <option value="Provision Store Manager">Provision Store Manager (Provision Inventory Only)</option>
-                  <option value="Storage Store Manager">Storage Store Manager (Storage Inventory Only)</option>
+                  <option value="Inhouse Inventory Manager">Inhouse Inventory Manager (Both Provision & Storage)</option>
+                  <option value="Inhouse Provision Manager">Inhouse Provision Manager (Provision Inventory Only)</option>
+                  <option value="Inhouse Storage Manager">Inhouse Storage Manager (Storage Inventory Only)</option>
                   <option value="Accounts Manager">Accounts Manager / Accountant</option>
-                  <option value="Manager">Manager</option>
+                  <option value="HR">HR / HR Manager</option>
+                  <option value="Chef">Chef (Kitchen Operations)</option>
+                  <option value="Agency">Agency (External Staff Partner)</option>
                   <option value="Admin">Admin</option>
                 </select>
               </div>

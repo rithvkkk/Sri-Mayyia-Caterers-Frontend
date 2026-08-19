@@ -50,7 +50,7 @@ const VendorManagement = () => {
   });
 
   const currentEvent = events.find(e => e.id === selectedEventId);
-  const isOps = currentRole === 'Admin' || currentRole === 'Manager';
+  const isOps = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager';
   const hasAccess = currentRole !== 'Agency';
 
   if (!hasAccess) {
@@ -59,7 +59,7 @@ const VendorManagement = () => {
         <ShieldAlert size={64} style={{ color: 'var(--color-danger)', marginBottom: '1rem' }} />
         <h2 style={{ marginBottom: '0.5rem' }}>Access Restricted</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Vendor management is restricted for external Agency profiles. Please log in as an Admin, Manager, or Accountant.
+          Vendor management is restricted for external Agency profiles. Please log in as an Admin, HR, or Accountant.
         </p>
       </div>
     );
