@@ -1,10 +1,10 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import {
   DollarSign, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert,
   Sliders, Eye, Download, X, Lock, Printer, Truck, UserCheck, Plus, Trash2,
-  TrendingUp, Percent, Sparkles, Droplets, Brain
+  TrendingUp, Percent, Sparkles, Droplets, Brain, Calculator, XCircle, AlertTriangle, Check
 } from 'lucide-react';
 
 const QuotationBilling = () => {
@@ -225,25 +225,70 @@ const QuotationBilling = () => {
   const totalCost = rawMaterialsCost + laborCost + transportCost + venueRent + otherExpenses;
   const totalGuests = currentEvent ? currentEvent.subFunctions.reduce((sum, sf) => sum + sf.guestCount, 0) : 0;
   
-  // Cost per plate baseline
-  const costPerPlate = totalGuests > 0 ? (totalCost / totalGuests) : 0;
-  
-  // Simulated plate price based on target markup percentage
-  const simulatedPlatePrice = Math.ceil((costPerPlate * (1 + markupPercent / 100)) / 10) * 10;
-  
-  const revenue = currentEvent ? currentEvent.billing.subtotal : 0;
-  const taxAmount = currentEvent ? currentEvent.billing.taxAmount : 0;
-  const grandTotal = currentEvent ? currentEvent.billing.totalAmount : 0;
-  const advancePaid = currentEvent ? currentEvent.billing.advancePaid : 0;
-  const balanceDue = currentEvent ? currentEvent.billing.balanceDue : 0;
-  
-  const estimatedProfit = Math.max(0, revenue - totalCost);
-  const profitMarginPercent = revenue > 0 ? (estimatedProfit / revenue) * 100 : 0;
+  // Customer Bargain Simulator State & Sync
+  const [bargainPriceInput, setBargainPriceInput] = useState(() => currentEvent?.billing?.pricePerPlate || 650);
 
-  const handleApplySimulatedPrice = () => {
-    if (!isFinance || !currentEvent) return;
-    handleBillingChange('pricePerPlate', simulatedPlatePrice);
+  useEffect(() => {
+    if (currentEvent?.billing?.pricePerPlate) {
+      setBargainPriceInput(currentEvent.billing.pricePerPlate);
+    }
+  }, [selectedEventId, currentEvent?.billing?.pricePerPlate]);
+
+  // Bargain Calculations
+  const bargainedPrice = parseFloat(bargainPriceInput) || 0;
+  const bargainedSubtotal = totalGuests * bargainedPrice;
+  const bargainedProfit = bargainedSubtotal - totalCost;
+  const bargainedMarginPercent = bargainedSubtotal > 0 ? (bargainedProfit / bargainedSubtotal) * 100 : 0;
+  const floorPricePerPlate = totalGuests > 0 ? Math.ceil(totalCost / totalGuests) : 0;
+  const recommendedPrice20 = totalGuests > 0 ? Math.ceil((totalCost / 0.80) / totalGuests) : 0;
+  const recommendedPrice25 = totalGuests > 0 ? Math.ceil((totalCost / 0.75) / totalGuests) : 0;
+
+  // Determine Bargain Feasibility Status
+  let bargainStatus = {
+    badge: 'ACCEPT DEAL',
+    badgeClass: 'badge-success',
+    color: '#0f766e',
+    bgColor: 'rgba(15, 118, 110, 0.1)',
+    borderColor: 'rgba(15, 118, 110, 0.3)',
+    icon: CheckCircle2,
+    title: '🟢 Highly Profitable Deal — Safe to Accept!',
+    description: `At ${formatCurrency(bargainedPrice)}/plate, you make ${formatCurrency(bargainedProfit)} net profit (${bargainedMarginPercent.toFixed(1)}% margin).`
   };
+
+  if (bargainedProfit < 0) {
+    bargainStatus = {
+      badge: 'REJECT DEAL (NET LOSS)',
+      badgeClass: 'badge-danger',
+      color: '#9C1519',
+      bgColor: 'rgba(156, 21, 25, 0.12)',
+      borderColor: 'rgba(156, 21, 25, 0.4)',
+      icon: XCircle,
+      title: '🔴 REJECT DEAL — You Will Lose Money!',
+      description: `Accepting ${formatCurrency(bargainedPrice)}/plate results in a NET LOSS of ${formatCurrency(Math.abs(bargainedProfit))}. Absolute minimum zero-profit floor price is ${formatCurrency(floorPricePerPlate)}/plate.`
+    };
+  } else if (bargainedMarginPercent < 10) {
+    bargainStatus = {
+      badge: 'HIGH RISK (MINIMAL PROFIT)',
+      badgeClass: 'badge-warning',
+      color: '#B88E4C',
+      bgColor: 'rgba(210, 172, 103, 0.15)',
+      borderColor: 'rgba(210, 172, 103, 0.4)',
+      icon: AlertTriangle,
+      title: '⚡ High Risk Deal — Minimal Margin',
+      description: `At ${formatCurrency(bargainedPrice)}/plate, your profit is only ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Any ingredient over-consumption will turn this into a loss!`
+    };
+  } else if (bargainedMarginPercent < 20) {
+    bargainStatus = {
+      badge: 'ACCEPT WITH CAUTION',
+      badgeClass: 'badge-warning',
+      color: '#D2AC67',
+      bgColor: 'rgba(210, 172, 103, 0.1)',
+      borderColor: 'rgba(210, 172, 103, 0.3)',
+      icon: AlertCircle,
+      title: '🟡 Tight Profit Margin',
+      description: `At ${formatCurrency(bargainedPrice)}/plate, you earn ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Acceptable, but keep tight control on food portioning.`
+    };
+  }
 
   const handlePreviewInvoice = async () => {
     if (!currentEvent) return;
@@ -321,6 +366,129 @@ const QuotationBilling = () => {
           {/* Left Column: Financial Audit, Markup & Transport Controls */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
+            {/* 🤝 Customer Bargain Price & Profitability Decision Simulator */}
+            <div className="glass-card" style={{ border: `1.5px solid ${bargainStatus.borderColor}`, background: bargainStatus.bgColor, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.15rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: bargainStatus.color, fontWeight: 700 }}>
+                  <Calculator size={22} />
+                  <span>Customer Bargain & Price Decision Simulator</span>
+                </h3>
+                <span className={`badge ${bargainStatus.badgeClass}`} style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem', fontWeight: 700 }}>
+                  {bargainStatus.badge}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.1rem' }}>
+                If the customer bargains for a lower price per plate, enter their offered price here to instantly test if the event is profitable, risky, or loss-making!
+              </p>
+
+              <div className="responsive-grid two-cols" style={{ gap: '1rem', marginBottom: '1.1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                    Customer's Bargained Price Per Plate:
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--color-primary)', fontSize: '1.1rem' }}>
+                      {companyProfile.currency}
+                    </span>
+                    <input
+                      type="number"
+                      className="form-input"
+                      style={{ paddingLeft: '2.2rem', fontSize: '1.25rem', fontWeight: 800, color: bargainStatus.color, border: `1.5px solid ${bargainStatus.borderColor}` }}
+                      value={bargainPriceInput}
+                      onChange={e => setBargainPriceInput(e.target.value)}
+                      placeholder="e.g. 550"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Quick Price Floor Benchmarks:</label>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', fontWeight: 600 }}
+                      onClick={() => setBargainPriceInput(floorPricePerPlate)}
+                      title="Zero-profit cost per plate floor"
+                    >
+                      Abs Min Floor: {formatCurrency(floorPricePerPlate)}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', fontWeight: 600 }}
+                      onClick={() => setBargainPriceInput(recommendedPrice20)}
+                    >
+                      20% Target: {formatCurrency(recommendedPrice20)}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', fontWeight: 600 }}
+                      onClick={() => setBargainPriceInput(recommendedPrice25)}
+                    >
+                      25% Target: {formatCurrency(recommendedPrice25)}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Real-time Bargain Feasibility Banner */}
+              <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '12px', border: `1px solid ${bargainStatus.borderColor}`, marginBottom: '1.1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <bargainStatus.icon size={26} style={{ color: bargainStatus.color, flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ flexGrow: 1 }}>
+                    <h4 style={{ fontSize: '1rem', margin: '0 0 0.25rem 0', color: bargainStatus.color, fontWeight: 700 }}>{bargainStatus.title}</h4>
+                    <p style={{ fontSize: '0.85rem', margin: 0, color: 'var(--text-primary)' }}>{bargainStatus.description}</p>
+                  </div>
+                </div>
+
+                {/* Metric Grid Matrix */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.75rem', marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Total Direct Cost</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>{formatCurrency(totalCost)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Bargain Revenue</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>{formatCurrency(bargainedSubtotal)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Bargain Net Profit</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: bargainedProfit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                      {formatCurrency(bargainedProfit)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Profit Margin</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: bargainedMarginPercent >= 15 ? 'var(--color-success)' : (bargainedMarginPercent >= 0 ? 'var(--color-warning)' : 'var(--color-danger)') }}>
+                      {bargainedMarginPercent.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Abs Min Floor</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary)' }}>{formatCurrency(floorPricePerPlate)}/pax</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Apply Bargain Button */}
+              {isFinance && (
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.85rem', padding: '0.45rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    onClick={() => handleBillingChange('pricePerPlate', bargainedPrice)}
+                  >
+                    <Check size={16} /> Apply Bargained {formatCurrency(bargainedPrice)}/Plate to Event Invoice
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Financial Markup Simulator & Controls */}
             <div className="glass-card" style={{ border: '1px solid rgba(59, 130, 246, 0.25)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>

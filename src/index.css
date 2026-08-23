@@ -1,24 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Logo Derived Palette (#9C1519 Royal Crimson & #D2AC67 Champagne Gold) */
-  --color-primary: #9C1519;
-  --color-primary-dark: #700D10;
-  --color-accent: #D2AC67;
-  --color-accent-dark: #B88E4C;
+  /* Minimalist & Uniform Logo Palette */
+  --color-primary: #9C1519;       /* Deep Royal Crimson Maroon */
+  --color-primary-dark: #700D10;  /* Deep Burgundy */
+  --color-accent: #D2AC67;        /* Soft Warm Gold */
+  --color-accent-dark: #B88E4C;   /* Warm Gold Shade */
   --color-gold-light: #E5CFA7;
   
-  --bg-primary: #FAF7F2;
-  --bg-secondary: #F3EBDD;
-  --bg-card: rgba(255, 252, 247, 0.88);
-  --bg-card-hover: rgba(255, 248, 238, 0.95);
+  --bg-primary: #FDFBF7;          /* Clean Porcelain Ivory Background */
+  --bg-secondary: #F7F2E8;        /* Soft Warm Sidebar Background */
+  --bg-card: #FFFFFF;             /* Pure Clean Card Surface */
+  --bg-card-hover: #FFFDF9;       /* Subtle Warm Card Hover */
   
-  --border-color: rgba(156, 21, 25, 0.15);
-  --border-color-active: rgba(210, 172, 103, 0.45);
+  --border-color: rgba(156, 21, 25, 0.12);        /* Clean Subtle Border */
+  --border-color-active: rgba(210, 172, 103, 0.45); /* Gold Active Focus Border */
   
-  --text-primary: #2B0A0C;
-  --text-secondary: rgba(43, 10, 12, 0.72);
-  --text-muted: rgba(43, 10, 12, 0.48);
+  --text-primary: #2B0A0C;       /* Crisp High-Contrast Charcoal Maroon */
+  --text-secondary: #5C4547;     /* Clean Secondary Text */
+  --text-muted: #8C7779;        /* Muted Text */
   
   --primary-grad: linear-gradient(135deg, #9C1519 0%, #700D10 100%);
   --accent-grad: linear-gradient(135deg, #D2AC67 0%, #B88E4C 100%);
@@ -26,19 +26,19 @@
   --royal-grad: linear-gradient(135deg, #9C1519 0%, #D2AC67 100%);
   
   --color-success: #0f766e;
-  --color-warning: #D2AC67;
+  --color-warning: #B88E4C;
   --color-danger: #9C1519;
   --color-purple: #700D10;
-  --color-cyan: #0891b2;
+  --color-cyan: #0f766e;
 
-  --shadow-sm: 0 4px 6px -1px rgba(156, 21, 25, 0.04), 0 2px 4px -1px rgba(210, 172, 103, 0.03);
-  --shadow-md: 0 10px 15px -3px rgba(156, 21, 25, 0.07), 0 4px 6px -2px rgba(210, 172, 103, 0.04);
-  --shadow-lg: 0 20px 25px -5px rgba(156, 21, 25, 0.1), 0 10px 10px -5px rgba(210, 172, 103, 0.04);
-  --shadow-glow: 0 0 18px rgba(156, 21, 25, 0.15), 0 0 25px rgba(210, 172, 103, 0.2);
+  --shadow-sm: 0 2px 5px rgba(156, 21, 25, 0.03);
+  --shadow-md: 0 6px 12px rgba(156, 21, 25, 0.05);
+  --shadow-lg: 0 12px 24px rgba(156, 21, 25, 0.08);
+  --shadow-glow: 0 0 15px rgba(210, 172, 103, 0.15);
   
   --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.35s ease;
   
   --sidebar-width: 260px;
 }
@@ -447,11 +447,11 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
 }
 
-.icon-blue { background: rgba(59, 130, 246, 0.1); color: var(--color-primary); }
-.icon-green { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
-.icon-amber { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
-.icon-danger { background: rgba(239, 68, 68, 0.1); color: var(--color-danger); }
-.icon-purple { background: rgba(139, 92, 246, 0.1); color: var(--color-purple); }
+.icon-blue { background: rgba(156, 21, 25, 0.08); color: var(--color-primary); }
+.icon-green { background: rgba(15, 118, 110, 0.08); color: var(--color-success); }
+.icon-amber { background: rgba(210, 172, 103, 0.15); color: var(--color-accent-dark); }
+.icon-danger { background: rgba(156, 21, 25, 0.12); color: var(--color-danger); }
+.icon-purple { background: rgba(156, 21, 25, 0.08); color: var(--color-primary); }
 
 /* Custom SVG Chart styling */
 .chart-container {
