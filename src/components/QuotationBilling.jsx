@@ -224,6 +224,7 @@ const QuotationBilling = () => {
 
   const totalCost = rawMaterialsCost + laborCost + transportCost + venueRent + otherExpenses;
   const totalGuests = currentEvent ? currentEvent.subFunctions.reduce((sum, sf) => sum + sf.guestCount, 0) : 0;
+  const costPerPlate = totalGuests > 0 ? (totalCost / totalGuests) : 0;
   
   // Customer Bargain Simulator State & Sync
   const [bargainPriceInput, setBargainPriceInput] = useState(() => currentEvent?.billing?.pricePerPlate || 650);
