@@ -3,7 +3,7 @@ import { AppContext } from '../context/AppContext';
 import { 
   ClipboardCopy, Package, ArrowRight, ShieldAlert, CheckCircle, 
   HelpCircle, Save, MessageSquare, Tag, Sparkles, AlertCircle, 
-  Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X
+  Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X, Check
 } from 'lucide-react';
 import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
