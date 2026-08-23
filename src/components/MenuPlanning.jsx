@@ -3,8 +3,9 @@ import { AppContext } from '../context/AppContext';
 import { 
   ClipboardCopy, Package, ArrowRight, ShieldAlert, CheckCircle, 
   HelpCircle, Save, MessageSquare, Tag, Sparkles, AlertCircle, 
-  Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain
+  Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X
 } from 'lucide-react';
+import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
 const FOOD_CATEGORIES = [
   'Beverages & Welcome Drinks',
@@ -155,8 +156,24 @@ const MenuPlanning = () => {
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
   const [dishSearchTerm, setDishSearchTerm] = useState('');
 
+  // Indian Occasion Menu PDF Modal State
+  const [isMenuPdfModalOpen, setIsMenuPdfModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('baleyele');
+
   const isEditable = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager' || isSalesExec;
   const currentEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
+
+  const handleDownloadMenuPdf = (templateId = selectedTemplate) => {
+    if (!currentEvent || !selectedSub) return;
+    const res = generateOccasionMenuPdf(currentEvent, selectedSub, companyProfile, templateId, dishes);
+    downloadPdfBlob(res.blob, res.filename);
+  };
+
+  const handlePrintMenuPdf = (templateId = selectedTemplate) => {
+    if (!currentEvent || !selectedSub) return;
+    const res = generateOccasionMenuPdf(currentEvent, selectedSub, companyProfile, templateId, dishes);
+    printPdfBlob(res.blob);
+  };
 
   // Quick Dietary & Client Request Tags
   const quickTags = [
@@ -530,8 +547,8 @@ const MenuPlanning = () => {
                   </p>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ position: 'relative', width: '220px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', width: '200px' }}>
                     <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                     <input
                       type="text"
@@ -543,6 +560,14 @@ const MenuPlanning = () => {
                     />
                   </div>
                   <span className="badge badge-info">{selectedSub.date || currentEvent.date}</span>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-small"
+                    onClick={() => setIsMenuPdfModalOpen(true)}
+                    style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Download size={14} /> Export Menu PDF
+                  </button>
                 </div>
               </div>
 
@@ -825,6 +850,110 @@ const MenuPlanning = () => {
             </div>
           )}
         </div>
+
+      {/* Indian Style Occasion Menu PDF Selector Modal */}
+      {isMenuPdfModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-content" style={{ maxWidth: '620px', width: '92%', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Award size={22} style={{ color: 'var(--color-primary)' }} />
+                <div>
+                  <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Download Indian Occasion Menu PDF</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Select a traditional Sri Mayyia occasion design template</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setIsMenuPdfModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+              {[
+                {
+                  id: 'baleyele',
+                  title: 'Royal Baleyele Seated Banquet',
+                  subtitle: 'Traditional Udupi/Mysuru Plantain Leaf Feast',
+                  auspicious: '|| Shree Ganeshaya Namah ||',
+                  badge: 'Plantain Leaf Classic',
+                  color: '#9C1519'
+                },
+                {
+                  id: 'wedding',
+                  title: 'Grand Wedding & Sangeet Gala',
+                  subtitle: 'Regal Golden Ornate Ceremonial Banquet',
+                  auspicious: '|| Shree Lakshmi Venkateshwara ||',
+                  badge: 'Royal Wedding',
+                  color: '#D2AC67'
+                },
+                {
+                  id: 'pooja',
+                  title: 'Sacred Pooja & Grihapravesham',
+                  subtitle: 'Sattvic Udupi Prasadam & Pure Feast',
+                  auspicious: '|| Sattvic Prasadam & Udupam ||',
+                  badge: 'Sattvic Pure',
+                  color: '#10b981'
+                },
+                {
+                  id: 'gala',
+                  title: 'Corporate Festive Grand Gala',
+                  subtitle: 'Modern Fusion & Pan-Indian Gastronomy',
+                  auspicious: '|| Festive Gastronomy ||',
+                  badge: 'Modern Gala',
+                  color: '#3b82f6'
+                }
+              ].map(tpl => {
+                const isSelected = selectedTemplate === tpl.id;
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => setSelectedTemplate(tpl.id)}
+                    style={{
+                      padding: '0.9rem',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${tpl.color}` : '1px solid rgba(0,0,0,0.12)',
+                      background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'rgba(255, 255, 255, 0.7)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 4px 12px rgba(156,21,25,0.15)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: tpl.color }}>{tpl.badge}</span>
+                      {isSelected && <Check size={16} style={{ color: tpl.color }} />}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#000000', marginBottom: '0.2rem' }}>{tpl.title}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>{tpl.subtitle}</div>
+                    <div style={{ fontSize: '0.65rem', fontStyle: 'italic', color: '#666666' }}>{tpl.auspicious}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => handlePrintMenuPdf(selectedTemplate)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              >
+                <Printer size={16} /> Print Menu
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  handleDownloadMenuPdf(selectedTemplate);
+                  setIsMenuPdfModalOpen(false);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
+              >
+                <Download size={16} /> Download Menu PDF ({selectedSub?.name})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

@@ -324,9 +324,434 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 150, ph - 14);
   doc.text(`${companyProfile.name} — Catering Management System`, 15, ph - 8);
 
-  const filename = `PO_${supplier.name.replace(/\s+/g, '_')}_${event.id}.pdf`;
+  const filename = `${event.id}_${supplier.name.replace(/\s+/g, '_')}_PO.pdf`;
   const blob = doc.output('blob');
   const blobUrl = URL.createObjectURL(blob);
+  return { blobUrl, blob, filename };
+};
+
+/**
+ * Generates an Indian Style Occasion Menu Card PDF.
+ * Templates:
+ *  - 'baleyele': Royal South Indian Baleyele Banquet (Plantain Leaf Seated Feast)
+ *  - 'wedding': Grand Wedding & Sangeet Ceremonial Gala
+ *  - 'pooja': Sacred Pooja & Sattvic Grihapravesham
+ *  - 'gala': Corporate & Festive Grand Banquet
+ */
+export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'baleyele', dishesList = []) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.width;
+  const ph = doc.internal.pageSize.height;
+
+  const maroon = [156, 21, 25];
+  const gold = [210, 172, 103];
+  const darkCharcoal = [43, 10, 12];
+
+  // Ornate Double Border Frame
+  doc.setLineWidth(1.2);
+  doc.setDrawColor(...maroon);
+  doc.rect(8, 8, pw - 16, ph - 16);
+
+  doc.setLineWidth(0.5);
+  doc.setDrawColor(...gold);
+  doc.rect(10.5, 10.5, pw - 21, ph - 21);
+
+  // Decorative Corner Accents
+  const drawCornerAccent = (x, y, flipX = 1, flipY = 1) => {
+    doc.setDrawColor(...gold);
+    doc.setLineWidth(0.8);
+    doc.line(x, y, x + (12 * flipX), y);
+    doc.line(x, y, x, y + (12 * flipY));
+    doc.circle(x + (3 * flipX), y + (3 * flipY), 1, 'F');
+  };
+  drawCornerAccent(12, 12, 1, 1);
+  drawCornerAccent(pw - 12, 12, -1, 1);
+  drawCornerAccent(12, ph - 12, 1, -1);
+  drawCornerAccent(pw - 12, ph - 12, -1, -1);
+
+  // Header Banner
+  doc.setFillColor(...maroon);
+  doc.rect(11, 11, pw - 22, 36, 'F');
+
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.6);
+  doc.rect(13, 13, pw - 26, 32);
+
+  let auspiciousText = '|| SHREE GANESHAYA NAMAH ||';
+  let templateTitle = 'ROYAL BALEYELE GRAND FEAST MENU';
+  if (templateId === 'wedding') {
+    auspiciousText = '|| SHREE LAKSHMI VENKATESHWARA PRASANNA ||';
+    templateTitle = 'GRAND WEDDING & SANGEET BANQUET';
+  } else if (templateId === 'pooja') {
+    auspiciousText = '|| SATTVIC PRASADAM & UDUPAM BANQUET ||';
+    templateTitle = 'GRUPRAPRAVESHAM & SACRED POOJA MENU';
+  } else if (templateId === 'gala') {
+    auspiciousText = '|| FESTIVE CELEBRATIONS & GASTRONOMY ||';
+    templateTitle = 'GRAND CORPORATE GALA MENU';
+  }
+
+  doc.setTextColor(...gold);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(auspiciousText, pw / 2, 19, { align: 'center' });
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(companyProfile.name.toUpperCase(), pw / 2, 27, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(...gold);
+  doc.text(templateTitle, pw / 2, 34, { align: 'center' });
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(235, 235, 235);
+  doc.text(`Phone: ${companyProfile.phone} | GSTIN: ${companyProfile.gstin}`, pw / 2, 40, { align: 'center' });
+
+  // Metadata Box
+  doc.setFillColor(247, 242, 232);
+  doc.rect(15, 52, pw - 30, 20, 'F');
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.4);
+  doc.rect(15, 52, pw - 30, 20);
+
+  doc.setTextColor(...darkCharcoal);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(`Customer: ${event.customer?.name || 'Valued Guest'}`, 20, 59);
+  doc.text(`Occasion: ${subFunction?.name || event.eventType}`, 20, 66);
+
+  doc.text(`Date: ${subFunction?.date || event.date}`, 130, 59);
+  doc.text(`Pax Headcount: ${subFunction?.guestCount || 100} Guests`, 130, 66);
+
+  let y = 80;
+  doc.setDrawColor(...maroon);
+  doc.setLineWidth(0.8);
+  doc.line(20, y, pw - 20, y);
+  doc.setFillColor(...maroon);
+  doc.circle(pw / 2, y, 2.5, 'F');
+  y += 8;
+
+  // Group dishes by category
+  const menuDishIds = subFunction?.menuItems || [];
+  const selectedDishes = dishesList.filter(d => menuDishIds.includes(d.id));
+
+  const categories = [
+    'Beverages & Welcome Drinks',
+    'Appetizers, Chaats & Street Food',
+    'Global & Fusion Cuisines',
+    'South Indian Specialties',
+    'North Indian Specialties',
+    'Sides, Accompaniments & Salads',
+    'Desserts, Sweets & Ice Creams',
+    'After-Meal / Traditional Finishers'
+  ];
+
+  const grouped = {};
+  categories.forEach(cat => {
+    grouped[cat] = selectedDishes.filter(d => d.category === cat);
+  });
+
+  categories.forEach(cat => {
+    const items = grouped[cat];
+    if (!items || items.length === 0) return;
+
+    if (y > ph - 35) {
+      doc.addPage();
+      doc.setLineWidth(1.2);
+      doc.setDrawColor(...maroon);
+      doc.rect(8, 8, pw - 16, ph - 16);
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(...gold);
+      doc.rect(10.5, 10.5, pw - 21, ph - 21);
+      y = 20;
+    }
+
+    doc.setFillColor(...maroon);
+    doc.rect(18, y, pw - 36, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(cat.toUpperCase(), pw / 2, y + 5, { align: 'center' });
+    y += 11;
+
+    const col1X = 22;
+    const col2X = 112;
+
+    items.forEach((dish, idx) => {
+      if (y > ph - 25) {
+        doc.addPage();
+        doc.setLineWidth(1.2);
+        doc.setDrawColor(...maroon);
+        doc.rect(8, 8, pw - 16, ph - 16);
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(...gold);
+        doc.rect(10.5, 10.5, pw - 21, ph - 21);
+        y = 20;
+      }
+
+      const isCol2 = idx % 2 === 1;
+      const curX = isCol2 ? col2X : col1X;
+
+      doc.setFillColor(...gold);
+      doc.circle(curX, y - 1, 1.2, 'F');
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(dish.name, curX + 3.5, y);
+
+      if (dish.type) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.5);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`(${dish.type})`, curX + 3.5 + doc.getTextWidth(dish.name) + 2, y);
+      }
+
+      if (isCol2 || idx === items.length - 1) {
+        y += 6.5;
+      }
+    });
+
+    y += 4;
+  });
+
+  if (subFunction?.clientNotes) {
+    if (y > ph - 45) {
+      doc.addPage();
+      doc.setLineWidth(1.2);
+      doc.setDrawColor(...maroon);
+      doc.rect(8, 8, pw - 16, ph - 16);
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(...gold);
+      doc.rect(10.5, 10.5, pw - 21, ph - 21);
+      y = 20;
+    }
+
+    doc.setFillColor(247, 242, 232);
+    doc.rect(15, y, pw - 30, 18, 'F');
+    doc.setDrawColor(...gold);
+    doc.rect(15, y, pw - 30, 18);
+
+    doc.setTextColor(...maroon);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('KITCHEN DIRECTIVES & SPECIAL CLIENT INSTRUCTIONS:', 18, y + 5);
+
+    doc.setTextColor(40, 40, 40);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const splitNotes = doc.splitTextToSize(subFunction.clientNotes, pw - 40);
+    doc.text(splitNotes, 18, y + 10);
+    y += 22;
+  }
+
+  // Footer
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.5);
+  doc.line(15, ph - 18, pw - 15, ph - 18);
+
+  doc.setTextColor(...maroon);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('SHREE MAYYIA CATERERS — SWASTIK TRADITIONAL GASTRONOMY', pw / 2, ph - 12, { align: 'center' });
+
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Authentic Udupi & Mysuru Ceremonial Feast Specialists | Contact: ' + companyProfile.phone, pw / 2, ph - 7, { align: 'center' });
+
+  const filename = `${event.id}_${(subFunction?.name || 'Menu').replace(/\s+/g, '_')}_${templateId.toUpperCase()}_MENU.pdf`;
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+
+  return { blobUrl, blob, filename };
+};
+
+/**
+ * Generates a Material Dispatch & Vessel Return Gate Pass PDF.
+ * Returns { blobUrl, blob, filename }
+ */
+export const generateGatePassPdf = (event, gatePassData, companyProfile) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.width;
+  const ph = doc.internal.pageSize.height;
+
+  const primaryColor = [156, 21, 25];
+  const accentColor = [210, 172, 103];
+
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, 210, 36, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(companyProfile.name.toUpperCase(), 15, 16);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.text(`Phone: ${companyProfile.phone} | Address: ${companyProfile.address}`, 15, 23);
+  doc.text(`GSTIN: ${companyProfile.gstin}`, 15, 29);
+
+  doc.setFillColor(...accentColor);
+  doc.rect(140, 10, 58, 16, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.text('MATERIAL GATE PASS', 143, 17);
+  doc.setFontSize(8.5);
+  doc.text(`NO: ${gatePassData.gatePassNo || ('GP-' + event.id)}`, 143, 23);
+
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(9.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('EVENT REF:', 15, 45);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${event.id} - ${event.customer?.name} (${event.eventType})`, 42, 45);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('EVENT DATE:', 135, 45);
+  doc.setFont('helvetica', 'normal');
+  doc.text(event.date, 165, 45);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('VEHICLE NO:', 15, 52);
+  doc.setFont('helvetica', 'normal');
+  doc.text(gatePassData.vehicleNo || 'KA-01-MJ-9921', 42, 52);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('DRIVER NAME:', 135, 52);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${gatePassData.driverName || 'Ramesh Kumar'} (${gatePassData.driverPhone || '9876543210'})`, 165, 52);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('DISPATCH TIME:', 15, 59);
+  doc.setFont('helvetica', 'normal');
+  doc.text(gatePassData.dispatchTime || new Date().toLocaleString('en-IN'), 42, 59);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('SECURITY OFFICER:', 135, 59);
+  doc.setFont('helvetica', 'normal');
+  doc.text(gatePassData.issuedBy || 'Store Incharge', 165, 59);
+
+  doc.setDrawColor(200, 200, 200);
+  doc.line(15, 63, 195, 63);
+
+  let yPos = 68;
+
+  // SECTION A: CONSUMABLES & PROVISIONS DISPATCHED FROM STORAGE
+  doc.setFillColor(247, 242, 232);
+  doc.rect(15, yPos, pw - 30, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...primaryColor);
+  doc.text('SECTION A: CONSUMABLE STORAGE PROVISIONS DISPATCHED', 18, yPos + 5);
+  yPos += 9;
+
+  const consumableHeaders = [['#', 'Item Name', 'Category', 'Qty Dispatched', 'Unit']];
+  const consumableRows = (gatePassData.consumables || []).map((item, idx) => [
+    idx + 1,
+    item.name,
+    item.category || 'Storage Provision',
+    item.requiredQty || item.qty || 1,
+    item.unit || 'Kg'
+  ]);
+
+  doc.autoTable({
+    head: consumableHeaders,
+    body: consumableRows.length ? consumableRows : [[1, 'Provisions & Groceries Pack', 'Storage Bulk', '1', 'Lot']],
+    startY: yPos,
+    theme: 'grid',
+    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 30, halign: 'center' },
+      4: { cellWidth: 30, halign: 'center' }
+    }
+  });
+
+  yPos = doc.previousAutoTable.finalY + 8;
+
+  // SECTION B: VESSELS & RETURNABLE ASSETS TRACKING
+  if (yPos > ph - 70) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  doc.setFillColor(247, 242, 232);
+  doc.rect(15, yPos, pw - 30, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...primaryColor);
+  doc.text('SECTION B: VESSELS & CATERING ASSETS RETURN TRACKING (INBOUND / OUTBOUND)', 18, yPos + 5);
+  yPos += 9;
+
+  const vesselHeaders = [['#', 'Vessel / Gear Name', 'Category', 'Sent Out', 'Qty Returned', 'Damaged/Missing', 'Status']];
+  const vesselRows = (gatePassData.vessels || []).map((item, idx) => [
+    idx + 1,
+    item.name,
+    item.category || 'Cooking Vessel',
+    item.sentQty || item.totalQty || 1,
+    item.returnedQty !== undefined ? item.returnedQty : (item.sentQty || 1),
+    item.damagedQty || 0,
+    item.status || 'Verified Return'
+  ]);
+
+  doc.autoTable({
+    head: vesselHeaders,
+    body: vesselRows.length ? vesselRows : [[1, 'Cooking Degchis & Handis', 'Cooking Vessel', '10', '10', '0', 'Verified Return']],
+    startY: yPos,
+    theme: 'grid',
+    headStyles: { fillColor: [40, 40, 40], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 32 },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 22, halign: 'center' },
+      5: { cellWidth: 23, halign: 'center' },
+      6: { cellWidth: 20, halign: 'center' }
+    }
+  });
+
+  yPos = doc.previousAutoTable.finalY + 12;
+
+  if (yPos > ph - 35) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(50, 50, 50);
+
+  doc.text('STORE INCHARGE:', 15, yPos);
+  doc.line(15, yPos + 8, 60, yPos + 8);
+
+  doc.text('DRIVER SIGNATURE:', 80, yPos);
+  doc.line(80, yPos + 8, 125, yPos + 8);
+
+  doc.text('SECURITY GATE STAMP:', 145, yPos);
+  doc.line(145, yPos + 8, 195, yPos + 8);
+
+  doc.setDrawColor(220, 220, 220);
+  doc.line(15, ph - 16, 195, ph - 16);
+  doc.setTextColor(120, 120, 120);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(8);
+  doc.text(`${companyProfile.name} — Official Material Gate Pass & Asset Return Certificate`, 15, ph - 10);
+  doc.text(`Gate Pass Ref: ${gatePassData.gatePassNo || ('GP-' + event.id)}`, 150, ph - 10);
+
+  const filename = `${event.id}_GATE_PASS.pdf`;
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+
   return { blobUrl, blob, filename };
 };
 

@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { calculatePdfReport, generateSupplierPO, printPdfBlob } from '../utils/pdfGenerator';
+import { calculatePdfReport, generateSupplierPO, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer } from 'lucide-react';
 
 const VendorManagement = () => {
@@ -656,13 +656,26 @@ const VendorManagement = () => {
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{sup.contact} | {sup.category}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', marginTop: '0.15rem' }}>{supItems.length} items · {companyProfile.currency} {supTotal.toLocaleString('en-IN')}</div>
                           </div>
-                          <button
-                            className="btn btn-small"
-                            onClick={() => handleSendPO(sup)}
-                            style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--color-primary)', border: '1px solid rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', fontSize: '0.72rem' }}
-                          >
-                            <FileText size={12} /> Send PO
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-small"
+                              onClick={() => handleDirectDownloadPO(sup)}
+                              title="Download Purchase Order PDF"
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.65rem', fontSize: '0.72rem', fontWeight: 700 }}
+                            >
+                              <Download size={13} /> Download PO PDF
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-small"
+                              onClick={() => handleSendPO(sup)}
+                              title="Preview / Share PO"
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.35rem 0.5rem', fontSize: '0.72rem' }}
+                            >
+                              <Eye size={13} />
+                            </button>
+                          </div>
                         </div>
                       );
                     })}

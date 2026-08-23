@@ -1,13 +1,15 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { ChefHat, ArrowRight, ShieldAlert, Utensils, HelpCircle, MessageSquare } from 'lucide-react';
+import { ChefHat, ArrowRight, ShieldAlert, Utensils, HelpCircle, MessageSquare, Download, Truck } from 'lucide-react';
+import { generateGatePassPdf, downloadPdfBlob } from '../utils/pdfGenerator';
 
 const MenuExecution = () => {
   const {
     currentRole,
     events,
     updateEvent,
-    dishes
+    dishes,
+    companyProfile
   } = useContext(AppContext);
 
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
@@ -106,6 +108,26 @@ const MenuExecution = () => {
   // Collect client instructions across all subfunctions
   const subFunctionNotes = (currentEvent?.subFunctions || []).filter(sf => sf.clientNotes);
 
+  const handleDownloadGatePass = () => {
+    if (!currentEvent) return;
+    const gatePassData = {
+      gatePassNo: `GP-${currentEvent.id}`,
+      vehicleNo: 'KA-01-MJ-9921',
+      driverName: 'Ramesh Kumar',
+      driverPhone: '9876543210',
+      issuedBy: 'Kitchen Execution Head',
+      dispatchTime: new Date().toLocaleString('en-IN'),
+      consumables: (currentEvent.subFunctions || []).map(sf => ({ name: sf.name + ' Provisions Lot', category: 'Prep Provision', qty: sf.guestCount, unit: 'Pax' })),
+      vessels: [
+        { name: 'Heavy Degchi (50L)', category: 'Cooking Vessel', sentQty: 8, returnedQty: 8, damagedQty: 0, status: 'Verified Return' },
+        { name: 'Idli Steamer Machine', category: 'Equipment', sentQty: 2, returnedQty: 2, damagedQty: 0, status: 'Verified Return' },
+        { name: 'Brass Chafing Dishes', category: 'Serving Gear', sentQty: 15, returnedQty: 15, damagedQty: 0, status: 'Verified Return' }
+      ]
+    };
+    const res = generateGatePassPdf(currentEvent, gatePassData, companyProfile);
+    downloadPdfBlob(res.blob, res.filename);
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -114,12 +136,22 @@ const MenuExecution = () => {
           <p style={{ color: 'var(--text-secondary)' }}>Route menu items to designated kitchen channels and track preparation steps in real time.</p>
         </div>
         
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <select className="form-select" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
-            {events.map(e => (
-              <option key={e.id} value={e.id}>{e.id} - {e.customer?.name}</option>
-            ))}
-          </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-small"
+            onClick={handleDownloadGatePass}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.82rem' }}
+          >
+            <Truck size={16} /> Download Gate Pass PDF
+          </button>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <select className="form-select" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
+              {events.map(e => (
+                <option key={e.id} value={e.id}>{e.id} - {e.customer?.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

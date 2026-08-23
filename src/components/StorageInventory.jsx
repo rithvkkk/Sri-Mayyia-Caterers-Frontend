@@ -1,20 +1,99 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles } from 'lucide-react';
+import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check } from 'lucide-react';
+import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
 const StorageInventory = () => {
-  const { vessels, addVessel, updateVessel, deleteVessel, companyProfile } = useContext(AppContext);
+  const { vessels, addVessel, updateVessel, deleteVessel, companyProfile, events = [], rawMaterials = [] } = useContext(AppContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000 });
 
+  // Gate Pass Modal & Tracking State
+  const [isGatePassModalOpen, setIsGatePassModalOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
+  const [gatePassForm, setGatePassForm] = useState({
+    vehicleNo: 'KA-01-MJ-9921',
+    driverName: 'Ramesh Kumar',
+    driverPhone: '9876543210',
+    issuedBy: 'Store Manager'
+  });
+
   const formatCurrency = (amount) => `${companyProfile.currency} ${Number(amount || 0).toLocaleString('en-IN')}`;
 
   const totalCount = vessels.reduce((acc, v) => acc + (Number(v.totalQty) || 0), 0);
   const damagedCount = vessels.reduce((acc, v) => acc + (Number(v.damagedQty) || 0), 0);
   const totalValue = vessels.reduce((sum, v) => sum + ((Number(v.totalQty) || 0) * (Number(v.valuePerUnit) || 0)), 0);
+
+  const selectedEvent = events.find(e => e.id === selectedEventId) || events[0];
+
+  const handleDownloadGatePass = () => {
+    if (!selectedEvent) return;
+    const consumables = (rawMaterials || []).slice(0, 8).map(m => ({
+      name: m.name,
+      category: m.category,
+      qty: 25,
+      unit: m.unit || 'Kg'
+    }));
+
+    const vesselList = (vessels || []).slice(0, 10).map(v => ({
+      name: v.name,
+      category: v.category,
+      sentQty: v.totalQty || 10,
+      returnedQty: (v.totalQty || 10) - (v.damagedQty || 0),
+      damagedQty: v.damagedQty || 0,
+      status: v.damagedQty > 0 ? 'Partial Damage' : 'Verified Return'
+    }));
+
+    const gatePassData = {
+      gatePassNo: `GP-${selectedEvent.id}`,
+      vehicleNo: gatePassForm.vehicleNo,
+      driverName: gatePassForm.driverName,
+      driverPhone: gatePassForm.driverPhone,
+      issuedBy: gatePassForm.issuedBy,
+      dispatchTime: new Date().toLocaleString('en-IN'),
+      consumables,
+      vessels: vesselList
+    };
+
+    const res = generateGatePassPdf(selectedEvent, gatePassData, companyProfile);
+    downloadPdfBlob(res.blob, res.filename);
+  };
+
+  const handlePrintGatePass = () => {
+    if (!selectedEvent) return;
+    const consumables = (rawMaterials || []).slice(0, 8).map(m => ({
+      name: m.name,
+      category: m.category,
+      qty: 25,
+      unit: m.unit || 'Kg'
+    }));
+
+    const vesselList = (vessels || []).slice(0, 10).map(v => ({
+      name: v.name,
+      category: v.category,
+      sentQty: v.totalQty || 10,
+      returnedQty: (v.totalQty || 10) - (v.damagedQty || 0),
+      damagedQty: v.damagedQty || 0,
+      status: v.damagedQty > 0 ? 'Partial Damage' : 'Verified Return'
+    }));
+
+    const gatePassData = {
+      gatePassNo: `GP-${selectedEvent.id}`,
+      vehicleNo: gatePassForm.vehicleNo,
+      driverName: gatePassForm.driverName,
+      driverPhone: gatePassForm.driverPhone,
+      issuedBy: gatePassForm.issuedBy,
+      dispatchTime: new Date().toLocaleString('en-IN'),
+      consumables,
+      vessels: vesselList
+    };
+
+    const res = generateGatePassPdf(selectedEvent, gatePassData, companyProfile);
+    printPdfBlob(res.blob);
+  };
 
   const filtered = vessels.filter(v => {
     const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.location?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -39,9 +118,19 @@ const StorageInventory = () => {
           <h1 className="gradient-text" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>Storage Inventory</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Track vessels, utensils, cooking equipment and storage assets.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditingItem(null); setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000 }); setIsModalOpen(true); }}>
-          <Plus size={18} /><span>Add Vessel / Gear</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setIsGatePassModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+          >
+            <Truck size={18} /><span>Generate Event Gate Pass PDF</span>
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditingItem(null); setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000 }); setIsModalOpen(true); }}>
+            <Plus size={18} /><span>Add Vessel / Gear</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -189,6 +278,104 @@ const StorageInventory = () => {
                 <button type="submit" className="btn btn-primary">{editingItem ? 'Update Vessel' : 'Save Vessel'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Gate Pass Generation Modal */}
+      {isGatePassModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-content" style={{ maxWidth: '640px', width: '92%', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Truck size={22} style={{ color: 'var(--color-primary)' }} />
+                <div>
+                  <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Event Material Gate Pass & Asset Return</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Issue Storage Consumables & Track Inbound/Outbound Vessels</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setIsGatePassModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: 700 }}>Select Event Booking:</label>
+                <select
+                  value={selectedEventId}
+                  onChange={e => setSelectedEventId(e.target.value)}
+                  className="form-select"
+                  style={{ fontSize: '0.88rem' }}
+                >
+                  {events.map(evt => (
+                    <option key={evt.id} value={evt.id}>
+                      {evt.id} - {evt.customer?.name} ({evt.eventType} · {evt.date})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Dispatch Vehicle No:</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={gatePassForm.vehicleNo}
+                    onChange={e => setGatePassForm({ ...gatePassForm, vehicleNo: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Driver Name & Mobile:</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={gatePassForm.driverName}
+                    onChange={e => setGatePassForm({ ...gatePassForm, driverName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.35rem' }}>
+                  Section A: Consumable Storage Provisions
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Includes Rice, Spices, Dairy, Oil, Disposables, Napkins auto-computed for {selectedEvent?.customer?.name || 'Selected Event'}.
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.35rem' }}>
+                  Section B: Vessels & Catering Equipment Return Tracker
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Tracks {vessels.length} vessel asset types (Degchis, Chafing Dishes, Gas Cylinders, Drums) outbound & verified return.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handlePrintGatePass}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              >
+                <Printer size={16} /> Print Gate Pass
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  handleDownloadGatePass();
+                  setIsGatePassModalOpen(false);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
+              >
+                <Download size={16} /> Download Gate Pass PDF
+              </button>
+            </div>
           </div>
         </div>
       )}
