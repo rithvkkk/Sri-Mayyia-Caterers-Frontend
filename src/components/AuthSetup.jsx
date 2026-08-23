@@ -369,7 +369,7 @@ const AuthSetup = () => {
                   {dishes.map(d => {
                     const isSelected = editingId === d.id;
                     return (
-                      <tr key={d.id} style={{ background: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}>
+                      <tr key={d.id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.04)' : 'transparent' }}>
                         <td>{d.name}</td>
                         <td>{d.category}</td>
                         <td>{companyProfile.currency} {d.price}</td>
@@ -423,7 +423,7 @@ const AuthSetup = () => {
                   </div>
 
                   {/* Recipe builder section */}
-                  <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ marginTop: '1rem', background: 'rgba(255, 255, 255, 0.5)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                     <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>Recipe Aggregates (Per Plate)</h4>
                     
                     <div className="recipe-builder-list" style={{ marginBottom: '1rem' }}>
@@ -472,7 +472,7 @@ const AuthSetup = () => {
                   </div>
                 </div>
               ) : (
-                <div className="glass-card" style={{ background: 'rgba(255,255,255,0.01)', borderStyle: 'dashed', textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                <div className="glass-card" style={{ background: 'rgba(255, 255, 255, 0.65)', borderStyle: 'dashed', textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                   <FileText size={48} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
                   <p>Select a dish from the left database list to view its ingredient recipe parameters or build one.</p>
                 </div>
@@ -663,7 +663,7 @@ const AuthSetup = () => {
                             style={{ maxWidth: '180px' }}
                           />
                         ) : (
-                          <code style={{ fontSize: '0.95rem', letterSpacing: '0.05em', background: 'rgba(0,0,0,0.05)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>{u.password}</code>
+                          <code style={{ fontSize: '0.95rem', letterSpacing: '0.05em', background: 'rgba(255, 255, 255, 0.5)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>{u.password}</code>
                         )}
                       </td>
                       <td>

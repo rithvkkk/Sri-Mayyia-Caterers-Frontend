@@ -269,7 +269,7 @@ const RawMaterials = () => {
                     </tr>
                   )}
                   {isOps && (
-                    <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <tr style={{ background: 'rgba(255, 255, 255, 0.65)' }}>
                       <td colSpan="2">
                         <select 
                           className="form-input" 
@@ -355,7 +355,7 @@ const RawMaterials = () => {
             </div>
 
             {/* Supplier PO Dispatch panel */}
-            <div className="glass-card" style={{ background: 'rgba(16, 185, 129, 0.03)' }}>
+            <div className="glass-card" style={{ background: 'rgba(156, 21, 25, 0.06)' }}>
               <h3 style={{ fontSize: '1.05rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Truck size={18} style={{ color: 'var(--color-success)' }} />
                 <span>Supplier PO Allocations</span>
@@ -369,7 +369,7 @@ const RawMaterials = () => {
                   const supItems = materialList.filter(m => m.supplier.name === sup.name);
                   const supTotal = supItems.reduce((s, m) => s + m.totalCost, 0);
                   return (
-                    <div key={sup.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(0,0,0,0.1)' }}>
+                    <div key={sup.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
                       <div>
                         <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{sup.name}</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{sup.contact} | {sup.category}</div>

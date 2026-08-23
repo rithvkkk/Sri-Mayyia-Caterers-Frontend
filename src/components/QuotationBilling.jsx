@@ -247,9 +247,9 @@ const QuotationBilling = () => {
   let bargainStatus = {
     badge: 'ACCEPT DEAL',
     badgeClass: 'badge-success',
-    color: '#0f766e',
-    bgColor: 'rgba(15, 118, 110, 0.1)',
-    borderColor: 'rgba(15, 118, 110, 0.3)',
+    color: '#000000',
+    bgColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(0,0,0,0.08)',
     icon: CheckCircle2,
     title: '🟢 Highly Profitable Deal — Safe to Accept!',
     description: `At ${formatCurrency(bargainedPrice)}/plate, you make ${formatCurrency(bargainedProfit)} net profit (${bargainedMarginPercent.toFixed(1)}% margin).`
@@ -490,7 +490,7 @@ const QuotationBilling = () => {
             </div>
 
             {/* Financial Markup Simulator & Controls */}
-            <div className="glass-card" style={{ border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+            <div className="glass-card" style={{ border: '1px solid rgba(255, 255, 255, 0.4)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <TrendingUp size={18} className="accent-text" />
@@ -502,7 +502,7 @@ const QuotationBilling = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
                 
                 {/* Target Markup Percentage Slider & Presets */}
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.65)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>
                       Target Financial Markup: <strong style={{ color: 'var(--color-primary)', fontSize: '1rem' }}>{markupPercent}%</strong>
@@ -548,7 +548,7 @@ const QuotationBilling = () => {
                   </div>
 
                   {/* Simulator Result Box */}
-                  <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Simulated Selling Price at {markupPercent}% Markup:</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
@@ -645,7 +645,7 @@ const QuotationBilling = () => {
                     Commercial delivery trucks, tempos, and event site porters.
                   </p>
                 </div>
-                <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '1rem' }}>
+                <div style={{ fontWeight: 700, color: '#000000', fontSize: '1rem' }}>
                   {formatCurrency(transportCost)} Total
                 </div>
               </div>
@@ -669,7 +669,7 @@ const QuotationBilling = () => {
                 {transportVehicles.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {transportVehicles.map((veh, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
                         <div>
                           <div style={{ fontWeight: 600 }}>{veh.type} ({veh.vehicleNumber})</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{veh.trips} Trip(s) @ {formatCurrency(veh.costPerTrip)}/trip</div>
@@ -711,7 +711,7 @@ const QuotationBilling = () => {
                 {transportPorters.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {transportPorters.map((prt, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
                         <div>
                           <div style={{ fontWeight: 600 }}>{prt.count} Porter Staff Members</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{prt.shifts} Shift(s) @ {formatCurrency(prt.ratePerPorter)}/porter</div>
@@ -737,50 +737,50 @@ const QuotationBilling = () => {
             </div>
 
             {/* Consumables, Tableware & Parcel Logistics Matrix (Master Data Telemetry) */}
-            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(6, 182, 212, 0.03) 100%)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(6, 182, 212, 0.03) 100%)', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                <h3 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981' }}>
+                <h3 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#000000' }}>
                   <Droplets size={17} />
                   <span>Consumables & Logistics Telemetry</span>
                 </h3>
-                <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.45rem', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.45rem', borderRadius: '6px', background: 'rgba(156, 21, 25, 0.06)', color: '#000000', fontWeight: 600 }}>
                   Automated Buffers ({currentEvent.guestCount || 100} Pax)
                 </span>
               </div>
 
               {/* Formula Checklist */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.5rem', marginBottom: '0.85rem' }}>
-                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>300ml Water Bottles (1.25x)</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#38bdf8' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#000000' }}>
                     {Math.ceil((currentEvent.guestCount || 100) * 1.25)} <span style={{ fontSize: '0.7rem', fontWeight: 500 }}>Units</span>
                   </div>
                 </div>
 
-                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Finger Bowls & Lemons (1.15x)</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#facc15' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#000000' }}>
                     {Math.ceil((currentEvent.guestCount || 100) * 1.15)} <span style={{ fontSize: '0.7rem', fontWeight: 500 }}>Sets</span>
                   </div>
                 </div>
 
-                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>2-Ply Soft Napkins (1.30x)</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#a78bfa' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#000000' }}>
                     {Math.ceil((currentEvent.guestCount || 100) * 1.30)} <span style={{ fontSize: '0.7rem', fontWeight: 500 }}>Units</span>
                   </div>
                 </div>
 
-                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '0.5rem 0.65rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Fresh Plantain Leaves (1.10x)</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#4ade80' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#000000' }}>
                     {Math.ceil((currentEvent.guestCount || 100) * 1.10)} <span style={{ fontSize: '0.7rem', fontWeight: 500 }}>Leaves</span>
                   </div>
                 </div>
               </div>
 
               {/* Service Logistics & Hostesses */}
-              <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <UserCheck size={14} className="accent-text" />
                   <span>Service Staffing Allocations:</span>
@@ -812,7 +812,7 @@ const QuotationBilling = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Transport & Porters Total:</span>
-                  <span style={{ color: '#f59e0b', fontWeight: 600 }}>{formatCurrency(transportCost)}</span>
+                  <span style={{ color: '#000000', fontWeight: 600 }}>{formatCurrency(transportCost)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Overhead Expenses:</span>
@@ -824,7 +824,7 @@ const QuotationBilling = () => {
                   <span style={{ color: 'var(--color-danger)' }}>{formatCurrency(totalCost)}</span>
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', borderLeft: '3px solid var(--color-success)', marginTop: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '8px', borderLeft: '3px solid var(--color-success)', marginTop: '0.25rem' }}>
                   <div style={{ fontWeight: 600, color: 'var(--color-success)' }}>Estimated Net Margin:</div>
                   <div style={{ textAlign: 'right' }}>
                     {currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Accountant' ? (
@@ -841,13 +841,13 @@ const QuotationBilling = () => {
                 </div>
 
                 {/* Historical Learning Intelligence Comparison */}
-                <div style={{ marginTop: '0.5rem', padding: '0.65rem 0.85rem', background: 'rgba(99, 102, 241, 0.06)', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.25)', fontSize: '0.78rem' }}>
+                <div style={{ marginTop: '0.5rem', padding: '0.65rem 0.85rem', background: 'rgba(156, 21, 25, 0.04)', borderRadius: '8px', border: '1px solid rgba(156, 21, 25, 0.12)', fontSize: '0.78rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                    <div style={{ fontWeight: 700, color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ fontWeight: 700, color: '#000000', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <Brain size={14} />
                       <span>Historical Learning Benchmark:</span>
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>20 Events Telemetry</span>
+                    <span style={{ fontSize: '0.7rem', color: '#000000', fontWeight: 600 }}>20 Events Telemetry</span>
                   </div>
                   <div style={{ color: 'var(--text-secondary)', lineHeight: 1.35 }}>
                     Historical benchmark for <strong>{currentEvent.eventType}</strong> averages <strong>42.8% net margin</strong> (₹342/Pax food cost). Current quote delivers <strong>{profitMarginPercent.toFixed(1)}%</strong> ({profitMarginPercent >= 40 ? 'On Target' : 'Below Historical Target'}).
@@ -877,7 +877,7 @@ const QuotationBilling = () => {
             </div>
 
             {/* Bill Sheet */}
-            <div style={{ border: '1px dashed var(--border-color)', borderRadius: '12px', padding: '1.25rem', background: 'rgba(0,0,0,0.15)' }}>
+            <div style={{ border: '1px dashed var(--border-color)', borderRadius: '12px', padding: '1.25rem', background: 'rgba(255, 255, 255, 0.5)' }}>
               <div style={{ textAlign: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }} className="gradient-text">{companyProfile.name}</h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.2rem 0' }}>{companyProfile.address}</p>
@@ -943,12 +943,12 @@ const QuotationBilling = () => {
               {/* Status footer */}
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
                 {balanceDue === 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '20px', color: 'var(--color-success)', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 1rem', background: 'rgba(156, 21, 25, 0.06)', border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '20px', color: 'var(--color-success)', fontSize: '0.85rem', fontWeight: 600 }}>
                     <CheckCircle2 size={16} />
                     <span>INVOICE FULLY CLEARED</span>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 1rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '20px', color: 'var(--color-warning)', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 1rem', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '20px', color: 'var(--color-warning)', fontSize: '0.85rem', fontWeight: 600 }}>
                     <AlertCircle size={16} />
                     <span>PARTIAL PAYMENTS PENDING</span>
                   </div>
@@ -1026,7 +1026,7 @@ const QuotationBilling = () => {
                 </div>
               </div>
 
-              <div style={{ padding: '0.75rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '0.75rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calculated Vehicle Expense:</span>
                 <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
                   {formatCurrency((parseInt(vehicleForm.trips, 10) || 1) * (parseFloat(vehicleForm.costPerTrip) || 0))}
@@ -1090,7 +1090,7 @@ const QuotationBilling = () => {
                 />
               </div>
 
-              <div style={{ padding: '0.75rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '0.75rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calculated Porter Total:</span>
                 <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
                   {formatCurrency((parseInt(porterForm.count, 10) || 1) * (parseFloat(porterForm.ratePerPorter) || 0) * (parseFloat(porterForm.shifts) || 1))}

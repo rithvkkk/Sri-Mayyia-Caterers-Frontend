@@ -152,8 +152,8 @@ const Dashboard = ({ setActiveTab }) => {
       <div 
         className="glass-card" 
         style={{ 
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)', 
-          border: '1px solid rgba(99, 102, 241, 0.3)',
+          background: 'linear-gradient(135deg, rgba(156, 21, 25, 0.04) 0%, rgba(156, 21, 25, 0.04) 100%)', 
+          border: '1px solid rgba(156, 21, 25, 0.12)',
           padding: '0.85rem 1.25rem',
           marginBottom: '1.5rem',
           display: 'flex',
@@ -170,7 +170,7 @@ const Dashboard = ({ setActiveTab }) => {
             <Brain size={20} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span>Historical Learning Engine Active</span>
               <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>20 Events Analyzed</span>
             </div>
@@ -301,11 +301,11 @@ const Dashboard = ({ setActiveTab }) => {
                 <span>Event Scheduled</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)' }} />
+                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid var(--border-color)' }} />
                 <span>Available Slots</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontWeight: 700, color: '#ef4444' }}>{new Date().getDate()}</span>
+                <span style={{ fontWeight: 700, color: '#000000' }}>{new Date().getDate()}</span>
                 <span>Today</span>
               </div>
             </div>
@@ -360,7 +360,7 @@ const Dashboard = ({ setActiveTab }) => {
                       <td>
                         <div style={{ fontWeight: 600 }}>{e.date}</div>
                         {e.dates && e.dates.length > 1 && (
-                          <div style={{ fontSize: '0.72rem', color: '#93c5fd' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#000000' }}>
                             {e.dates.length} Days Multi-Date
                           </div>
                         )}
@@ -399,8 +399,8 @@ const Dashboard = ({ setActiveTab }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.75rem',
-                    background: 'rgba(239, 68, 68, 0.06)',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    background: 'rgba(0,0,0,0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.4)',
                     borderRadius: '8px',
                     cursor: 'pointer'
                   }}
@@ -408,7 +408,7 @@ const Dashboard = ({ setActiveTab }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <Bell size={16} style={{ color: 'var(--color-danger)' }} />
                     <div style={{ fontSize: '0.85rem' }}>
-                      <span style={{ fontWeight: 700, color: '#f87171' }}>[{rem.eventId} Follow-up]:</span> {rem.title} ({rem.customerName})
+                      <span style={{ fontWeight: 700, color: '#000000' }}>[{rem.eventId} Follow-up]:</span> {rem.title} ({rem.customerName})
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -419,7 +419,7 @@ const Dashboard = ({ setActiveTab }) => {
 
               {/* Inquiry Status alerts */}
               {events.filter(e => e.status === 'Inquiry').map(e => (
-                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '8px' }}>
+                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '8px' }}>
                   <Clock size={16} style={{ color: 'var(--color-warning)' }} />
                   <div style={{ fontSize: '0.85rem' }}>
                     <span style={{ fontWeight: 600 }}>{e.id} Inquiry Pending:</span> client {e.customer?.name} requires menu mapping and quotation review.
@@ -429,7 +429,7 @@ const Dashboard = ({ setActiveTab }) => {
 
               {/* Balance Due alerts */}
               {events.filter(e => e.status === 'Confirmed' && e.billing?.balanceDue > 0).map(e => (
-                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.15)', borderRadius: '8px' }}>
+                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(156, 21, 25, 0.06)', border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '8px' }}>
                   <AlertTriangle size={16} style={{ color: 'var(--color-primary)' }} />
                   <div style={{ fontSize: '0.85rem' }}>
                     <span style={{ fontWeight: 600 }}>{e.id} Balance Due:</span> outstanding sum of {formatVal(e.billing?.balanceDue)} remaining for {e.customer?.name}.

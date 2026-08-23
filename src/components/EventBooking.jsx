@@ -428,7 +428,7 @@ const EventBooking = () => {
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
               Parental Event Records ({processedEvents.length})
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.4rem 0.75rem', minWidth: '220px', flex: '1', maxWidth: '300px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.65)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.4rem 0.75rem', minWidth: '220px', flex: '1', maxWidth: '300px' }}>
               <Search size={15} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
               <input
                 type="text"
@@ -469,7 +469,7 @@ const EventBooking = () => {
                   className="event-card"
                   style={{
                     border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                    background: isSelected ? 'rgba(59, 130, 246, 0.06)' : 'var(--bg-card)',
+                    background: isSelected ? 'rgba(156, 21, 25, 0.04)' : 'var(--bg-card)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     padding: '1rem',
@@ -507,9 +507,9 @@ const EventBooking = () => {
                             alignItems: 'center',
                             gap: '0.25rem',
                             fontSize: '0.75rem',
-                            background: 'rgba(59, 130, 246, 0.1)',
-                            border: '1px solid rgba(59, 130, 246, 0.25)',
-                            color: '#93c5fd',
+                            background: 'rgba(156, 21, 25, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            color: '#000000',
                             padding: '0.15rem 0.45rem',
                             borderRadius: '4px'
                           }}
@@ -595,7 +595,7 @@ const EventBooking = () => {
               </div>
 
               {/* Customer Profile */}
-              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', marginBottom: '1.25rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '10px', marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Customer Profile
                 </h3>
@@ -630,7 +630,7 @@ const EventBooking = () => {
               </div>
 
               {/* Multi-Date Schedule & Venue — View or Edit */}
-              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', marginBottom: '1.25rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '10px', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
                   <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Event Execution Dates & Venue
@@ -672,7 +672,7 @@ const EventBooking = () => {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              background: 'rgba(59, 130, 246, 0.15)',
+                              background: 'rgba(156, 21, 25, 0.06)',
                               border: '1px solid var(--color-primary)',
                               color: '#fff',
                               padding: '0.2rem 0.5rem',
@@ -685,7 +685,7 @@ const EventBooking = () => {
                             <button
                               type="button"
                               onClick={() => handleRemoveDateFromEditDraft(dt)}
-                              style={{ background: 'none', border: 'none', color: '#ff8888', cursor: 'pointer', padding: 0, display: 'flex' }}
+                              style={{ background: 'none', border: 'none', color: '#000000', cursor: 'pointer', padding: 0, display: 'flex' }}
                             >
                               <LucideX size={13} />
                             </button>
@@ -723,9 +723,9 @@ const EventBooking = () => {
                             alignItems: 'center',
                             gap: '0.35rem',
                             fontSize: '0.85rem',
-                            background: 'rgba(59, 130, 246, 0.12)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                            color: '#93c5fd',
+                            background: 'rgba(156, 21, 25, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            color: '#000000',
                             padding: '0.25rem 0.6rem',
                             borderRadius: '6px',
                             fontWeight: 600
@@ -751,13 +751,13 @@ const EventBooking = () => {
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {(selectedEvent.subFunctions || []).map(sf => (
-                    <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(0,0,0,0.1)' }}>
+                    <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{sf.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
                           <span>{sf.date || selectedEvent.date}</span>
                           <span>{(sf.menuItems || []).length} Dishes</span>
-                          {sf.clientNotes && <span style={{ color: '#fcd34d' }}>Special Instructions</span>}
+                          {sf.clientNotes && <span style={{ color: '#000000' }}>Special Instructions</span>}
                         </div>
                       </div>
                       <span className="badge badge-info">{sf.guestCount} Pax</span>
@@ -786,7 +786,7 @@ const EventBooking = () => {
 
                 {/* Reminder Add Form */}
                 {showReminderForm && (
-                  <form onSubmit={handleAddReminder} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.85rem', borderRadius: '8px', marginBottom: '0.85rem', border: '1px solid var(--border-color)' }}>
+                  <form onSubmit={handleAddReminder} style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem', borderRadius: '8px', marginBottom: '0.85rem', border: '1px solid var(--border-color)' }}>
                     <div style={{ marginBottom: '0.5rem' }}>
                       <label className="form-label" style={{ fontSize: '0.75rem' }}>Reminder Task / Follow-up Action</label>
                       <input
@@ -967,7 +967,7 @@ const EventBooking = () => {
 
             </div>
           ) : (
-            <div className="glass-card" style={{ background: 'rgba(255,255,255,0.01)', borderStyle: 'dashed', textAlign: 'center', padding: '3.5rem', color: 'var(--text-secondary)' }}>
+            <div className="glass-card" style={{ background: 'rgba(255, 255, 255, 0.65)', borderStyle: 'dashed', textAlign: 'center', padding: '3.5rem', color: 'var(--text-secondary)' }}>
               <Clipboard size={48} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
               <p>Select a parent Event ID file from the records list to access customer contact details, multi-dates, and follow-up reminders.</p>
             </div>
@@ -1045,7 +1045,7 @@ const EventBooking = () => {
               </div>
 
               {/* Multi-Date Selector Box */}
-              <div style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <CalendarDays size={16} className="accent-text" />
                   Event Execution Dates (Primary & Multi-Date Support)
@@ -1074,7 +1074,7 @@ const EventBooking = () => {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.3rem',
-                          background: 'rgba(59, 130, 246, 0.15)',
+                          background: 'rgba(156, 21, 25, 0.06)',
                           border: '1px solid var(--color-primary)',
                           color: '#fff',
                           padding: '0.15rem 0.45rem',
@@ -1087,7 +1087,7 @@ const EventBooking = () => {
                         <button
                           type="button"
                           onClick={() => handleRemoveAdditionalDate(dt)}
-                          style={{ background: 'none', border: 'none', color: '#ff8888', cursor: 'pointer', padding: 0, display: 'flex' }}
+                          style={{ background: 'none', border: 'none', color: '#000000', cursor: 'pointer', padding: 0, display: 'flex' }}
                         >
                           <LucideX size={12} />
                         </button>
@@ -1119,7 +1119,7 @@ const EventBooking = () => {
               </div>
 
               {/* Sub-functions builder */}
-              <div style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Event Sub-functions & Headcounts</h4>
                   <button type="button" className="btn btn-secondary btn-small" onClick={addSubFunctionRow}>

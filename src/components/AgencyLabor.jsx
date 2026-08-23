@@ -444,7 +444,7 @@ const AgencyLabor = () => {
       {activeSubTab === 'directory' && (
         <div>
           <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.05)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
               <Search size={18} style={{ color: 'var(--text-secondary)' }} />
               <input
                 type="text"
@@ -1023,7 +1023,7 @@ const AgencyLabor = () => {
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Contracting Agencies</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {agencies.map(a => (
-                <div key={a.id} style={{ padding: '1rem', borderRadius: '10px', background: 'rgba(0,0,0,0.03)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={a.id} style={{ padding: '1rem', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h3 style={{ fontSize: '1rem', margin: 0, fontWeight: 700 }}>{a.name}</h3>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
@@ -1356,7 +1356,7 @@ const AgencyLabor = () => {
               </div>
 
               {/* Wage Calculation Summary */}
-              <div style={{ padding: '0.75rem 1rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Calculated Total Shift Wage:</span>
                 <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-primary)' }}>
                   {formatCurrency((parseFloat(attendanceForm.shifts) || 1) * (parseFloat(attendanceForm.dailyRate) || 0))}

@@ -80,7 +80,7 @@ const OPERATIONAL_DIRECTIVES = [
     shortLabel: 'Jeera Rice Rule',
     tag: '[DIRECTIVE: Mandatory Jeera Rice (Shristi Village Protocol) - All Biryani & Rice dishes must use premium Jeera Sambha Rice]',
     desc: 'Shristi Village Protocol: Substitutes all Basmati with short-grain fragrant Jeera Rice',
-    color: '#10b981'
+    color: '#000000'
   },
   {
     id: 'sattvic_brahmin',
@@ -88,7 +88,7 @@ const OPERATIONAL_DIRECTIVES = [
     shortLabel: 'Sattvic Brahmin',
     tag: '[DIRECTIVE: Sattvic Brahmin Style - Pure No Onion & No Garlic + 1.5kg/100 Pax Satyanarayan Vratha Prasadam]',
     desc: 'Pure Udupi Brahmin standard. Excludes all alliums and includes sacred prasadam',
-    color: '#f59e0b',
+    color: '#000000',
     conflictKeywords: ['garlic', 'onion', 'pyaza', 'shawarma', 'burnt garlic', 'chilli garlic']
   },
   {
@@ -97,7 +97,7 @@ const OPERATIONAL_DIRECTIVES = [
     shortLabel: 'No Soppu (Greens)',
     tag: '[DIRECTIVE: Zero Leafy Greens (No Soppu) - Strictly strip Palak, Methi, Fenugreek, Spinach from all preparations]',
     desc: 'Swarga Heritage directive: Zero leafy vegetables across all gravies & fries',
-    color: '#ef4444',
+    color: '#000000',
     conflictKeywords: ['palak', 'spinach', 'methi', 'menthya', 'soppu', 'gongura']
   },
   {
@@ -106,7 +106,7 @@ const OPERATIONAL_DIRECTIVES = [
     shortLabel: 'Silver-Foil Free',
     tag: '[DIRECTIVE: Silver-Foil Free Sweets - 100% Ahimsa Pure Vegetarian standard on Kaju Katli & Barfis]',
     desc: 'Zero non-vegetarian silver vark/foil on all traditional sweets',
-    color: '#6366f1'
+    color: '#000000'
   },
   {
     id: 'pomegranate_curd',
@@ -114,7 +114,7 @@ const OPERATIONAL_DIRECTIVES = [
     shortLabel: 'Pomegranate Curd Rice',
     tag: '[DIRECTIVE: Pure Pomegranate Curd Rice - No grapes or raisins; garnish exclusively with fresh ruby pomegranate pearls]',
     desc: 'Digestive Curd Rice standard without sweet/sour grapes',
-    color: '#ec4899'
+    color: '#000000'
   },
   {
     id: 'return_parcels',
@@ -122,7 +122,7 @@ const OPERATIONAL_DIRECTIVES = [
     shortLabel: 'Return Gift Parcels',
     tag: '[DIRECTIVE: Return Gift Parcels - 100-200 Packaged Boxes per side containing Peni + Ladoo + 1/4kg Mysorepak + 200g Kara Boondi]',
     desc: 'Pre-packaged bridal confectionery takeaway packages for guest departure',
-    color: '#06b6d4'
+    color: '#000000'
   }
 ];
 
@@ -409,7 +409,7 @@ const MenuPlanning = () => {
                       className={`btn btn-secondary ${selectedSubId === sf.id ? 'active' : ''}`}
                       style={{
                         justifyContent: 'space-between',
-                        background: selectedSubId === sf.id ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255,255,255,0.02)',
+                        background: selectedSubId === sf.id ? 'rgba(156, 21, 25, 0.08)' : 'rgba(255,255,255,0.02)',
                         borderColor: selectedSubId === sf.id ? 'var(--color-primary)' : 'var(--border-color)',
                         color: selectedSubId === sf.id ? 'var(--color-primary)' : 'var(--text-primary)',
                         padding: '0.6rem 0.85rem'
@@ -418,7 +418,7 @@ const MenuPlanning = () => {
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{sf.name}</div>
                         {sf.clientNotes && (
-                          <div style={{ fontSize: '0.72rem', color: '#fcd34d', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                             <MessageSquare size={10} /> Has Directives / Notes
                           </div>
                         )}
@@ -433,7 +433,7 @@ const MenuPlanning = () => {
 
           {/* 4 Core Event Archetypes (Master Intelligence Presets) */}
           {isEditable && selectedSub && (
-            <div className="glass-card" style={{ background: 'rgba(59, 130, 246, 0.03)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+            <div className="glass-card" style={{ background: 'rgba(156, 21, 25, 0.06)', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <h3 style={{ fontSize: '0.95rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <Award size={16} className="accent-text" />
@@ -447,7 +447,7 @@ const MenuPlanning = () => {
                     key={arc.id}
                     style={{
                       padding: '0.6rem 0.75rem',
-                      background: 'rgba(255,255,255,0.02)',
+                      background: 'rgba(255, 255, 255, 0.65)',
                       border: '1px solid var(--border-color)',
                       borderRadius: '8px',
                       display: 'flex',
@@ -482,7 +482,7 @@ const MenuPlanning = () => {
 
           {/* Historical Duplication Widget */}
           {isEditable && currentEvent && (
-            <div className="glass-card" style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+            <div className="glass-card" style={{ background: 'rgba(156, 21, 25, 0.04)', border: '1px solid rgba(156, 21, 25, 0.08)' }}>
               <h3 style={{ fontSize: '0.95rem', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <ClipboardCopy size={16} className="accent-text" />
                 <span>Clone Event Menu Template</span>
@@ -548,24 +548,25 @@ const MenuPlanning = () => {
 
               {/* Sri Mayyia Operational Directives & Rule Engine Box */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.15) 0%, rgba(15, 23, 42, 0.3) 100%)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
+                background: 'rgba(255, 255, 255, 0.6)',
+                border: '1.5px solid rgba(156, 21, 25, 0.18)',
                 borderRadius: '12px',
                 padding: '1rem',
-                marginBottom: '1.25rem'
+                marginBottom: '1.25rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: '#60a5fa', fontSize: '0.92rem' }}>
-                    <ShieldCheck size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.68rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: '#000000', fontSize: '0.95rem' }}>
+                    <ShieldCheck size={19} style={{ color: '#9C1519' }} />
                     <span>Operational Rules & Dietary Directives Engine</span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#000000', fontWeight: 600 }}>
                     1-Click Sri Mayyia Quality Directives & Kitchen Safeguards
                   </span>
                 </div>
 
                 {/* 6 Rapid Constraint Toggles */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.55rem', marginBottom: '0.85rem' }}>
                   {OPERATIONAL_DIRECTIVES.map(dir => {
                     const isActive = (selectedSub.clientNotes || '').includes(dir.tag);
                     return (
@@ -575,29 +576,30 @@ const MenuPlanning = () => {
                         onClick={() => toggleDirective(dir)}
                         style={{
                           textAlign: 'left',
-                          padding: '0.45rem 0.65rem',
+                          padding: '0.5rem 0.7rem',
                           borderRadius: '8px',
-                          border: isActive ? `1.5px solid ${dir.color}` : '1px solid var(--border-color)',
-                          background: isActive ? `${dir.color}18` : 'rgba(255,255,255,0.02)',
-                          color: isActive ? '#fff' : 'var(--text-secondary)',
+                          border: isActive ? '1.5px solid #9C1519' : '1px solid rgba(0,0,0,0.12)',
+                          background: isActive ? 'rgba(210, 172, 103, 0.2)' : '#FFFFFF',
+                          color: '#000000',
                           cursor: isEditable ? 'pointer' : 'default',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0.2rem',
-                          transition: 'all 0.15s ease'
+                          gap: '0.25rem',
+                          transition: 'all 0.15s ease',
+                          boxShadow: isActive ? '0 2px 6px rgba(156,21,25,0.1)' : 'none'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isActive ? dir.color : 'var(--text-primary)' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#000000' }}>
                             {dir.title}
                           </span>
                           {isActive && (
-                            <span style={{ fontSize: '0.62rem', padding: '0.05rem 0.3rem', borderRadius: '4px', background: dir.color, color: '#000', fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem', borderRadius: '4px', background: '#9C1519', color: '#FFFFFF', fontWeight: 700 }}>
                               ACTIVE
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: 1.2 }}>
+                        <span style={{ fontSize: '0.72rem', color: '#000000', lineHeight: 1.25, fontWeight: 500 }}>
                           {dir.desc}
                         </span>
                       </button>
@@ -607,28 +609,33 @@ const MenuPlanning = () => {
 
                 {/* Freeform Client Notes & Quick Tags */}
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#000000' }}>
                       Quick Tags & Kitchen Custom Instructions:
                     </span>
-                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                      {quickTags.map((tag, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => handleAddQuickTag(tag.text)}
-                          className="btn btn-secondary btn-small"
-                          style={{
-                            padding: '0.15rem 0.4rem',
-                            fontSize: '0.68rem',
-                            background: (selectedSub.clientNotes || '').includes(tag.text) ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
-                            borderColor: (selectedSub.clientNotes || '').includes(tag.text) ? '#f59e0b' : 'var(--border-color)',
-                            color: (selectedSub.clientNotes || '').includes(tag.text) ? '#fbbf24' : 'var(--text-secondary)'
-                          }}
-                        >
-                          {tag.label}
-                        </button>
-                      ))}
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      {quickTags.map((tag, idx) => {
+                        const isTagActive = (selectedSub.clientNotes || '').includes(tag.text);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleAddQuickTag(tag.text)}
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              background: isTagActive ? 'rgba(156, 21, 25, 0.15)' : '#FFFFFF',
+                              border: isTagActive ? '1.5px solid #9C1519' : '1px solid rgba(0,0,0,0.18)',
+                              color: '#000000',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {tag.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -641,10 +648,14 @@ const MenuPlanning = () => {
                     disabled={!isEditable}
                     style={{
                       width: '100%',
-                      fontSize: '0.82rem',
-                      lineHeight: '1.4',
-                      background: 'rgba(0,0,0,0.25)',
-                      borderColor: selectedSub.clientNotes ? 'rgba(59, 130, 246, 0.4)' : 'var(--border-color)'
+                      fontSize: '0.85rem',
+                      lineHeight: '1.45',
+                      background: 'rgba(255, 255, 255, 0.65)',
+                      color: '#000000',
+                      fontWeight: 600,
+                      border: '1px solid rgba(0,0,0,0.2)',
+                      borderRadius: '8px',
+                      padding: '0.6rem 0.8rem'
                     }}
                   />
                 </div>
@@ -706,7 +717,7 @@ const MenuPlanning = () => {
                     <h3 style={{
                       fontSize: '1rem',
                       fontWeight: 700,
-                      color: '#93c5fd',
+                      color: '#000000',
                       marginBottom: '0.85rem',
                       borderBottom: '1px solid rgba(147, 197, 253, 0.15)',
                       paddingBottom: '0.4rem',
@@ -745,12 +756,12 @@ const MenuPlanning = () => {
                                     border: isSelected 
                                       ? '1.5px solid var(--color-primary)' 
                                       : conflictWarning 
-                                        ? '1px solid rgba(239, 68, 68, 0.4)' 
+                                        ? '1px solid rgba(0,0,0,0.1)' 
                                         : '1px solid var(--border-color)',
                                     background: isSelected 
-                                      ? 'rgba(59, 130, 246, 0.12)' 
+                                      ? 'rgba(156, 21, 25, 0.08)' 
                                       : conflictWarning
-                                        ? 'rgba(239, 68, 68, 0.04)'
+                                        ? 'rgba(0,0,0,0.1)'
                                         : 'rgba(255,255,255,0.02)',
                                     borderRadius: '8px',
                                     cursor: isEditable ? 'pointer' : 'default',
@@ -772,12 +783,12 @@ const MenuPlanning = () => {
                                         <span style={{ opacity: 0.7 }}>• {dish.dietary[0]}</span>
                                       )}
                                       {getHistoricalPortionHint(dish) && (
-                                        <span style={{ color: '#818cf8', fontWeight: 600, background: 'rgba(99, 102, 241, 0.1)', padding: '0.05rem 0.3rem', borderRadius: '4px' }}>
+                                        <span style={{ color: '#000000', fontWeight: 600, background: 'rgba(156, 21, 25, 0.08)', padding: '0.05rem 0.3rem', borderRadius: '4px' }}>
                                           {getHistoricalPortionHint(dish)}
                                         </span>
                                       )}
                                       {conflictWarning && (
-                                        <span style={{ color: '#ef4444', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                                        <span style={{ color: '#000000', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
                                           {conflictWarning}
                                         </span>
                                       )}

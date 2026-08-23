@@ -37,10 +37,12 @@ const Login = () => {
         width: '100%',
         maxWidth: '440px',
         padding: '2.5rem',
-        boxShadow: 'var(--shadow-lg), var(--shadow-glow)',
-        border: '1px solid var(--border-color-active)',
+        boxShadow: 'var(--shadow-lg), var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+        border: '1px solid rgba(255, 255, 255, 0.5)',
         borderRadius: '24px',
-        background: 'rgba(250, 249, 245, 0.85)'
+        background: 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: 'blur(24px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.4)'
       }}>
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>

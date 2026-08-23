@@ -157,7 +157,7 @@ const HistoricalLearning = () => {
         </div>
 
         {/* Status Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.9rem', borderRadius: '20px', background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818cf8', fontSize: '0.82rem', fontWeight: 600 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.9rem', borderRadius: '20px', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.12)', color: '#000000', fontSize: '0.82rem', fontWeight: 600 }}>
           <Sparkles size={16} />
           <span>Active Learning Engine ({historicalList.length} Historical Records)</span>
         </div>
@@ -167,7 +167,7 @@ const HistoricalLearning = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #6366f1' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Events in Memory</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#818cf8', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#000000', marginTop: '0.2rem' }}>
             {historicalList.length} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Events</span>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
@@ -177,7 +177,7 @@ const HistoricalLearning = () => {
 
         <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #10b981' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Cumulative Served Pax</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#000000', marginTop: '0.2rem' }}>
             {totalAnalyzedPax.toLocaleString()} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Portions</span>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
@@ -187,7 +187,7 @@ const HistoricalLearning = () => {
 
         <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #f59e0b' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Learned Food Cost / Pax</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fbbf24', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#000000', marginTop: '0.2rem' }}>
             ₹ {avgFoodCostPerPax} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>/ Guest</span>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
@@ -197,17 +197,17 @@ const HistoricalLearning = () => {
 
         <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #ec4899' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Observed Food Waste Rate</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f472b6', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#000000', marginTop: '0.2rem' }}>
             {avgWastePercent}% <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Actual</span>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#10b981', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '0.72rem', color: '#000000', marginTop: '0.2rem' }}>
             ↓ 3.1% lower than industry avg (8.5%)
           </div>
         </div>
 
         <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #06b6d4' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Average Realized Margin</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#22d3ee', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#000000', marginTop: '0.2rem' }}>
             {avgMarginPercent}% <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Net Profit</span>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
@@ -260,10 +260,10 @@ const HistoricalLearning = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Target Event Selection Card */}
-          <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(59, 130, 246, 0.02) 100%)', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+          <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(156, 21, 25, 0.04) 0%, rgba(156, 21, 25, 0.04) 100%)', border: '1px solid rgba(156, 21, 25, 0.12)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.15rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#818cf8' }}>
+                <h3 style={{ fontSize: '1.15rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#000000' }}>
                   <Search size={18} />
                   <span>Target Event Matching Engine</span>
                 </h3>
@@ -290,7 +290,7 @@ const HistoricalLearning = () => {
 
             {/* Target Event Telemetry Overview */}
             {currentTargetEvent && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', padding: '0.85rem', background: 'rgba(0,0,0,0.2)', borderRadius: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', padding: '0.85rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '10px' }}>
                 <div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Target Event Scale:</span>
                   <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-primary)' }}>{currentPax} Pax Portions</div>
@@ -305,7 +305,7 @@ const HistoricalLearning = () => {
                 </div>
                 <div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Historical Search Status:</span>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#000000', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <CheckCircle2 size={15} />
                     <span>{matchedEvents.length} Records Ranked</span>
                   </div>
@@ -318,7 +318,7 @@ const HistoricalLearning = () => {
           <div className="glass-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8' }}>
+                <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#000000' }}>
                   <Layers size={18} />
                   <span>5-Level Traceable Learned Estimator</span>
                 </h3>
@@ -332,7 +332,7 @@ const HistoricalLearning = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
               {/* Variable 1: Cooked Rice Quantity */}
-              <div style={{ padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <div style={{ padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                     Cooked Rice Requirement (Biryani / Pulav / Sambar Rice)
@@ -343,31 +343,31 @@ const HistoricalLearning = () => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>1. Historical Average</div>
-                    <div style={{ fontWeight: 700, color: '#818cf8' }}>{riceEstimate.historicalAverage}</div>
+                    <div style={{ fontWeight: 700, color: '#000000' }}>{riceEstimate.historicalAverage}</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>2. Recent Average</div>
-                    <div style={{ fontWeight: 700, color: '#60a5fa' }}>{riceEstimate.recentAverage}</div>
+                    <div style={{ fontWeight: 700, color: '#000000' }}>{riceEstimate.recentAverage}</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>3. Generic Standard</div>
                     <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{riceEstimate.currentStandard}</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>4. Event Adjustment</div>
-                    <div style={{ fontWeight: 600, color: '#f59e0b' }}>{riceEstimate.eventAdjustment}</div>
+                    <div style={{ fontWeight: 600, color: '#000000' }}>{riceEstimate.eventAdjustment}</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                    <div style={{ color: '#10b981', fontSize: '0.7rem', fontWeight: 700 }}>5. Learned Final Estimate</div>
-                    <div style={{ fontWeight: 800, fontSize: '1rem', color: '#34d399' }}>{riceEstimate.finalEstimate} kg</div>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
+                    <div style={{ color: '#000000', fontSize: '0.7rem', fontWeight: 700 }}>5. Learned Final Estimate</div>
+                    <div style={{ fontWeight: 800, fontSize: '1rem', color: '#000000' }}>{riceEstimate.finalEstimate} kg</div>
                   </div>
                 </div>
               </div>
 
               {/* Variable 2: 300ml Bottled Water */}
-              <div style={{ padding: '0.85rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <div style={{ padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                     300ml Packaged Mineral Water Units
@@ -378,25 +378,25 @@ const HistoricalLearning = () => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>1. Historical Multiplier</div>
-                    <div style={{ fontWeight: 700, color: '#818cf8' }}>1.27x Pax Observed</div>
+                    <div style={{ fontWeight: 700, color: '#000000' }}>1.27x Pax Observed</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>2. Recent Multiplier</div>
-                    <div style={{ fontWeight: 700, color: '#60a5fa' }}>1.26x Pax Observed</div>
+                    <div style={{ fontWeight: 700, color: '#000000' }}>1.26x Pax Observed</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>3. Standard Assumption</div>
                     <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{waterEstimate.currentStandard}</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '6px' }}>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>4. Event Adjustment</div>
-                    <div style={{ fontWeight: 600, color: '#f59e0b' }}>+0% (Standard)</div>
+                    <div style={{ fontWeight: 600, color: '#000000' }}>+0% (Standard)</div>
                   </div>
-                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                    <div style={{ color: '#10b981', fontSize: '0.7rem', fontWeight: 700 }}>5. Learned Final Estimate</div>
-                    <div style={{ fontWeight: 800, fontSize: '1rem', color: '#34d399' }}>{waterEstimate.finalEstimate} Bottles</div>
+                  <div style={{ padding: '0.4rem 0.6rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
+                    <div style={{ color: '#000000', fontSize: '0.7rem', fontWeight: 700 }}>5. Learned Final Estimate</div>
+                    <div style={{ fontWeight: 800, fontSize: '1rem', color: '#000000' }}>{waterEstimate.finalEstimate} Bottles</div>
                   </div>
                 </div>
               </div>
@@ -417,8 +417,8 @@ const HistoricalLearning = () => {
                   key={m.historicalEvent.id}
                   style={{
                     padding: '0.85rem 1.1rem',
-                    background: m.isOutlier ? 'rgba(239, 68, 68, 0.03)' : 'rgba(255,255,255,0.02)',
-                    border: m.isOutlier ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border-color)',
+                    background: m.isOutlier ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.02)',
+                    border: m.isOutlier ? '1px solid rgba(0,0,0,0.1)' : '1px solid var(--border-color)',
                     borderRadius: '10px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -443,7 +443,7 @@ const HistoricalLearning = () => {
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#10b981' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#000000' }}>
                         ₹ {(m.historicalEvent.actualProfit || 0).toLocaleString()} Profit ({m.historicalEvent.actualMarginPercent}%)
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
@@ -456,7 +456,7 @@ const HistoricalLearning = () => {
                   {m.matchFactors.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
                       {m.matchFactors.map((fact, fIdx) => (
-                        <span key={fIdx} style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span key={fIdx} style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(156, 21, 25, 0.06)', color: '#000000', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                           <Check size={11} />
                           <span>{fact}</span>
                         </span>
@@ -465,7 +465,7 @@ const HistoricalLearning = () => {
                   )}
 
                   {m.historicalEvent.postEventNotes && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', background: 'rgba(0,0,0,0.15)', padding: '0.4rem 0.6rem', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', background: 'rgba(255, 255, 255, 0.5)', padding: '0.4rem 0.6rem', borderRadius: '6px' }}>
                       <strong>Post-Event Log:</strong> {m.historicalEvent.postEventNotes}
                     </div>
                   )}
@@ -482,7 +482,7 @@ const HistoricalLearning = () => {
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#000000' }}>
                 <FileCheck size={20} />
                 <span>Post-Event Learning & Reconciliation Form</span>
               </h2>
@@ -493,7 +493,7 @@ const HistoricalLearning = () => {
           </div>
 
           {reconcileSuccess && (
-            <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', fontWeight: 600 }}>
+            <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'rgba(156, 21, 25, 0.06)', border: '1px solid #10b981', color: '#000000', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', fontWeight: 600 }}>
               <CheckCircle2 size={18} />
               <span>Event successfully reconciled and committed into Historical Machine Learning Memory!</span>
             </div>
@@ -607,7 +607,7 @@ const HistoricalLearning = () => {
             </div>
 
             {/* Outlier Protection Checkbox */}
-            <div style={{ padding: '0.85rem 1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.25rem' }}>
+            <div style={{ padding: '0.85rem 1rem', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.4)', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <input 
                   type="checkbox" 
@@ -616,7 +616,7 @@ const HistoricalLearning = () => {
                   onChange={e => setPostEventForm({ ...postEventForm, isOutlier: e.target.checked })}
                   style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
-                <label htmlFor="outlierCheck" style={{ fontWeight: 700, fontSize: '0.85rem', color: '#ef4444', cursor: 'pointer' }}>
+                <label htmlFor="outlierCheck" style={{ fontWeight: 700, fontSize: '0.85rem', color: '#000000', cursor: 'pointer' }}>
                   Flag as Outlier Event (Do not distort future baseline standards)
                 </label>
               </div>
@@ -661,7 +661,7 @@ const HistoricalLearning = () => {
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#000000' }}>
                 <GitBranch size={20} />
                 <span>Dish Recipe Version Control & Yield Repository</span>
               </h2>
@@ -673,9 +673,9 @@ const HistoricalLearning = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {Object.entries(recipeVersions).map(([dishId, versions]) => (
-              <div key={dishId} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <div key={dishId} style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '1rem', color: '#c084fc' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1rem', color: '#000000' }}>
                     {dishId === 'si_rc_potali' ? 'Jackfruit Potali Biryani' : dishId === 'app_str_op1' ? 'Operation Capsicum Bonda' : 'Appi Payasam Udupi Style'} ({dishId})
                   </span>
                   <span className="badge badge-purple">{versions.length} Versions Logged</span>
@@ -683,7 +683,7 @@ const HistoricalLearning = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {versions.map((ver, vIdx) => (
-                    <div key={vIdx} style={{ padding: '0.75rem 1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', borderLeft: ver.version.includes('current') ? '3px solid #10b981' : '3px solid var(--border-color)' }}>
+                    <div key={vIdx} style={{ padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '8px', borderLeft: ver.version.includes('current') ? '3px solid #10b981' : '3px solid var(--border-color)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                         <span style={{ fontWeight: 700, fontSize: '0.88rem', color: ver.version.includes('current') ? '#34d399' : 'var(--text-secondary)' }}>
                           {ver.version} • {ver.date}
@@ -700,7 +700,7 @@ const HistoricalLearning = () => {
                       {/* Ingredients breakdown */}
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {ver.ingredients.map((ing, iIdx) => (
-                          <span key={iIdx} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
+                          <span key={iIdx} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.65)', border: '1px solid var(--border-color)' }}>
                             {ing.name}: <strong>{ing.qtyPer100Pax} {ing.unit} / 100 Pax</strong>
                           </span>
                         ))}
@@ -719,7 +719,7 @@ const HistoricalLearning = () => {
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#000000' }}>
                 <DollarSign size={20} />
                 <span>Historical Purchasing & Supplier Reliability Matrix</span>
               </h2>

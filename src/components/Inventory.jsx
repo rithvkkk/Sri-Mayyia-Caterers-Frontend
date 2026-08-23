@@ -307,7 +307,7 @@ const Inventory = () => {
             <h3>Fresh Produce & Veggies</h3>
             <div className="kpi-value">{vegetables.length} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>items</span></div>
             {urgentVegCount > 0 ? (
-              <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: '#000000', marginTop: '0.25rem', fontWeight: 600 }}>
                 {urgentVegCount} expiring / urgent use
               </div>
             ) : (
@@ -367,7 +367,7 @@ const Inventory = () => {
 
       {/* Search & Category Filter Toolbar */}
       <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.05)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
           <Search size={18} style={{ color: 'var(--text-secondary)' }} />
           <input
             type="text"

@@ -128,24 +128,24 @@ const MenuExecution = () => {
           {/* Client Instructions Alert Banner if present */}
           {(subFunctionNotes.length > 0 || currentEvent.menuNotes) && (
             <div style={{
-              background: 'rgba(245, 158, 11, 0.08)',
+              background: 'rgba(156, 21, 25, 0.08)',
               border: '1px solid rgba(245, 158, 11, 0.35)',
               borderRadius: '10px',
               padding: '0.85rem 1.25rem',
               marginBottom: '1.25rem'
             }}>
-              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
                 <MessageSquare size={16} />
                 <span>Client Kitchen Directives & Dietary Instructions:</span>
               </div>
               {currentEvent.menuNotes && (
-                <div style={{ fontSize: '0.82rem', color: '#fcd34d', marginBottom: '0.25rem' }}>
+                <div style={{ fontSize: '0.82rem', color: '#000000', marginBottom: '0.25rem' }}>
                   <strong>Master Directive:</strong> {currentEvent.menuNotes}
                 </div>
               )}
               {subFunctionNotes.map(sf => (
                 <div key={sf.id} style={{ fontSize: '0.82rem', color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-                  <strong>{sf.name}:</strong> <span style={{ color: '#fcd34d' }}>{sf.clientNotes}</span>
+                  <strong>{sf.name}:</strong> <span style={{ color: '#000000' }}>{sf.clientNotes}</span>
                 </div>
               ))}
             </div>
@@ -254,7 +254,7 @@ const MenuExecution = () => {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', maxHeight: '550px' }}>
                 {cookingDishes.map(d => (
-                  <div key={d.id} className="kanban-card" style={{ borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+                  <div key={d.id} className="kanban-card" style={{ borderColor: 'rgba(255, 255, 255, 0.4)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{d.name}</span>
                       <span className={`badge ${
@@ -287,7 +287,7 @@ const MenuExecution = () => {
             </div>
 
             {/* Column 3: Ready & Served */}
-            <div className="kanban-column" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+            <div className="kanban-column" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
               <div className="kanban-column-header">
                 <span style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-success)' }} />
@@ -298,7 +298,7 @@ const MenuExecution = () => {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', maxHeight: '550px' }}>
                 {servedDishes.map(d => (
-                  <div key={d.id} className="kanban-card" style={{ borderColor: 'rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                  <div key={d.id} className="kanban-card" style={{ borderColor: 'rgba(0,0,0,0.1)', background: 'rgba(156, 21, 25, 0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-success)' }}>{d.name}</span>
                       <span className={`badge ${
