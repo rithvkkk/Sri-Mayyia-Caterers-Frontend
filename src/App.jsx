@@ -62,6 +62,20 @@ const AppContent = () => {
     }
   }, [syncStatus]);
 
+  const navigationItems = [
+    { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
+    { id: 'bookings', name: 'Event Booking', icon: CalendarDays },
+    { id: 'menu', name: 'Menu Planning', icon: UtensilsCrossed },
+    { id: 'historical', name: 'Historical Learning', icon: Brain },
+    { id: 'vendors', name: 'Vendor Management', icon: Store },
+    { id: 'provisions', name: 'Provision Inventory', icon: Boxes },
+    { id: 'storage', name: 'Storage Inventory', icon: Package },
+    { id: 'labor', name: 'Labour Management', icon: Users },
+    { id: 'billing', name: 'Quotation & Billing', icon: Receipt },
+    { id: 'reports', name: 'Reports & Analytics', icon: BarChart3 },
+    { id: 'setup', name: 'Setup & Masters', icon: Settings }
+  ];
+
   // Tab to RBAC module mapping
   const tabToModuleMap = {
     dashboard: MODULES.DASHBOARD,
@@ -94,20 +108,6 @@ const AppContent = () => {
       setActiveTab(allowedItem ? allowedItem.id : 'bookings');
     }
   }, [currentRole, activeTab]);
-
-  const navigationItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-    { id: 'bookings', name: 'Event Booking', icon: CalendarDays },
-    { id: 'menu', name: 'Menu Planning', icon: UtensilsCrossed },
-    { id: 'historical', name: 'Historical Learning', icon: Brain },
-    { id: 'vendors', name: 'Vendor Management', icon: Store },
-    { id: 'provisions', name: 'Provision Inventory', icon: Boxes },
-    { id: 'storage', name: 'Storage Inventory', icon: Package },
-    { id: 'labor', name: 'Labour Management', icon: Users },
-    { id: 'billing', name: 'Quotation & Billing', icon: Receipt },
-    { id: 'reports', name: 'Reports & Analytics', icon: BarChart3 },
-    { id: 'setup', name: 'Setup & Masters', icon: Settings }
-  ];
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
@@ -391,7 +391,7 @@ const AppContent = () => {
 
       {/* Bottom Tab Bar (Mobile) */}
       <div className="bottom-tab-bar">
-        {navigationItems.filter(i => checkPermission(i.id)).slice(0, 5).map(item => {
+        {navigationItems.filter(i => isTabVisible(i.id)).slice(0, 5).map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
