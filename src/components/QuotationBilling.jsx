@@ -261,6 +261,17 @@ const QuotationBilling = () => {
     }
   };
 
+  // Invoice & Billing Computed Values
+  const pricePerPlate = currentEvent?.billing?.pricePerPlate || 800;
+  const advancePaid = currentEvent?.billing?.advancePaid || 0;
+  const taxRate = currentEvent?.billing?.taxRate || 5;
+  const revenue = totalGuests * pricePerPlate;
+  const taxAmount = revenue * (taxRate / 100);
+  const grandTotal = revenue + taxAmount;
+  const balanceDue = grandTotal - advancePaid;
+  const profitAmount = revenue - totalCost;
+  const profitMarginPercent = revenue > 0 ? (profitAmount / revenue) * 100 : 0;
+
   // Determine Bargain Feasibility Status
   let bargainStatus = {
     badge: 'ACCEPT DEAL',
