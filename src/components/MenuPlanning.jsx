@@ -151,6 +151,8 @@ const MenuPlanning = () => {
   const [draftSubFunctions, setDraftSubFunctions] = useState(null);
   const [eventMenuNotes, setEventMenuNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [parentEventSearch, setParentEventSearch] = useState('');
 
   // Category and Dish Search Filters
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
@@ -162,6 +164,17 @@ const MenuPlanning = () => {
 
   const isEditable = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager' || isSalesExec;
   const currentEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
+
+  const filteredParentEvents = visibleEvents.filter(e => {
+    if (!parentEventSearch) return true;
+    const query = parentEventSearch.toLowerCase();
+    return (
+      e.id.toLowerCase().includes(query) ||
+      (e.customer?.name || '').toLowerCase().includes(query) ||
+      (e.eventType || '').toLowerCase().includes(query) ||
+      (e.date || '').includes(query)
+    );
+  });
 
   const handleDownloadMenuPdf = (templateId = selectedTemplate) => {
     if (!currentEvent || !selectedSub) return;
@@ -187,16 +200,19 @@ const MenuPlanning = () => {
     { label: 'Organic Banana Leaf', text: '[Traditional Banana Leaf Dining]' }
   ];
 
-  // Sync draft when event changes
+  // Sync draft ONLY when event ID changes (decoupled from background polling)
   React.useEffect(() => {
-    if (currentEvent) {
-      setDraftSubFunctions(JSON.parse(JSON.stringify(currentEvent.subFunctions || [])));
-      setEventMenuNotes(currentEvent.menuNotes || '');
+    const targetEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
+    if (targetEvent) {
+      setDraftSubFunctions(JSON.parse(JSON.stringify(targetEvent.subFunctions || [])));
+      setEventMenuNotes(targetEvent.menuNotes || '');
+      setIsDirty(false);
     } else {
       setDraftSubFunctions(null);
       setEventMenuNotes('');
+      setIsDirty(false);
     }
-  }, [selectedEventId, currentEvent]);
+  }, [selectedEventId]);
 
   // Initialize selected sub-function
   React.useEffect(() => {
@@ -405,12 +421,48 @@ const MenuPlanning = () => {
           
           {/* Active Event Selector */}
           <div className="glass-card">
-            <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Active Parent Event</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1rem', margin: 0 }}>Active Parent Event</h3>
+              {isDirty && (
+                <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Unsaved Changes</span>
+              )}
+            </div>
+
+            {/* Parent Event Search Box */}
+            <div className="form-group" style={{ marginBottom: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.65)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.35rem 0.6rem' }}>
+                <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Filter parent events (ID, Client, Type, Date)..."
+                  value={parentEventSearch}
+                  onChange={e => setParentEventSearch(e.target.value)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    width: '100%'
+                  }}
+                />
+                {parentEventSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setParentEventSearch('')}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 0 }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="form-group">
-              <label className="form-label">Select Event ID File</label>
+              <label className="form-label">Select Event ID File ({filteredParentEvents.length})</label>
               <select className="form-select" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
-                {visibleEvents.map(e => (
-                  <option key={e.id} value={e.id}>{e.id} - {e.customer?.name} ({e.eventType})</option>
+                {filteredParentEvents.map(e => (
+                  <option key={e.id} value={e.id}>{e.id} - {e.customer?.name} ({e.eventType} · {e.date})</option>
                 ))}
               </select>
             </div>

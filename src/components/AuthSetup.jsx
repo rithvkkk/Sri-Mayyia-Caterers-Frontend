@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff } from 'lucide-react';
+import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
   const {
@@ -11,7 +12,8 @@ const AuthSetup = () => {
     dishes, addDish, updateDish, deleteDish,
     suppliers, addSupplier, updateSupplier, deleteSupplier,
     agencies, addAgency, updateAgency, deleteAgency,
-    companyProfile, setCompanyProfile
+    companyProfile, setCompanyProfile,
+    rbacMatrix, updateRolePermission
   } = useContext(AppContext);
 
   // Tabs: profile, venues, materials, dishes, suppliers, agencies
@@ -142,6 +144,7 @@ const AuthSetup = () => {
         <button className={`tab-btn ${activeTab === 'suppliers' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('suppliers'); }}>Suppliers</button>
         <button className={`tab-btn ${activeTab === 'agencies' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('agencies'); }}>Agencies</button>
         <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('users'); }}>User Accounts</button>
+        <button className={`tab-btn ${activeTab === 'rbac' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('rbac'); }}>RBAC Permission Matrix</button>
       </div>
 
       {/* Tab: Company Profile */}
@@ -700,6 +703,114 @@ const AuthSetup = () => {
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: RBAC Permission Matrix */}
+      {activeTab === 'rbac' && (
+        <div className="glass-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Shield className="accent-text" size={20} />
+                <span>Role-Based Access Control (RBAC) Master Matrix</span>
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                Define granular Read, Write, or Hide access per module across all organizational roles.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
+              <span className="badge badge-success">Write: Full Control</span>
+              <span className="badge badge-warning">Read: View Only</span>
+              <span className="badge badge-danger">Hide: Restricted</span>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table className="custom-table" style={{ fontSize: '0.85rem' }}>
+              <thead>
+                <tr>
+                  <th style={{ minWidth: '180px' }}>Module / Sub-system</th>
+                  {['Admin', 'Sales Executive', 'Chef', 'HR Manager', 'Store Incharge', 'Accountant', 'Agency'].map(role => (
+                    <th key={role} style={{ textAlign: 'center', minWidth: '130px' }}>{role}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(MODULE_NAMES).map(([modKey, modLabel]) => (
+                  <tr key={modKey}>
+                    <td>
+                      <strong>{modLabel}</strong>
+                    </td>
+                    {['Admin', 'Sales Executive', 'Chef', 'HR Manager', 'Store Incharge', 'Accountant', 'Agency'].map(role => {
+                      const currentMatrix = rbacMatrix || DEFAULT_RBAC_MATRIX;
+                      const rolePerms = currentMatrix[role] || {};
+                      const currentLevel = role === 'Admin' ? ACCESS_LEVELS.WRITE : (rolePerms[modKey] || ACCESS_LEVELS.HIDE);
+                      
+                      return (
+                        <td key={role} style={{ textAlign: 'center' }}>
+                          {role === 'Admin' ? (
+                            <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Write (Root)</span>
+                          ) : (
+                            <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                              <button
+                                type="button"
+                                onClick={() => updateRolePermission(role, modKey, ACCESS_LEVELS.WRITE)}
+                                title="Write (Full Edit)"
+                                style={{
+                                  padding: '0.25rem 0.45rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  background: currentLevel === ACCESS_LEVELS.WRITE ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
+                                  color: currentLevel === ACCESS_LEVELS.WRITE ? '#fff' : 'var(--text-secondary)'
+                                }}
+                              >
+                                Write
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateRolePermission(role, modKey, ACCESS_LEVELS.READ)}
+                                title="Read (View Only)"
+                                style={{
+                                  padding: '0.25rem 0.45rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  background: currentLevel === ACCESS_LEVELS.READ ? '#d97706' : 'rgba(255,255,255,0.05)',
+                                  color: currentLevel === ACCESS_LEVELS.READ ? '#fff' : 'var(--text-secondary)'
+                                }}
+                              >
+                                Read
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateRolePermission(role, modKey, ACCESS_LEVELS.HIDE)}
+                                title="Hide (Hidden from View)"
+                                style={{
+                                  padding: '0.25rem 0.45rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  background: currentLevel === ACCESS_LEVELS.HIDE ? 'rgba(239, 68, 68, 0.85)' : 'rgba(255,255,255,0.05)',
+                                  color: currentLevel === ACCESS_LEVELS.HIDE ? '#fff' : 'var(--text-secondary)'
+                                }}
+                              >
+                                Hide
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

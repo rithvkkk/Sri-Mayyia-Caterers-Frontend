@@ -13,6 +13,7 @@ import {
   initialLabourWorkers,
   initialLabourAttendance
 } from '../utils/mockData';
+import { DEFAULT_RBAC_MATRIX, checkPermission, MODULES, ACCESS_LEVELS } from '../utils/rbacMatrix';
 
 export const AppContext = createContext();
 
@@ -406,35 +407,46 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cater_company_profile', JSON.stringify(companyProfile));
   }, [companyProfile]);
 
+  const [rbacMatrix, setRbacMatrix] = useState(() => getSafeLocal('cater_rbac_matrix', DEFAULT_RBAC_MATRIX));
+
+  const updateRolePermission = async (role, module, level) => {
+    const updated = {
+      ...rbacMatrix,
+      [role]: {
+        ...(rbacMatrix[role] || {}),
+        [module]: level
+      }
+    };
+    setRbacMatrix(updated);
+    localStorage.setItem('cater_rbac_matrix', JSON.stringify(updated));
+    await apiCall('/rbac-matrix', { method: 'POST', body: JSON.stringify(updated) }).catch(() => {});
+  };
+
+  const hasPermission = (module, level = ACCESS_LEVELS.READ) => {
+    return checkPermission(rbacMatrix, currentRole, module, level);
+  };
+
   const requireMongoConnection = () => {
-    if (syncStatus !== 'connected') {
-      alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
-      return false;
-    }
     return true;
   };
 
-  // Master Data Add/Update/Delete actions
+  // Master Data Add/Update/Delete actions with optimistic local updates
   const addVenue = async (venue) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...venue, id: 'v_' + Date.now() };
+    const payload = { ...venue, id: venue.id || ('v_' + Date.now()) };
+    setVenues(prev => [...prev, payload]);
     const res = await apiCall('/venues', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setVenues(prev => [...prev, res || payload]);
+    if (res) setVenues(prev => prev.map(v => v.id === payload.id ? res : v));
   };
 
   const updateVenue = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setVenues(prev => prev.map(v => v.id === updated.id ? updated : v));
     const res = await apiCall(`/venues/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setVenues(prev => prev.map(v => v.id === updated.id ? (res || updated) : v));
+    if (res) setVenues(prev => prev.map(v => v.id === updated.id ? res : v));
   };
 
   const deleteVenue = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/venues/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setVenues(prev => prev.filter(v => v.id !== id));
+    await apiCall(`/venues/${id}`, { method: 'DELETE' });
   };
 
   const addRawMaterial = async (rm) => {
@@ -709,34 +721,26 @@ export const AppProvider = ({ children }) => {
 
     recalculateEventFinances(newEvent);
 
+    setEvents(prev => [...prev, newEvent]);
     const res = await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
-    if (!res) {
-      alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
-      return null;
+    if (res) {
+      setEvents(prev => prev.map(e => e.id === newId ? res : e));
     }
-
-    setEvents(prev => [...prev, res || newEvent]);
     return newId;
   };
 
   const updateEvent = async (updatedEvent) => {
-    if (!requireMongoConnection()) return;
+    // Optimistic update
+    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
     const res = await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
-    if (!res) {
-      alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
-      return;
+    if (res) {
+      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? res : e));
     }
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? (res || updatedEvent) : e));
   };
 
   const deleteEvent = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/events/${id}`, { method: 'DELETE' });
-    if (!res) {
-      alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
-      return;
-    }
     setEvents(prev => prev.filter(e => e.id !== id));
+    await apiCall(`/events/${id}`, { method: 'DELETE' });
   };
 
   // Algorithmic Raw Material Requirements Calculation
@@ -948,7 +952,12 @@ export const AppProvider = ({ children }) => {
       refreshEventTotals,
       calculateEventRawMaterials,
       companyProfile,
-      setCompanyProfile: updateCompanyProfile
+      setCompanyProfile: updateCompanyProfile,
+      rbacMatrix,
+      updateRolePermission,
+      hasPermission,
+      MODULES,
+      ACCESS_LEVELS
     }}>
       {children}
     </AppContext.Provider>

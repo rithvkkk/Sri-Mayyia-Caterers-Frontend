@@ -133,16 +133,34 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       currentY += 6;
     };
 
-    addFinanceRow(t.subtotal, event.billing.subtotal);
-    addFinanceRow(`${t.tax} (${event.billing.taxRate}%):`, event.billing.taxAmount);
-    addFinanceRow(t.grandTotal, event.billing.totalAmount, true);
-    addFinanceRow(t.advance, event.billing.advancePaid);
+    const isGst = event.billing?.taxType !== 'NON_GST';
+    const isInter = Boolean(event.billing?.isInterState);
+    const taxRate = isGst ? (event.billing?.taxRate !== undefined ? event.billing.taxRate : 5) : 0;
+    const totalPax = (event.subFunctions || []).reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || (event.guestCount || 100);
+    const subtotalAmt = event.billing?.subtotal || (totalPax * (event.billing?.pricePerPlate || 800));
+    const taxAmt = isGst ? (subtotalAmt * (taxRate / 100)) : 0;
+    const grandAmt = subtotalAmt + taxAmt;
+    const balAmt = grandAmt - (event.billing?.advancePaid || 0);
+
+    addFinanceRow(t.subtotal, subtotalAmt);
+    if (isGst) {
+      if (!isInter) {
+        addFinanceRow(`CGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
+        addFinanceRow(`SGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
+      } else {
+        addFinanceRow(`IGST (${taxRate}%):`, taxAmt);
+      }
+    } else {
+      addFinanceRow(`Taxation Mode:`, `Non-GST (0%)`);
+    }
+    addFinanceRow(t.grandTotal, grandAmt, true);
+    addFinanceRow(t.advance, event.billing?.advancePaid || 0);
     
     // Draw boundary line for balance
     doc.setDrawColor(150, 150, 150);
     doc.line(110, currentY - 2, 195, currentY - 2);
     
-    addFinanceRow(t.balance, event.billing.balanceDue, true);
+    addFinanceRow(t.balance, balAmt, true);
 
   } else {
     // Materials requirements table
@@ -768,17 +786,21 @@ export const printPdfBlob = (blobOrUrl) => {
       isCreatedUrl = true;
     }
     
-    // Check if running in Electron/Desktop wrapper
-    if (window.electronAPI || (window.process && window.process.versions && window.process.versions.electron)) {
-      const win = window.open(url, '_blank');
-      if (win) {
-        win.focus();
-        win.print();
-      }
+    // Check if running in Electron/Desktop wrapper or standard browser
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.focus();
+      setTimeout(() => {
+        try {
+          printWindow.print();
+        } catch (e) {
+          console.warn('Window print trigger notice:', e);
+        }
+      }, 600);
       return true;
     }
 
-    // Standard Browser & Android APK WebView printing frame
+    // Fallback for popup-blocked environments
     const printFrame = document.createElement('iframe');
     printFrame.style.position = 'fixed';
     printFrame.style.right = '0';
@@ -796,18 +818,17 @@ export const printPdfBlob = (blobOrUrl) => {
           printFrame.contentWindow.focus();
           printFrame.contentWindow.print();
           setTimeout(() => {
-            document.body.removeChild(printFrame);
+            if (document.body.contains(printFrame)) document.body.removeChild(printFrame);
             if (isCreatedUrl) URL.revokeObjectURL(url);
-          }, 2000);
+          }, 3000);
         } catch (e) {
-          window.open(url, '_blank')?.print();
+          console.warn('Iframe print error fallback:', e);
         }
-      }, 300);
+      }, 400);
     };
     return true;
   } catch (err) {
     console.error('Print Error:', err);
-    window.print();
     return false;
   }
 };

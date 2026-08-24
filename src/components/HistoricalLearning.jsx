@@ -11,7 +11,7 @@ import {
   Brain, Sparkles, TrendingUp, History, CheckCircle2, AlertTriangle,
   FileCheck, Layers, GitBranch, Search, Filter, ShieldCheck, Award,
   ArrowRight, RefreshCw, BarChart2, DollarSign, Users, Droplets,
-  Calendar, Check, Info, HelpCircle, Save
+  Calendar, Check, Info, HelpCircle, Save, Upload, FileUp, Database, Download
 } from 'lucide-react';
 
 const HistoricalLearning = () => {
@@ -52,14 +52,140 @@ const HistoricalLearning = () => {
   });
 
   const [reconcileSuccess, setReconcileSuccess] = useState(false);
+  const [legacyJsonInput, setLegacyJsonInput] = useState('');
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestionResult, setIngestionResult] = useState(null);
 
-  const currentTargetEvent = events.find(e => e.id === targetEventId) || events[0];
-  const matchedEvents = findHistoricalMatches(currentTargetEvent, historicalList);
+  const sampleLegacyEvents = [
+    {
+      id: 'HIST-LEGACY-001',
+      name: 'Grand Wedding & Sangeet - Aditi Rao & Karthik Iyer',
+      client: 'Aditi Rao & Karthik Iyer',
+      date: '2025-11-18',
+      eventType: 'Traditional Brahmin Wedding & Sangeet',
+      serviceStyle: 'Traditional Banana Leaf Dining',
+      venueType: 'Gayathri Vihar Palace Grounds',
+      estimatedPax: 850,
+      actualPax: 820,
+      season: 'Winter Peak',
+      dietaryProtocol: 'Authentic Pure Vegetarian (No Onion/Garlic Seated)',
+      isOutlier: false,
+      menuSummary: ['Mysore Pak', 'Bisi Bele Bath', 'Avial', 'Poori & Saagu', 'Elaneer Payasam'],
+      foodCostEstimated: 245000,
+      foodCostActual: 238000,
+      laborCostActual: 42000,
+      transportCostActual: 14000,
+      revenue: 720000,
+      actualProfit: 326000,
+      actualMarginPercent: 45.3,
+      wastePercent: 3.8,
+      consumptionActuals: { riceCookedKg: 95.0, waterBottles300ml: 1200 },
+      postEventNotes: 'High appreciation for warm Elaneer Payasam and crisp live counter Masala Dosas.'
+    },
+    {
+      id: 'HIST-LEGACY-002',
+      name: 'Annual Tech Corporate Gala - Infosys Leadership',
+      client: 'Infosys Global Services',
+      date: '2025-12-14',
+      eventType: 'Corporate Annual Banquet',
+      serviceStyle: 'Multi-Station Live Buffet',
+      venueType: 'ITC Gardenia Grand Ballroom',
+      estimatedPax: 600,
+      actualPax: 585,
+      season: 'Winter Corporate',
+      dietaryProtocol: 'Pan-Indian Gourmet Vegetarian',
+      isOutlier: false,
+      menuSummary: ['Paneer Tikka Live', 'Dal Bukhara', 'Shahi Jeera Rice', 'Gulab Jamun Flambé'],
+      foodCostEstimated: 198000,
+      foodCostActual: 189000,
+      laborCostActual: 38000,
+      transportCostActual: 9500,
+      revenue: 540000,
+      actualProfit: 243500,
+      actualMarginPercent: 45.1,
+      wastePercent: 4.2,
+      consumptionActuals: { riceCookedKg: 68.0, waterBottles300ml: 850 },
+      postEventNotes: 'Quick dual-station live service kept queue times under 4 minutes.'
+    },
+    {
+      id: 'HIST-LEGACY-003',
+      name: 'Engagement Ceremony - Dr. Rohini & Siddharth',
+      client: 'Dr. Rohini Kulkarni',
+      date: '2026-01-22',
+      eventType: 'Engagement & High Tea Lunch',
+      serviceStyle: 'Dual Parallel Buffet',
+      venueType: 'Sheesh Mahal, Palace Grounds',
+      estimatedPax: 400,
+      actualPax: 415,
+      season: 'Q1 Wedding Season',
+      dietaryProtocol: 'Karnataka Traditional & Chaat Street',
+      isOutlier: false,
+      menuSummary: ['Holige with Ghee', 'Vangi Bath', 'Dahi Puri Live', 'Kaju Katli'],
+      foodCostEstimated: 120000,
+      foodCostActual: 124000,
+      laborCostActual: 22000,
+      transportCostActual: 6000,
+      revenue: 360000,
+      actualProfit: 168000,
+      actualMarginPercent: 46.7,
+      wastePercent: 3.5,
+      consumptionActuals: { riceCookedKg: 48.0, waterBottles300ml: 600 },
+      postEventNotes: 'Live Chaat counter was the primary highlight; Holige consumption exceeded estimate by 15%.'
+    }
+  ];
 
-  // Save historical events to local storage
+  // Save historical events to local storage and sync
   const saveHistoricalList = (newList) => {
     setHistoricalList(newList);
     localStorage.setItem('cater_historical_events', JSON.stringify(newList));
+  };
+
+  const handleBatchIngest = async () => {
+    let records = [];
+    try {
+      if (!legacyJsonInput.trim()) {
+        alert('Please paste or load sample JSON legacy event records first.');
+        return;
+      }
+      records = JSON.parse(legacyJsonInput);
+      if (!Array.isArray(records)) {
+        if (records.events && Array.isArray(records.events)) records = records.events;
+        else records = [records];
+      }
+    } catch (e) {
+      alert('Invalid JSON format. Please verify valid JSON syntax.');
+      return;
+    }
+
+    setIsIngesting(true);
+    try {
+      // 1. Post batch to backend API
+      await fetch('/api/historical-events/ingest-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(records)
+      }).catch(() => null);
+
+      // 2. Update local state
+      const existingIds = new Set(historicalList.map(h => h.id));
+      const newItems = records.filter(r => !existingIds.has(r.id));
+      const updatedHistorical = [...newItems, ...historicalList];
+      saveHistoricalList(updatedHistorical);
+
+      setIngestionResult({
+        success: true,
+        count: records.length,
+        message: `Successfully ingested ${records.length} legacy events into the Historical Intelligence Engine!`
+      });
+      setLegacyJsonInput('');
+    } catch (err) {
+      setIngestionResult({
+        success: false,
+        message: err.message
+      });
+    } finally {
+      setIsIngesting(false);
+    }
   };
 
   // Reconcile and Commit Post-Event Actuals
@@ -252,6 +378,15 @@ const HistoricalLearning = () => {
         >
           <DollarSign size={16} />
           <span>Ingredient Pricing & Supplier Intelligence</span>
+        </button>
+
+        <button
+          className={`btn ${activeTab === 'ingest' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('ingest')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+        >
+          <Upload size={16} />
+          <span>Legacy Data Ingestion & Seeder</span>
         </button>
       </div>
 
@@ -764,6 +899,122 @@ const HistoricalLearning = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: LEGACY DATA INGESTION & TRAINING SEEDER */}
+      {activeTab === 'ingest' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#000000' }}>
+                  <Upload size={18} />
+                  <span>Legacy Event Ingestion Pipeline</span>
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                  Ingest past catering records (1953–2025 archives) into the system's memory to calibrate AI plate pricing and raw material requirements.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                onClick={() => setLegacyJsonInput(JSON.stringify(sampleLegacyEvents, null, 2))}
+                style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <FileUp size={14} />
+                <span>Load Sample Dataset (3 Past Weddings)</span>
+              </button>
+            </div>
+
+            {ingestionResult && (
+              <div
+                style={{
+                  padding: '0.85rem 1rem',
+                  borderRadius: '8px',
+                  marginBottom: '1rem',
+                  background: ingestionResult.success ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                  border: ingestionResult.success ? '1px solid #10b981' : '1px solid #ef4444',
+                  color: ingestionResult.success ? '#065f46' : '#991b1b',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {ingestionResult.success ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                <span>{ingestionResult.message}</span>
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label">Paste Legacy Event JSON Array</label>
+              <textarea
+                className="form-textarea"
+                rows={9}
+                placeholder="[ { id: 'HIST-001', eventType: 'Traditional Wedding', actualPax: 800, foodCostActual: 240000, wastePercent: 3.5, ... } ]"
+                value={legacyJsonInput}
+                onChange={e => setLegacyJsonInput(e.target.value)}
+                style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleBatchIngest}
+                disabled={isIngesting}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+              >
+                <Database size={16} />
+                <span>{isIngesting ? 'Ingesting Records...' : 'Ingest Batch into Learning Memory'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table of Ingested Historical Events */}
+          <div className="glass-card">
+            <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Historical Memory Records ({historicalList.length} Events)</h3>
+            <div className="table-container">
+              <table className="custom-table" style={{ fontSize: '0.82rem' }}>
+                <thead>
+                  <tr>
+                    <th>Event Ref / Name</th>
+                    <th>Date</th>
+                    <th>Occasion Type</th>
+                    <th>Served Pax</th>
+                    <th>Actual Food Cost</th>
+                    <th>Waste %</th>
+                    <th>Net Margin</th>
+                    <th>Memory Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historicalList.map(h => (
+                    <tr key={h.id}>
+                      <td>
+                        <strong>{h.name || h.id}</strong>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{h.client}</div>
+                      </td>
+                      <td>{h.date || 'Legacy Archive'}</td>
+                      <td>{h.eventType}</td>
+                      <td><span className="badge badge-info">{h.actualPax || h.estimatedPax} Pax</span></td>
+                      <td>₹ {(h.foodCostActual || h.foodCostEstimated || 0).toLocaleString('en-IN')}</td>
+                      <td>{h.wastePercent || 4.0}%</td>
+                      <td><span className="badge badge-success">{h.actualMarginPercent || 45}%</span></td>
+                      <td>
+                        <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <CheckCircle2 size={12} /> Active Training Node
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

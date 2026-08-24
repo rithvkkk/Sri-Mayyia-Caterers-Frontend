@@ -35,8 +35,10 @@ import {
   Brain
 } from 'lucide-react';
 
+import { MODULES, ACCESS_LEVELS } from './utils/rbacMatrix';
+
 const AppContent = () => {
-  const { currentRole, companyProfile, logout, syncStatus, lastSyncedAt, triggerManualSync } = useContext(AppContext);
+  const { currentRole, companyProfile, logout, syncStatus, lastSyncedAt, triggerManualSync, hasPermission } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -60,40 +62,36 @@ const AppContent = () => {
     }
   }, [syncStatus]);
 
-  // Tab permissions configuration
-  const tabPermissions = {
-    dashboard: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
-    bookings: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Sales Executive', 'Sales'],
-    menu: ['Admin', 'HR', 'HR Manager', 'Manager', 'Sales Executive', 'Sales'],
-    historical: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Sales Executive', 'Sales'],
-    vendors: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
-    provisions: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Inhouse Inventory Manager', 'Inhouse Inventory', 'Inhouse Provision Manager', 'Store Manager', 'Provision Store Manager'],
-    storage: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager', 'Inhouse Inventory Manager', 'Inhouse Inventory', 'Inhouse Storage Manager', 'Store Manager', 'Storage Store Manager', 'Storage Manager'],
-    labor: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
-    billing: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
-    reports: ['Admin', 'HR', 'HR Manager', 'Manager', 'Accountant', 'Accounts Manager'],
-    setup: ['Admin']
+  // Tab to RBAC module mapping
+  const tabToModuleMap = {
+    dashboard: MODULES.DASHBOARD,
+    bookings: MODULES.EVENT_BOOKING,
+    menu: MODULES.MENU_PLANNING,
+    historical: MODULES.HISTORICAL_LEARNING,
+    vendors: MODULES.VENDOR_MANAGEMENT,
+    provisions: MODULES.INHOUSE_INVENTORY,
+    storage: MODULES.INHOUSE_INVENTORY,
+    labor: MODULES.LABOUR_MANAGEMENT,
+    billing: MODULES.QUOTATION_BILLING,
+    reports: MODULES.REPORTS_ANALYTICS,
+    setup: MODULES.RBAC_ADMIN
   };
 
-  const checkPermission = (tab) => {
-    return tabPermissions[tab]?.includes(currentRole);
+  const isTabVisible = (tabId) => {
+    if (currentRole === 'Admin') return true;
+    const mod = tabToModuleMap[tabId];
+    if (!mod) return true;
+    if (hasPermission) {
+      return hasPermission(mod, ACCESS_LEVELS.READ);
+    }
+    return true;
   };
 
   // Redirect to first permitted tab when currentRole changes or activeTab is unpermitted
   useEffect(() => {
-    if (currentRole && !checkPermission(activeTab)) {
-      if (currentRole === 'Sales Executive' || currentRole === 'Sales') {
-        setActiveTab('bookings');
-      } else if (currentRole === 'Inhouse Provision Manager' || currentRole === 'Provision Store Manager') {
-        setActiveTab('provisions');
-      } else if (currentRole === 'Inhouse Storage Manager' || currentRole === 'Storage Store Manager' || currentRole === 'Storage Manager') {
-        setActiveTab('storage');
-      } else if (currentRole.includes('Inventory') || currentRole.includes('Store')) {
-        setActiveTab('provisions');
-      } else {
-        const firstAllowed = navigationItems.find(item => checkPermission(item.id))?.id || 'bookings';
-        setActiveTab(firstAllowed);
-      }
+    if (currentRole && !isTabVisible(activeTab)) {
+      const allowedItem = navigationItems.find(item => isTabVisible(item.id));
+      setActiveTab(allowedItem ? allowedItem.id : 'bookings');
     }
   }, [currentRole, activeTab]);
 
@@ -280,9 +278,8 @@ const AppContent = () => {
         </div>
 
         <ul className="sidebar-menu">
-          {navigationItems.map(item => {
+          {navigationItems.filter(item => isTabVisible(item.id)).map(item => {
             const Icon = item.icon;
-            const hasAccess = checkPermission(item.id);
             const isActive = activeTab === item.id;
             
             return (
@@ -293,19 +290,14 @@ const AppContent = () => {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    opacity: hasAccess ? 1 : 0.45
+                    justifyContent: 'space-between'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                     <Icon size={18} />
                     <span>{item.name}</span>
                   </div>
-                  {hasAccess ? (
-                    isActive && <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--color-primary)' }} />
-                  ) : (
-                    <Lock size={12} style={{ color: 'var(--text-muted)' }} />
-                  )}
+                  {isActive && <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
                 </a>
               </li>
             );

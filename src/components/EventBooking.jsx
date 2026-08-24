@@ -42,6 +42,7 @@ const EventBooking = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [eventType, setEventType] = useState('');
   const [venueId, setVenueId] = useState('');
+  const [venueSearchInput, setVenueSearchInput] = useState('');
   const [primaryDate, setPrimaryDate] = useState('');
   const [additionalDates, setAdditionalDates] = useState([]);
   const [newDateInput, setNewDateInput] = useState('');
@@ -129,12 +130,15 @@ const EventBooking = () => {
       ? selectedEvent.dates
       : [selectedEvent.date || ''];
 
+    const currentVenueObj = venues.find(v => v.id === selectedEvent.venueId);
+
     setEditDraft({
       name: selectedEvent.customer.name,
       phone: selectedEvent.customer.phone || '',
       email: selectedEvent.customer.email || '',
       eventType: selectedEvent.eventType || '',
       venueId: selectedEvent.venueId || '',
+      venueName: currentVenueObj ? currentVenueObj.name : (selectedEvent.venueId || ''),
       date: selectedEvent.date || allDates[0] || '',
       dates: allDates,
       newDateToAdd: '',
@@ -239,6 +243,7 @@ const EventBooking = () => {
     setClientEmail('');
     setEventType('');
     setVenueId('');
+    setVenueSearchInput('');
     setPrimaryDate('');
     setAdditionalDates([]);
     setNewDateInput('');
@@ -651,13 +656,26 @@ const EventBooking = () => {
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Venue</label>
-                      <input list="edit-venue-opts" className="form-input" value={venues.find(v => v.id === editDraft.venueId)?.name || editDraft.venueId} onChange={e => {
-                        const matched = venues.find(v => v.name === e.target.value);
-                        setEditDraft(d => ({ ...d, venueId: matched ? matched.id : e.target.value }));
-                      }} />
+                      <label className="form-label">Execution Venue</label>
+                      <input
+                        list="edit-venue-opts"
+                        className="form-input"
+                        placeholder="Type custom location or select venue…"
+                        value={editDraft.venueName !== undefined ? editDraft.venueName : (venues.find(v => v.id === editDraft.venueId)?.name || editDraft.venueId || '')}
+                        onChange={e => {
+                          const val = e.target.value;
+                          const matched = venues.find(v => v.name.toLowerCase() === val.toLowerCase());
+                          setEditDraft(d => ({
+                            ...d,
+                            venueName: val,
+                            venueId: matched ? matched.id : val
+                          }));
+                        }}
+                      />
                       <datalist id="edit-venue-opts">
-                        {venues.map(v => <option key={v.id} value={v.name} />)}
+                        {venues.map(v => (
+                          <option key={v.id} value={v.name}>{v.name} (Max {v.capacity} Pax · ₹{v.price.toLocaleString('en-IN')})</option>
+                        ))}
                       </datalist>
                     </div>
 
@@ -776,11 +794,17 @@ const EventBooking = () => {
                     </h3>
                   </div>
                   <button
-                    className="btn btn-secondary btn-small"
+                    className={`btn ${(selectedEvent?.reminders || []).filter(r => !r.completed).length > 0 ? 'btn-primary' : 'btn-secondary'} btn-small`}
                     onClick={() => setShowReminderForm(!showReminderForm)}
-                    style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
-                    <Plus size={13} /> {showReminderForm ? 'Cancel Reminder' : 'Add Reminder'}
+                    <Plus size={13} />
+                    <span>{showReminderForm ? 'Cancel Reminder' : 'Add Follow-up'}</span>
+                    {(selectedEvent?.reminders || []).filter(r => !r.completed).length > 0 && (
+                      <span style={{ background: 'rgba(255,255,255,0.9)', color: 'var(--color-primary)', borderRadius: '10px', padding: '0.1rem 0.45rem', fontSize: '0.68rem', fontWeight: 800, marginLeft: '0.2rem' }}>
+                        {(selectedEvent?.reminders || []).filter(r => !r.completed).length} Pending
+                      </span>
+                    )}
                   </button>
                 </div>
 
@@ -1028,17 +1052,18 @@ const EventBooking = () => {
                   <input
                     list="venue-options"
                     className="form-input"
-                    placeholder="Type or select venue…"
-                    value={venues.find(v => v.id === venueId)?.name || ''}
+                    placeholder="Type custom location or select venue…"
+                    value={venueSearchInput}
                     onChange={e => {
-                      const matched = venues.find(v => v.name === e.target.value);
-                      if (matched) setVenueId(matched.id);
-                      else setVenueId(e.target.value);
+                      const val = e.target.value;
+                      setVenueSearchInput(val);
+                      const matched = venues.find(v => v.name.toLowerCase() === val.toLowerCase());
+                      setVenueId(matched ? matched.id : val);
                     }}
                   />
                   <datalist id="venue-options">
                     {venues.map(v => (
-                      <option key={v.id} value={v.name}>{v.name} (Max {v.capacity} Pax)</option>
+                      <option key={v.id} value={v.name}>{v.name} (Max {v.capacity} Pax · ₹{v.price.toLocaleString('en-IN')})</option>
                     ))}
                   </datalist>
                 </div>

@@ -264,9 +264,14 @@ const QuotationBilling = () => {
   // Invoice & Billing Computed Values
   const pricePerPlate = currentEvent?.billing?.pricePerPlate || 800;
   const advancePaid = currentEvent?.billing?.advancePaid || 0;
-  const taxRate = currentEvent?.billing?.taxRate || 5;
+  const isGstEnabled = currentEvent?.billing?.taxType !== 'NON_GST';
+  const taxRate = isGstEnabled ? (currentEvent?.billing?.taxRate !== undefined ? currentEvent.billing.taxRate : 5) : 0;
+  const isInterState = Boolean(currentEvent?.billing?.isInterState);
   const revenue = totalGuests * pricePerPlate;
-  const taxAmount = revenue * (taxRate / 100);
+  const taxAmount = isGstEnabled ? (revenue * (taxRate / 100)) : 0;
+  const cgstAmount = isGstEnabled && !isInterState ? (taxAmount / 2) : 0;
+  const sgstAmount = isGstEnabled && !isInterState ? (taxAmount / 2) : 0;
+  const igstAmount = isGstEnabled && isInterState ? taxAmount : 0;
   const grandTotal = revenue + taxAmount;
   const balanceDue = grandTotal - advancePaid;
   const profitAmount = revenue - totalCost;
@@ -622,28 +627,81 @@ const QuotationBilling = () => {
                   </div>
                 </div>
 
-                {/* Advance & Tax row */}
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Client Advance Deposit</label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      value={advancePaid}
-                      onChange={e => handleBillingChange('advancePaid', e.target.value)}
-                      disabled={!isFinance}
-                      placeholder="₹ Advance Deposited"
-                    />
+                {/* Advance & GST Calculation Settings */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>Taxation & Invoice Structure:</label>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <button
+                        type="button"
+                        className={`btn btn-small ${isGstEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => handleBillingChange('taxType', 'GST')}
+                        disabled={!isFinance}
+                        style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem' }}
+                      >
+                        With GST (Tax Invoice)
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-small ${!isGstEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => handleBillingChange('taxType', 'NON_GST')}
+                        disabled={!isFinance}
+                        style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem' }}
+                      >
+                        Without GST (Commercial Quote)
+                      </button>
+                    </div>
                   </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">GST Tax Rate (%)</label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      value={currentEvent.billing?.taxRate || 5}
-                      onChange={e => handleBillingChange('taxRate', e.target.value)}
-                      disabled={!isFinance}
-                    />
+
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Client Advance Deposit</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        value={advancePaid}
+                        onChange={e => handleBillingChange('advancePaid', e.target.value)}
+                        disabled={!isFinance}
+                        placeholder="₹ Advance Deposited"
+                      />
+                    </div>
+                    {isGstEnabled ? (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                          <label className="form-label" style={{ margin: 0 }}>GST Rate (%)</label>
+                          <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={isInterState}
+                              onChange={e => handleBillingChange('isInterState', e.target.checked)}
+                              disabled={!isFinance}
+                            />
+                            Inter-State (IGST)
+                          </label>
+                        </div>
+                        <select
+                          className="form-select"
+                          value={taxRate}
+                          onChange={e => handleBillingChange('taxRate', parseFloat(e.target.value))}
+                          disabled={!isFinance}
+                        >
+                          <option value="5">5% GST (Standard Catering)</option>
+                          <option value="12">12% GST (Corporate Dining)</option>
+                          <option value="18">18% GST (Luxury Full Service)</option>
+                          <option value="0">0% GST (Exempted)</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label">Invoice Category</label>
+                        <input
+                          className="form-input"
+                          value="Non-GST Commercial Quotation / Bill of Supply"
+                          disabled
+                          style={{ fontSize: '0.78rem', background: 'rgba(0,0,0,0.04)' }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -951,10 +1009,34 @@ const QuotationBilling = () => {
                   <span style={{ color: 'var(--text-secondary)' }}>Subtotal Taxable Amount:</span>
                   <span>{formatCurrency(revenue)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>GST Goods & Service Tax ({currentEvent.billing?.taxRate || 5}%):</span>
-                  <span>{formatCurrency(taxAmount)}</span>
-                </div>
+                
+                {isGstEnabled ? (
+                  <>
+                    {!isInterState ? (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          <span>• CGST Central Tax ({(taxRate / 2).toFixed(1)}%):</span>
+                          <span>{formatCurrency(cgstAmount)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          <span>• SGST State Tax ({(taxRate / 2).toFixed(1)}%):</span>
+                          <span>{formatCurrency(sgstAmount)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                        <span>• IGST Integrated Tax ({taxRate}%):</span>
+                        <span>{formatCurrency(igstAmount)}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-success)', fontSize: '0.78rem' }}>
+                    <span>Taxation Format:</span>
+                    <span>0% (Non-GST Commercial Quotation)</span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 700, borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
                   <span>Grand Invoice Total:</span>
                   <span style={{ color: 'var(--color-primary)' }}>{formatCurrency(grandTotal)}</span>
