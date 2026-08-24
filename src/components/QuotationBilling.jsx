@@ -270,6 +270,7 @@ const QuotationBilling = () => {
   const grandTotal = revenue + taxAmount;
   const balanceDue = grandTotal - advancePaid;
   const profitAmount = revenue - totalCost;
+  const estimatedProfit = profitAmount;
   const profitMarginPercent = revenue > 0 ? (profitAmount / revenue) * 100 : 0;
 
   // Determine Bargain Feasibility Status

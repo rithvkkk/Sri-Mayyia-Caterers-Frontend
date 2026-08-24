@@ -209,6 +209,20 @@ const VendorManagement = () => {
     setPoPreview({ ...result, supplierName: sup.name });
   };
 
+  const handleDirectDownloadPO = (sup) => {
+    if (!isOps) return;
+    const supItems = materialList.filter(m => m.supplier.name === sup.name);
+    if (!supItems.length) { alert('No materials assigned to this supplier for the selected event.'); return; }
+    const supplierForPDF = { name: sup.name, contact: sup.contact || sup.phone || 'N/A', category: sup.category || '', _id: sup.id };
+    const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
+    if (result && result.blobUrl) {
+      const a = document.createElement('a');
+      a.href = result.blobUrl;
+      a.download = result.filename;
+      a.click();
+    }
+  };
+
   const handleDownloadPO = () => { if (!poPreview) return; const a = document.createElement('a'); a.href = poPreview.blobUrl; a.download = poPreview.filename; a.click(); };
   const handleSharePO = async () => {
     if (!poPreview) return;
