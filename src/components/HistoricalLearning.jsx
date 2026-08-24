@@ -250,6 +250,9 @@ const HistoricalLearning = () => {
     setTimeout(() => setReconcileSuccess(false), 4000);
   };
 
+  const currentTargetEvent = events.find(e => e.id === targetEventId) || events[0];
+  const matchedEvents = findHistoricalMatches(currentTargetEvent, historicalList);
+
   // Traceable 5-Level Learned Estimates for Current Target Event
   const currentPax = currentTargetEvent?.guestCount || 
     currentTargetEvent?.subFunctions?.reduce((s, sf) => s + (sf.guestCount || 0), 0) || 100;

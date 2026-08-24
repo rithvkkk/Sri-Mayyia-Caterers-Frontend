@@ -814,8 +814,9 @@ export const AppProvider = ({ children }) => {
     const totalGuests = (event.subFunctions || []).reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
     const subtotal = totalGuests * (parseFloat(event.billing.pricePerPlate) || 0);
 
-    const taxRate = parseFloat(event.billing.taxRate) || companyProfile.defaultTaxRate;
-    const taxAmount = (subtotal * taxRate) / 100;
+    const isNonGst = event.billing?.taxType === 'NON_GST' || Number(event.billing?.taxRate) === 0;
+    const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? parseFloat(event.billing.taxRate) : (companyProfile.defaultTaxRate || 5));
+    const taxAmount = isNonGst ? 0 : (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
     
     const advancePaid = parseFloat(event.billing.advancePaid) || 0;

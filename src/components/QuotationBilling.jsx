@@ -62,14 +62,31 @@ const QuotationBilling = () => {
   // Update specific billing details
   const handleBillingChange = (field, value) => {
     if (!isFinance || !currentEvent) return;
-    const val = parseFloat(value) || 0;
+    let val = value;
+    if (field === 'pricePerPlate' || field === 'advancePaid' || field === 'taxRate') {
+      val = parseFloat(value) || 0;
+    }
+    
+    const updatedBilling = {
+      ...(currentEvent.billing || {}),
+      [field]: val
+    };
+
+    if (field === 'taxType') {
+      if (value === 'NON_GST') {
+        updatedBilling.taxType = 'NON_GST';
+        updatedBilling.taxRate = 0;
+      } else {
+        updatedBilling.taxType = 'GST';
+        if (updatedBilling.taxRate === 0 || !updatedBilling.taxRate) {
+          updatedBilling.taxRate = 5;
+        }
+      }
+    }
     
     const updatedEvent = {
       ...currentEvent,
-      billing: {
-        ...currentEvent.billing,
-        [field]: val
-      }
+      billing: updatedBilling
     };
 
     updateEvent(updatedEvent);

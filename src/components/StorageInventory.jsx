@@ -27,6 +27,7 @@ const StorageInventory = () => {
   const damagedCount = vessels.reduce((acc, v) => acc + (Number(v.damagedQty) || 0), 0);
   const totalValue = vessels.reduce((sum, v) => sum + ((Number(v.totalQty) || 0) * (Number(v.valuePerUnit) || 0)), 0);
 
+  const selectedEvent = events.find(e => e.id === selectedEventId) || events[0];
   const fallbackEvent = {
     id: 'GP-DISPATCH',
     customer: { name: 'General Event Transport' },
