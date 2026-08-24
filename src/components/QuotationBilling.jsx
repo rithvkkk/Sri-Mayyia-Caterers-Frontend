@@ -244,6 +244,23 @@ const QuotationBilling = () => {
   const recommendedPrice20 = totalGuests > 0 ? Math.ceil((totalCost / 0.80) / totalGuests) : 0;
   const recommendedPrice25 = totalGuests > 0 ? Math.ceil((totalCost / 0.75) / totalGuests) : 0;
 
+  // Simulated Plate Price from Markup Slider
+  const simulatedPlatePrice = costPerPlate > 0 ? Math.ceil(costPerPlate * (1 + markupPercent / 100)) : 0;
+
+  const handleApplySimulatedPrice = () => {
+    if (currentEvent && simulatedPlatePrice > 0) {
+      const updated = {
+        ...currentEvent,
+        billing: {
+          ...currentEvent.billing,
+          pricePerPlate: simulatedPlatePrice
+        }
+      };
+      updateEvent(updated);
+      setBargainPriceInput(simulatedPlatePrice);
+    }
+  };
+
   // Determine Bargain Feasibility Status
   let bargainStatus = {
     badge: 'ACCEPT DEAL',
@@ -252,7 +269,7 @@ const QuotationBilling = () => {
     bgColor: 'rgba(0,0,0,0.08)',
     borderColor: 'rgba(0,0,0,0.08)',
     icon: CheckCircle2,
-    title: '🟢 Highly Profitable Deal — Safe to Accept!',
+    title: 'Highly Profitable Deal — Safe to Accept!',
     description: `At ${formatCurrency(bargainedPrice)}/plate, you make ${formatCurrency(bargainedProfit)} net profit (${bargainedMarginPercent.toFixed(1)}% margin).`
   };
 
@@ -264,7 +281,7 @@ const QuotationBilling = () => {
       bgColor: 'rgba(156, 21, 25, 0.12)',
       borderColor: 'rgba(156, 21, 25, 0.4)',
       icon: XCircle,
-      title: '🔴 REJECT DEAL — You Will Lose Money!',
+      title: 'REJECT DEAL — You Will Lose Money!',
       description: `Accepting ${formatCurrency(bargainedPrice)}/plate results in a NET LOSS of ${formatCurrency(Math.abs(bargainedProfit))}. Absolute minimum zero-profit floor price is ${formatCurrency(floorPricePerPlate)}/plate.`
     };
   } else if (bargainedMarginPercent < 10) {
@@ -275,7 +292,7 @@ const QuotationBilling = () => {
       bgColor: 'rgba(210, 172, 103, 0.15)',
       borderColor: 'rgba(210, 172, 103, 0.4)',
       icon: AlertTriangle,
-      title: '⚡ High Risk Deal — Minimal Margin',
+      title: 'High Risk Deal — Minimal Margin',
       description: `At ${formatCurrency(bargainedPrice)}/plate, your profit is only ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Any ingredient over-consumption will turn this into a loss!`
     };
   } else if (bargainedMarginPercent < 20) {
@@ -286,7 +303,7 @@ const QuotationBilling = () => {
       bgColor: 'rgba(210, 172, 103, 0.1)',
       borderColor: 'rgba(210, 172, 103, 0.3)',
       icon: AlertCircle,
-      title: '🟡 Tight Profit Margin',
+      title: 'Tight Profit Margin',
       description: `At ${formatCurrency(bargainedPrice)}/plate, you earn ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Acceptable, but keep tight control on food portioning.`
     };
   }
@@ -367,7 +384,7 @@ const QuotationBilling = () => {
           {/* Left Column: Financial Audit, Markup & Transport Controls */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
-            {/* 🤝 Customer Bargain Price & Profitability Decision Simulator */}
+            {/* Customer Bargain Price & Profitability Decision Simulator */}
             <div className="glass-card" style={{ border: `1.5px solid ${bargainStatus.borderColor}`, background: bargainStatus.bgColor, position: 'relative', overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.15rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.55rem', color: bargainStatus.color, fontWeight: 700 }}>
