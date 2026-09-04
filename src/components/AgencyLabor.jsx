@@ -8,7 +8,7 @@ import {
   Edit2,
   CheckCircle2,
   Phone,
-  DollarSign,
+  IndianRupee,
   Briefcase,
   Building2,
   ShieldCheck,
@@ -19,7 +19,11 @@ import {
   CalendarDays,
   Check,
   X as LucideX,
-  Filter
+  Filter,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  AlertTriangle
 } from 'lucide-react';
 
 const AgencyLabor = () => {
@@ -41,6 +45,7 @@ const AgencyLabor = () => {
     addLabourAttendance,
     updateLabourAttendance,
     deleteLabourAttendance,
+    batchAddLabourAttendance,
     refreshEventTotals,
     companyProfile
   } = useContext(AppContext);
@@ -97,11 +102,162 @@ const AgencyLabor = () => {
     categories: ['Waiter / Service Staff', 'Captain/Supervisor']
   });
 
+  // Bulk Attendance Upload State
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [bulkCsvText, setBulkCsvText] = useState('');
+  const [parsedBulkRows, setParsedBulkRows] = useState([]);
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+
   const currentEvent = events.find(e => e.id === selectedEventId);
-  const isOps = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager';
-  const isFinance = currentRole === 'Accountant' || currentRole === 'Accounts Manager';
-  const isAgency = currentRole === 'Agency';
+  const roleLower = (currentRole || 'admin').toLowerCase();
+  const isOps = !currentRole || roleLower === 'admin' || roleLower === 'hr' || roleLower === 'hr manager' || roleLower === 'manager' || roleLower.includes('admin') || roleLower.includes('manag');
+  const isFinance = roleLower === 'accountant' || roleLower === 'accounts manager' || roleLower.includes('account');
+  const isAgency = roleLower === 'agency';
   const hasWriteAccess = isOps || isFinance;
+
+  const parseBulkAttendanceCsv = (rawText) => {
+    if (!rawText.trim()) {
+      setParsedBulkRows([]);
+      return;
+    }
+
+    const lines = rawText.trim().split(/\r?\n/).filter(line => line.trim().length > 0);
+    if (lines.length === 0) {
+      setParsedBulkRows([]);
+      return;
+    }
+
+    const firstLine = lines[0].toLowerCase();
+    const hasHeader = firstLine.includes('date') || firstLine.includes('worker') || firstLine.includes('name');
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    const rows = dataLines.map((line, lineIdx) => {
+      const delimiter = line.includes('\t') ? '\t' : ',';
+      const cols = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+
+      const dateStr = cols[0] || '';
+      const workerName = cols[1] || '';
+      const roleStr = cols[2] || '';
+      const shiftsStr = cols[3] || '1';
+      const rateStr = cols[4] || '';
+      const statusStr = cols[5] || 'Present';
+      const notes = cols[6] || '';
+
+      const errors = [];
+
+      let formattedDate = dateStr;
+      if (!dateStr) {
+        errors.push('Date is missing');
+      } else {
+        const dMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        const dMatchSlash = dateStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+        if (dMatch) {
+          formattedDate = `${dMatch[1]}-${dMatch[2].padStart(2, '0')}-${dMatch[3].padStart(2, '0')}`;
+        } else if (dMatchSlash) {
+          formattedDate = `${dMatchSlash[3]}-${dMatchSlash[2].padStart(2, '0')}-${dMatchSlash[1].padStart(2, '0')}`;
+        } else {
+          errors.push('Invalid Date format (use YYYY-MM-DD or DD/MM/YYYY)');
+        }
+      }
+
+      if (!workerName) {
+        errors.push('Worker Name is missing');
+      }
+
+      let matchedWorker = labourWorkers.find(w => w.name.toLowerCase() === workerName.toLowerCase());
+      if (!matchedWorker && workerName) {
+        matchedWorker = labourWorkers.find(w => w.name.toLowerCase().includes(workerName.toLowerCase()));
+      }
+
+      const shifts = parseFloat(shiftsStr);
+      if (isNaN(shifts) || shifts <= 0) {
+        errors.push('Shifts multiplier must be a number > 0');
+      }
+
+      const dailyRate = rateStr ? parseFloat(rateStr) : (matchedWorker ? matchedWorker.dailyRate : 900);
+      if (isNaN(dailyRate) || dailyRate < 0) {
+        errors.push('Daily rate must be a valid number >= 0');
+      }
+
+      const validStatuses = ['Present', 'Half Day', 'Overtime', 'Absent', 'Leave'];
+      const normalizedStatus = validStatuses.find(s => s.toLowerCase() === statusStr.toLowerCase()) || (shifts < 1 && shifts > 0 ? 'Half Day' : 'Present');
+
+      const isDuplicate = labourAttendance.some(att => 
+        att.date === formattedDate && 
+        ((att.workerName && att.workerName.toLowerCase() === workerName.toLowerCase()) || 
+         (matchedWorker && att.workerId === matchedWorker.id))
+      );
+      if (isDuplicate) {
+        errors.push(`Duplicate: Attendance already logged for ${workerName} on ${formattedDate}`);
+      }
+
+      const totalWage = (shifts || 1) * (dailyRate || 0);
+
+      return {
+        rowNumber: lineIdx + 1 + (hasHeader ? 1 : 0),
+        date: formattedDate,
+        workerName,
+        matchedWorkerId: matchedWorker?.id || null,
+        workerRole: roleStr || matchedWorker?.role || 'General Staff',
+        shifts: shifts || 1,
+        dailyRate: dailyRate || 900,
+        totalWage,
+        status: normalizedStatus,
+        notes,
+        isValid: errors.length === 0,
+        errors
+      };
+    });
+
+    setParsedBulkRows(rows);
+  };
+
+  const handleCommitBulkAttendance = async () => {
+    const validRows = parsedBulkRows.filter(r => r.isValid);
+    if (validRows.length === 0) return;
+
+    setIsProcessingBulk(true);
+    try {
+      const recordsToIngest = validRows.map((row, idx) => ({
+        id: `att_bulk_${Date.now()}_${idx}`,
+        workerId: row.matchedWorkerId || `lw_${Date.now()}_${idx}`,
+        workerName: row.workerName,
+        date: row.date,
+        eventId: events[0]?.id || 'In-House Central Kitchen',
+        eventName: 'Bulk Attendance Ingestion',
+        shiftType: row.shifts === 0.5 ? 'Half Day (Morning)' : (row.shifts > 1 ? 'Double Shift' : 'Full Day'),
+        shifts: row.shifts,
+        dailyRate: row.dailyRate,
+        totalWage: row.totalWage,
+        status: row.status,
+        notes: row.notes || 'Bulk imported via CSV'
+      }));
+
+      await batchAddLabourAttendance(recordsToIngest);
+      setIsBulkUploadModalOpen(false);
+      setBulkCsvText('');
+      setParsedBulkRows([]);
+    } catch (err) {
+      console.error('Bulk attendance error:', err);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
+
+  const downloadSampleAttendanceCsv = () => {
+    const csvContent = "Date,Worker Name,Role,Shift Hours,Daily Rate,Status,Notes\n" +
+      "2026-09-05,Sunil Varma,Head Cook / Master Chef,1,1500,Present,Lead main wedding kitchen\n" +
+      "2026-09-05,Prakash Rao,Tandoor Specialist,1,1200,Present,Tandoor and Roti counter\n" +
+      "2026-09-05,Anand Kumar,Assistant Cook,0.5,450,Half Day,Morning breakfast setup\n" +
+      "2026-09-05,Manjunath S,Service Captain,1,1000,Present,Supervised dining hall\n";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Attendance_Upload_Template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const formatCurrency = (amt) => `${companyProfile.currency} ${Number(amt || 0).toLocaleString('en-IN')}`;
 
@@ -304,23 +460,33 @@ const AgencyLabor = () => {
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           {activeSubTab === 'attendance' && hasWriteAccess && (
-            <button className="btn btn-primary" onClick={() => {
-              setEditingAttendance(null);
-              setAttendanceForm({
-                workerId: labourWorkers[0]?.id || '',
-                date: new Date().toISOString().split('T')[0],
-                eventId: events[0]?.id || '',
-                shiftType: 'Full Day',
-                shifts: 1,
-                dailyRate: labourWorkers[0]?.dailyRate || 900,
-                status: 'Present',
-                notes: ''
-              });
-              setIsAttendanceModalOpen(true);
-            }}>
-              <CalendarDays size={18} />
-              <span>Log Working Day / Shift</span>
-            </button>
+            <>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setIsBulkUploadModalOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Upload size={18} />
+                <span>Upload Attendance Data</span>
+              </button>
+              <button className="btn btn-primary" onClick={() => {
+                setEditingAttendance(null);
+                setAttendanceForm({
+                  workerId: labourWorkers[0]?.id || '',
+                  date: new Date().toISOString().split('T')[0],
+                  eventId: events[0]?.id || '',
+                  shiftType: 'Full Day',
+                  shifts: 1,
+                  dailyRate: labourWorkers[0]?.dailyRate || 900,
+                  status: 'Present',
+                  notes: ''
+                });
+                setIsAttendanceModalOpen(true);
+              }}>
+                <CalendarDays size={18} />
+                <span>Log Working Day / Shift</span>
+              </button>
+            </>
           )}
           {activeSubTab === 'directory' && hasWriteAccess && (
             <button className="btn btn-primary" onClick={() => { setEditingWorker(null); setIsWorkerModalOpen(true); }}>
@@ -342,9 +508,9 @@ const AgencyLabor = () => {
         <div className="kpi-card">
           <div className="kpi-details">
             <h3>Registered Labour Staff</h3>
-            <div className="kpi-value">{totalStaffCount} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>members</span></div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.25rem', fontWeight: 600 }}>
-              {activeStaffCount} active & on roll
+            <div className="kpi-value">{totalStaffCount} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>active ({activeStaffCount})</span></div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              In-house & Agency Pool
             </div>
           </div>
           <div className="kpi-icon icon-blue">
@@ -387,7 +553,7 @@ const AgencyLabor = () => {
             </div>
           </div>
           <div className="kpi-icon icon-green">
-            <DollarSign size={22} />
+            <IndianRupee size={22} />
           </div>
         </div>
       </div>
@@ -426,7 +592,7 @@ const AgencyLabor = () => {
           className={`btn ${activeSubTab === 'payouts' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.1rem' }}
         >
-          <DollarSign size={17} />
+          <IndianRupee size={17} />
           <span>Payouts Clearance</span>
         </button>
 
@@ -566,26 +732,35 @@ const AgencyLabor = () => {
               </div>
 
               {hasWriteAccess && (
-                <button
-                  className="btn btn-primary btn-small"
-                  onClick={() => {
-                    setEditingAttendance(null);
-                    setAttendanceForm({
-                      workerId: labourWorkers[0]?.id || '',
-                      date: new Date().toISOString().split('T')[0],
-                      eventId: events[0]?.id || '',
-                      shiftType: 'Full Day',
-                      shifts: 1,
-                      dailyRate: labourWorkers[0]?.dailyRate || 900,
-                      status: 'Present',
-                      notes: ''
-                    });
-                    setIsAttendanceModalOpen(true);
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                >
-                  <Plus size={14} /> Log Attendance / Working Day
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => setIsBulkUploadModalOpen(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Upload size={14} /> Upload Attendance Data
+                  </button>
+                  <button
+                    className="btn btn-primary btn-small"
+                    onClick={() => {
+                      setEditingAttendance(null);
+                      setAttendanceForm({
+                        workerId: labourWorkers[0]?.id || '',
+                        date: new Date().toISOString().split('T')[0],
+                        eventId: events[0]?.id || '',
+                        shiftType: 'Full Day',
+                        shifts: 1,
+                        dailyRate: labourWorkers[0]?.dailyRate || 900,
+                        status: 'Present',
+                        notes: ''
+                      });
+                      setIsAttendanceModalOpen(true);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Plus size={14} /> Log Attendance / Working Day
+                  </button>
+                </div>
               )}
             </div>
 
@@ -1381,6 +1556,201 @@ const AgencyLabor = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: BULK ATTENDANCE UPLOAD */}
+      {isBulkUploadModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-card" style={{ maxWidth: '820px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FileSpreadsheet size={22} className="accent-text" />
+                <div>
+                  <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Bulk Attendance & Shift Upload</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    Upload attendance records via CSV or paste tabular data directly
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkUploadModalOpen(false);
+                  setBulkCsvText('');
+                  setParsedBulkRows([]);
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <LucideX size={20} />
+              </button>
+            </div>
+
+            {/* Instruction banner & sample download */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '540px' }}>
+                <strong>Supported Columns:</strong> <code>Date</code>, <code>Worker Name</code>, <code>Role</code>, <code>Shift Hours</code>, <code>Daily Rate</code>, <code>Status</code>, <code>Notes</code>.
+                Dates can be in <code>YYYY-MM-DD</code> or <code>DD/MM/YYYY</code> format. Existing staff names will be auto-matched.
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                onClick={downloadSampleAttendanceCsv}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}
+              >
+                <Download size={14} /> Download Sample CSV
+              </button>
+            </div>
+
+            {/* File input & Textarea */}
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Paste CSV Data or Choose File:</label>
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  id="bulk-csv-file"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = evt => {
+                        const content = evt.target?.result || '';
+                        setBulkCsvText(content);
+                        parseBulkAttendanceCsv(content);
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="bulk-csv-file"
+                  className="btn btn-secondary btn-small"
+                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}
+                >
+                  <Upload size={14} /> Browse .CSV File
+                </label>
+              </div>
+              <textarea
+                rows={5}
+                className="form-input"
+                placeholder="Paste CSV rows here, e.g.:
+2026-09-05,Sunil Varma,Head Cook,1,1500,Present,Lead wedding kitchen
+2026-09-05,Prakash Rao,Tandoor Specialist,1,1200,Present,Tandoor counter"
+                value={bulkCsvText}
+                onChange={e => {
+                  setBulkCsvText(e.target.value);
+                  parseBulkAttendanceCsv(e.target.value);
+                }}
+                style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem', padding: '0.6rem' }}
+              />
+            </div>
+
+            {/* Parsed Preview Table */}
+            {parsedBulkRows.length > 0 && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, display: 'flex', gap: '0.5rem' }}>
+                    <span>Parsed Preview ({parsedBulkRows.length} Rows)</span>
+                    <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                      {parsedBulkRows.filter(r => r.isValid).length} Valid
+                    </span>
+                    {parsedBulkRows.some(r => !r.isValid) && (
+                      <span className="badge badge-danger" style={{ fontSize: '0.7rem' }}>
+                        {parsedBulkRows.filter(r => !r.isValid).length} Invalid / Duplicate
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                    Total Est. Wage: {formatCurrency(parsedBulkRows.filter(r => r.isValid).reduce((sum, r) => sum + r.totalWage, 0))}
+                  </div>
+                </div>
+
+                <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                  <table className="custom-table" style={{ fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '40px' }}>Row</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Worker Name</th>
+                        <th>Role</th>
+                        <th style={{ textAlign: 'center' }}>Shifts</th>
+                        <th style={{ textAlign: 'right' }}>Daily Rate</th>
+                        <th style={{ textAlign: 'right' }}>Wage</th>
+                        <th>Validation Issues</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedBulkRows.map(row => (
+                        <tr key={row.rowNumber} style={{ background: row.isValid ? 'transparent' : 'rgba(239, 68, 68, 0.06)' }}>
+                          <td>{row.rowNumber}</td>
+                          <td>
+                            {row.isValid ? (
+                              <span className="badge badge-success" style={{ fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <Check size={11} /> Valid
+                              </span>
+                            ) : (
+                              <span className="badge badge-danger" style={{ fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <AlertTriangle size={11} /> Invalid
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{row.date || '—'}</td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{row.workerName || '—'}</div>
+                            {row.matchedWorkerId && (
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-success)' }}>✓ Matched in directory</span>
+                            )}
+                          </td>
+                          <td>{row.workerRole}</td>
+                          <td style={{ textAlign: 'center' }}>{row.shifts}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(row.dailyRate)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatCurrency(row.totalWage)}</td>
+                          <td>
+                            {row.errors.length > 0 ? (
+                              <div style={{ color: 'var(--color-danger)', fontSize: '0.72rem' }}>
+                                {row.errors.join('; ')}
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--color-success)', fontSize: '0.72rem' }}>Ready to upload</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsBulkUploadModalOpen(false);
+                  setBulkCsvText('');
+                  setParsedBulkRows([]);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={isProcessingBulk || parsedBulkRows.filter(r => r.isValid).length === 0}
+                onClick={handleCommitBulkAttendance}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+              >
+                <Upload size={16} />
+                <span>
+                  {isProcessingBulk ? 'Importing Records...' : `Upload ${parsedBulkRows.filter(r => r.isValid).length} Valid Records`}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

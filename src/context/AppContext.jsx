@@ -50,7 +50,7 @@ export const AppProvider = ({ children }) => {
     const envUrl = import.meta.env.VITE_API_URL;
     const primaryUrl = activeApiUrl || envUrl || '/api';
     
-    const tryUrl = async (baseUrl, timeoutMs = 2500) => {
+    const tryUrl = async (baseUrl, timeoutMs = 6000) => {
       if (!baseUrl) return null;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -86,7 +86,7 @@ export const AppProvider = ({ children }) => {
     };
 
     // Fast path 1: Try primary URL
-    const primaryRes = await tryUrl(primaryUrl, 2500);
+    const primaryRes = await tryUrl(primaryUrl, 6000);
     if (primaryRes !== null) return primaryRes;
 
     // Fallback path 2: Dynamic relative and local fallback
@@ -97,7 +97,7 @@ export const AppProvider = ({ children }) => {
     ])).filter(Boolean).filter(u => u !== primaryUrl);
 
     for (const url of fallbacks) {
-      const res = await tryUrl(url, 1500);
+      const res = await tryUrl(url, 3000);
       if (res !== null) return res;
     }
 
@@ -436,6 +436,7 @@ export const AppProvider = ({ children }) => {
     setVenues(prev => [...prev, payload]);
     const res = await apiCall('/venues', { method: 'POST', body: JSON.stringify(payload) });
     if (res) setVenues(prev => prev.map(v => v.id === payload.id ? res : v));
+    return payload;
   };
 
   const updateVenue = async (updated) => {
@@ -450,206 +451,200 @@ export const AppProvider = ({ children }) => {
   };
 
   const addRawMaterial = async (rm) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...rm, id: 'rm_' + Date.now() };
+    const payload = { ...rm, id: rm.id || ('rm_' + Date.now()) };
+    setRawMaterials(prev => [...prev, payload]);
     const res = await apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setRawMaterials(prev => [...prev, res || payload]);
+    if (res) setRawMaterials(prev => prev.map(r => r.id === payload.id ? res : r));
+    return payload;
   };
 
   const updateRawMaterial = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setRawMaterials(prev => prev.map(r => r.id === updated.id ? updated : r));
     const res = await apiCall(`/raw-materials/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setRawMaterials(prev => prev.map(r => r.id === updated.id ? (res || updated) : r));
+    if (res) setRawMaterials(prev => prev.map(r => r.id === updated.id ? res : r));
   };
 
   const deleteRawMaterial = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setRawMaterials(prev => prev.filter(r => r.id !== id));
+    await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
   };
 
   const addDish = async (dish) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...dish, id: 'd_' + Date.now() };
+    const payload = { ...dish, id: dish.id || ('d_' + Date.now()) };
+    setDishes(prev => [...prev, payload]);
     const res = await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setDishes(prev => [...prev, res || payload]);
+    if (res) setDishes(prev => prev.map(d => d.id === payload.id ? res : d));
+    return payload;
   };
 
   const updateDish = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setDishes(prev => prev.map(d => d.id === updated.id ? updated : d));
     const res = await apiCall(`/dishes/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setDishes(prev => prev.map(d => d.id === updated.id ? (res || updated) : d));
+    if (res) setDishes(prev => prev.map(d => d.id === updated.id ? res : d));
   };
 
   const deleteDish = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/dishes/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setDishes(prev => prev.filter(d => d.id !== id));
+    await apiCall(`/dishes/${id}`, { method: 'DELETE' });
   };
 
   const addSupplier = async (sup) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...sup, id: 's_' + Date.now() };
+    const payload = { ...sup, id: sup.id || ('s_' + Date.now()) };
+    setSuppliers(prev => [...prev, payload]);
     const res = await apiCall('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setSuppliers(prev => [...prev, res || payload]);
+    if (res) setSuppliers(prev => prev.map(s => s.id === payload.id ? res : s));
+    return payload;
   };
 
   const updateSupplier = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s));
     const res = await apiCall(`/suppliers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setSuppliers(prev => prev.map(s => s.id === updated.id ? (res || updated) : s));
+    if (res) setSuppliers(prev => prev.map(s => s.id === updated.id ? res : s));
   };
 
   const deleteSupplier = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/suppliers/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setSuppliers(prev => prev.filter(s => s.id !== id));
+    await apiCall(`/suppliers/${id}`, { method: 'DELETE' });
   };
 
   const addAgency = async (ag) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...ag, id: 'a_' + Date.now() };
+    const payload = { ...ag, id: ag.id || ('a_' + Date.now()) };
+    setAgencies(prev => [...prev, payload]);
     const res = await apiCall('/agencies', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setAgencies(prev => [...prev, res || payload]);
+    if (res) setAgencies(prev => prev.map(a => a.id === payload.id ? res : a));
+    return payload;
   };
 
   const updateAgency = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setAgencies(prev => prev.map(a => a.id === updated.id ? updated : a));
     const res = await apiCall(`/agencies/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setAgencies(prev => prev.map(a => a.id === updated.id ? (res || updated) : a));
+    if (res) setAgencies(prev => prev.map(a => a.id === updated.id ? res : a));
   };
 
   const deleteAgency = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/agencies/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setAgencies(prev => prev.filter(a => a.id !== id));
+    await apiCall(`/agencies/${id}`, { method: 'DELETE' });
   };
 
   // Vessel Actions
   const addVessel = async (ves) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...ves, id: 'ves_' + Date.now() };
+    const payload = { ...ves, id: ves.id || ('ves_' + Date.now()) };
+    setVessels(prev => [...prev, payload]);
     const res = await apiCall('/vessels', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setVessels(prev => [...prev, res || payload]);
+    if (res) setVessels(prev => prev.map(v => v.id === payload.id ? res : v));
+    return payload;
   };
 
   const updateVessel = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setVessels(prev => prev.map(v => v.id === updated.id ? updated : v));
     const res = await apiCall(`/vessels/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setVessels(prev => prev.map(v => v.id === updated.id ? (res || updated) : v));
+    if (res) setVessels(prev => prev.map(v => v.id === updated.id ? res : v));
   };
 
   const deleteVessel = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/vessels/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setVessels(prev => prev.filter(v => v.id !== id));
+    await apiCall(`/vessels/${id}`, { method: 'DELETE' });
   };
 
   // Provision Actions
   const addProvision = async (prv) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...prv, id: 'prv_' + Date.now() };
+    const payload = { ...prv, id: prv.id || ('prv_' + Date.now()) };
+    setProvisions(prev => [...prev, payload]);
     const res = await apiCall('/provisions', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setProvisions(prev => [...prev, res || payload]);
+    if (res) setProvisions(prev => prev.map(p => p.id === payload.id ? res : p));
+    return payload;
   };
 
   const updateProvision = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setProvisions(prev => prev.map(p => p.id === updated.id ? updated : p));
     const res = await apiCall(`/provisions/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setProvisions(prev => prev.map(p => p.id === updated.id ? (res || updated) : p));
+    if (res) setProvisions(prev => prev.map(p => p.id === updated.id ? res : p));
   };
 
   const deleteProvision = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/provisions/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setProvisions(prev => prev.filter(p => p.id !== id));
+    await apiCall(`/provisions/${id}`, { method: 'DELETE' });
   };
 
   // Vegetable Actions
   const addVegetable = async (veg) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...veg, id: 'veg_' + Date.now() };
+    const payload = { ...veg, id: veg.id || ('veg_' + Date.now()) };
+    setVegetables(prev => [...prev, payload]);
     const res = await apiCall('/vegetables', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setVegetables(prev => [...prev, res || payload]);
+    if (res) setVegetables(prev => prev.map(v => v.id === payload.id ? res : v));
+    return payload;
   };
 
   const updateVegetable = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setVegetables(prev => prev.map(v => v.id === updated.id ? updated : v));
     const res = await apiCall(`/vegetables/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setVegetables(prev => prev.map(v => v.id === updated.id ? (res || updated) : v));
+    if (res) setVegetables(prev => prev.map(v => v.id === updated.id ? res : v));
   };
 
   const deleteVegetable = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/vegetables/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setVegetables(prev => prev.filter(v => v.id !== id));
+    await apiCall(`/vegetables/${id}`, { method: 'DELETE' });
   };
 
   // Labour Worker Actions
   const addLabourWorker = async (lw) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...lw, id: 'lw_' + Date.now() };
+    const payload = { ...lw, id: lw.id || ('lw_' + Date.now()) };
+    setLabourWorkers(prev => [...prev, payload]);
     const res = await apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setLabourWorkers(prev => [...prev, res || payload]);
+    if (res) setLabourWorkers(prev => prev.map(w => w.id === payload.id ? res : w));
+    return payload;
   };
 
   const updateLabourWorker = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? updated : w));
     const res = await apiCall(`/labour-workers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? (res || updated) : w));
+    if (res) setLabourWorkers(prev => prev.map(w => w.id === updated.id ? res : w));
   };
 
   const deleteLabourWorker = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/labour-workers/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setLabourWorkers(prev => prev.filter(w => w.id !== id));
+    await apiCall(`/labour-workers/${id}`, { method: 'DELETE' });
   };
 
   // Labour Attendance Actions
   const addLabourAttendance = async (log) => {
-    if (!requireMongoConnection()) return;
-    const payload = { ...log, id: log.id || 'att_' + Date.now() };
+    const payload = { ...log, id: log.id || ('att_' + Date.now()) };
+    setLabourAttendance(prev => [...prev, payload]);
     const res = await apiCall('/labour-attendance', { method: 'POST', body: JSON.stringify(payload) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setLabourAttendance(prev => [...prev, res || payload]);
+    if (res) setLabourAttendance(prev => prev.map(a => a.id === payload.id ? res : a));
+    return payload;
   };
 
   const updateLabourAttendance = async (updated) => {
-    if (!requireMongoConnection()) return;
+    setLabourAttendance(prev => prev.map(a => a.id === updated.id ? updated : a));
     const res = await apiCall(`/labour-attendance/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
-    setLabourAttendance(prev => prev.map(a => a.id === updated.id ? (res || updated) : a));
+    if (res) setLabourAttendance(prev => prev.map(a => a.id === updated.id ? res : a));
   };
 
   const deleteLabourAttendance = async (id) => {
-    if (!requireMongoConnection()) return;
-    const res = await apiCall(`/labour-attendance/${id}`, { method: 'DELETE' });
-    if (!res) { alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.'); return; }
     setLabourAttendance(prev => prev.filter(a => a.id !== id));
+    await apiCall(`/labour-attendance/${id}`, { method: 'DELETE' });
+  };
+
+  const batchAddLabourAttendance = async (records) => {
+    if (!records || !records.length) return [];
+    const formatted = records.map((r, idx) => ({
+      ...r,
+      id: r.id || `att_${Date.now()}_${idx}`
+    }));
+    setLabourAttendance(prev => [...prev, ...formatted]);
+    const res = await apiCall('/labour-attendance/batch', {
+      method: 'POST',
+      body: JSON.stringify({ attendanceList: formatted })
+    });
+    if (res?.success && Array.isArray(res?.data)) {
+      setLabourAttendance(prev => {
+        const idSet = new Set(formatted.map(f => f.id));
+        const filtered = prev.filter(p => !idSet.has(p.id));
+        return [...filtered, ...res.data];
+      });
+    }
+    return formatted;
   };
 
   // Event actions
@@ -683,7 +678,7 @@ export const AppProvider = ({ children }) => {
       reminders: eventDetails.reminders || [],
       subFunctions: (eventDetails.subFunctions || []).map((sf, idx) => ({
         id: sf.id || `sf-${Date.now()}-${idx}`,
-        name: sf.name,
+        name: sf.name || `${eventDetails.eventType || 'Main'} Function`,
         date: sf.date || primaryDate,
         guestCount: parseInt(sf.guestCount, 10) || 100,
         menuItems: sf.menuItems || [],
@@ -709,13 +704,16 @@ export const AppProvider = ({ children }) => {
       laborAllocations: [],
       billing: {
         pricePerPlate: eventDetails.pricePerPlate || 800,
+        taxType: eventDetails.billing?.taxType || 'GST',
+        isInterState: !!eventDetails.billing?.isInterState,
         subtotal: 0,
-        taxRate: companyProfile.defaultTaxRate,
+        taxRate: eventDetails.billing?.taxType === 'NON_GST' ? 0 : (companyProfile.defaultTaxRate || 5),
         taxAmount: 0,
         totalAmount: 0,
         advancePaid: 0,
         balanceDue: 0,
-        status: 'Unpaid'
+        status: 'Unpaid',
+        ...(eventDetails.billing || {})
       }
     };
 
@@ -743,7 +741,7 @@ export const AppProvider = ({ children }) => {
     await apiCall(`/events/${id}`, { method: 'DELETE' });
   };
 
-  // Algorithmic Raw Material Requirements Calculation
+  // Algorithmic Raw Material Requirements Calculation with 5% standard kitchen wastage buffer
   const calculateEventRawMaterials = (event) => {
     if (!event || !event.subFunctions) return [];
 
@@ -772,8 +770,12 @@ export const AppProvider = ({ children }) => {
       const material = rawMaterials.find(rm => rm.id === matId);
       if (!material) return null;
 
-      const totalQty = requirements[matId];
-      const totalCost = totalQty * material.costPerUnit;
+      const baseQty = requirements[matId];
+      // 5% standard kitchen wastage buffer
+      const wastageBufferQty = baseQty * 0.05;
+      const requiredQty = baseQty + wastageBufferQty;
+      const costPerUnit = parseFloat(material.costPerUnit) || 0;
+      const totalCost = requiredQty * costPerUnit;
       const matchedSupplier = suppliers.find(s => s.category === material.category) || suppliers[0];
 
       return {
@@ -781,8 +783,11 @@ export const AppProvider = ({ children }) => {
         name: material.name,
         category: material.category,
         unit: material.unit,
-        costPerUnit: material.costPerUnit,
-        requiredQty: parseFloat(totalQty.toFixed(2)),
+        costPerUnit: costPerUnit,
+        baseQty: parseFloat(baseQty.toFixed(2)),
+        wastageBufferQty: parseFloat(wastageBufferQty.toFixed(2)),
+        wastagePercent: 5.0,
+        requiredQty: parseFloat(requiredQty.toFixed(2)),
         totalCost: parseFloat(totalCost.toFixed(2)),
         supplier: matchedSupplier
       };
@@ -791,7 +796,13 @@ export const AppProvider = ({ children }) => {
 
   // Recalculates all costs & totals of an event dynamically
   const recalculateEventFinances = (event) => {
-    const rawMaterialsCost = (event.manualMaterials || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    let rawMaterialsCost = (event.manualMaterials || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    if ((!event.manualMaterials || event.manualMaterials.length === 0) && event.subFunctions && event.subFunctions.length > 0) {
+      const autoMats = calculateEventRawMaterials(event);
+      if (autoMats.length > 0) {
+        rawMaterialsCost = autoMats.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      }
+    }
 
     const laborCost = (event.laborAllocations || []).reduce((sum, alloc) => {
       if (alloc.status === 'Cancelled') return sum;
@@ -812,14 +823,14 @@ export const AppProvider = ({ children }) => {
     const venueRent = venue ? venue.price : 0;
 
     const totalGuests = (event.subFunctions || []).reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
-    const subtotal = totalGuests * (parseFloat(event.billing.pricePerPlate) || 0);
+    const subtotal = totalGuests * (parseFloat(event.billing?.pricePerPlate) || 0);
 
     const isNonGst = event.billing?.taxType === 'NON_GST' || Number(event.billing?.taxRate) === 0;
     const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? parseFloat(event.billing.taxRate) : (companyProfile.defaultTaxRate || 5));
     const taxAmount = isNonGst ? 0 : (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
     
-    const advancePaid = parseFloat(event.billing.advancePaid) || 0;
+    const advancePaid = parseFloat(event.billing?.advancePaid) || 0;
     const balanceDue = Math.max(0, totalAmount - advancePaid);
 
     let paymentStatus = 'Unpaid';
@@ -839,7 +850,10 @@ export const AppProvider = ({ children }) => {
     };
 
     event.billing = {
-      ...event.billing,
+      ...(event.billing || {}),
+      taxType: isNonGst ? 'NON_GST' : (event.billing?.taxType || 'GST'),
+      isInterState: !!event.billing?.isInterState,
+      taxRate: isNonGst ? 0 : taxRate,
       subtotal: parseFloat(subtotal.toFixed(2)),
       taxAmount: parseFloat(taxAmount.toFixed(2)),
       totalAmount: parseFloat(totalAmount.toFixed(2)),
@@ -943,6 +957,7 @@ export const AppProvider = ({ children }) => {
       addLabourAttendance,
       updateLabourAttendance,
       deleteLabourAttendance,
+      batchAddLabourAttendance,
       syncStatus,
       lastSyncedAt,
       triggerManualSync: () => loadData(false),
@@ -954,6 +969,7 @@ export const AppProvider = ({ children }) => {
       calculateEventRawMaterials,
       companyProfile,
       setCompanyProfile: updateCompanyProfile,
+      formatCurrency: (amt) => `${companyProfile.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`,
       rbacMatrix,
       updateRolePermission,
       hasPermission,

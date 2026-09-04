@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { TrendingUp, Users, CalendarDays, DollarSign, Lock, Award } from 'lucide-react';
+import { TrendingUp, Users, CalendarDays, IndianRupee, Lock, Award } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line 
 } from 'recharts';
@@ -58,7 +58,7 @@ const Reports = () => {
             <div className="kpi-value">{companyProfile.currency} {totalRevenue.toLocaleString('en-IN')}</div>
           </div>
           <div className="kpi-icon icon-green">
-            <DollarSign size={24} />
+            <IndianRupee size={24} />
           </div>
         </div>
 

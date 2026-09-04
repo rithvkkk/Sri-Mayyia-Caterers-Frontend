@@ -52,6 +52,7 @@ const EventBooking = () => {
   const [subFunctionsList, setSubFunctionsList] = useState([
     { name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }
   ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reminder form states (for active event)
   const [reminderNote, setReminderNote] = useState('');
@@ -209,48 +210,56 @@ const EventBooking = () => {
   // Form submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!clientName || !primaryDate) {
+    if (isSubmitting) return;
+
+    if (!clientName.trim() || !primaryDate) {
       alert('Client Name and at least one Event Date are required!');
       return;
     }
 
-    const allDates = Array.from(new Set([primaryDate, ...additionalDates])).filter(Boolean).sort();
+    setIsSubmitting(true);
+    try {
+      const allDates = Array.from(new Set([primaryDate, ...additionalDates])).filter(Boolean).sort();
 
-    const payload = {
-      customer: { name: clientName, phone: clientPhone, email: clientEmail },
-      eventType,
-      venueId,
-      date: primaryDate,
-      dates: allDates,
-      pricePerPlate: parseFloat(pricePerPlate) || 800,
-      reminders: [],
-      subFunctions: subFunctionsList.map((sf, idx) => ({
-        id: `sf-${Date.now()}-${idx}`,
-        name: sf.name,
-        date: sf.date || primaryDate,
-        guestCount: parseInt(sf.guestCount, 10) || 100,
-        menuItems: [],
-        clientNotes: sf.clientNotes || ''
-      }))
-    };
+      const payload = {
+        customer: { name: clientName.trim(), phone: clientPhone.trim(), email: clientEmail.trim() },
+        eventType: eventType || 'Wedding Reception',
+        venueId: venueId || '',
+        date: primaryDate,
+        dates: allDates,
+        pricePerPlate: parseFloat(pricePerPlate) || 800,
+        reminders: [],
+        subFunctions: subFunctionsList.map((sf, idx) => ({
+          id: `sf-${Date.now()}-${idx}`,
+          name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${eventType || 'Main'} Function`,
+          date: sf.date || primaryDate,
+          guestCount: parseInt(sf.guestCount, 10) || 100,
+          menuItems: [],
+          clientNotes: sf.clientNotes || ''
+        }))
+      };
 
-    const newId = await createEvent(payload);
-    alert(`Event Created Successfully! Generated Event ID: ${newId}`);
-    
-    // Reset form
-    setClientName('');
-    setClientPhone('');
-    setClientEmail('');
-    setEventType('');
-    setVenueId('');
-    setVenueSearchInput('');
-    setPrimaryDate('');
-    setAdditionalDates([]);
-    setNewDateInput('');
-    setPricePerPlate('');
-    setSubFunctionsList([{ name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }]);
-    setShowCreateModal(false);
-    setSelectedEventId(newId);
+      const newId = await createEvent(payload);
+      
+      // Reset form
+      setClientName('');
+      setClientPhone('');
+      setClientEmail('');
+      setEventType('');
+      setVenueId('');
+      setVenueSearchInput('');
+      setPrimaryDate('');
+      setAdditionalDates([]);
+      setNewDateInput('');
+      setPricePerPlate('');
+      setSubFunctionsList([{ name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }]);
+      setShowCreateModal(false);
+      if (newId) setSelectedEventId(newId);
+    } catch (err) {
+      console.error('Event creation error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addSubFunctionRow = () => {
@@ -1198,7 +1207,9 @@ const EventBooking = () => {
 
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Generate Event Master File</button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating Event...' : 'Generate Event Master File'}
+              </button>
             </div>
           </form>
         </div>

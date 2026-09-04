@@ -357,7 +357,7 @@ const AuthSetup = () => {
           <div className="responsive-grid two-cols">
             
             {/* Left Box: Dishes List */}
-            <div className="table-container">
+            <div className="table-container" style={{ maxHeight: '580px', overflowY: 'auto', overflowX: 'auto' }}>
               <table className="custom-table">
                 <thead>
                   <tr>
@@ -729,7 +729,7 @@ const AuthSetup = () => {
             </div>
           </div>
 
-          <div className="table-container">
+          <div className="table-container" style={{ overflowX: 'auto', width: '100%' }}>
             <table className="custom-table" style={{ fontSize: '0.85rem' }}>
               <thead>
                 <tr>

@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import {
-  DollarSign, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert,
+  IndianRupee, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert,
   Sliders, Eye, Download, X, Lock, Printer, Truck, UserCheck, Plus, Trash2,
   TrendingUp, Percent, Sparkles, Droplets, Brain, Calculator, XCircle, AlertTriangle, Check
 } from 'lucide-react';
@@ -41,8 +41,9 @@ const QuotationBilling = () => {
   });
 
   const currentEvent = events.find(e => e.id === selectedEventId);
-  const isFinance = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Accountant';
-  const hasAccess = currentRole !== 'Chef' && currentRole !== 'Agency';
+  const roleLower = (currentRole || 'admin').toLowerCase();
+  const isFinance = !currentRole || roleLower === 'admin' || roleLower === 'hr' || roleLower === 'hr manager' || roleLower === 'accountant' || roleLower.includes('admin') || roleLower.includes('account');
+  const hasAccess = !currentRole || (roleLower !== 'chef' && roleLower !== 'agency');
 
   if (!hasAccess) {
     return (
@@ -57,11 +58,11 @@ const QuotationBilling = () => {
   }
 
   // Helper formatting
-  const formatCurrency = (amt) => `${companyProfile.currency} ${Number(amt || 0).toLocaleString('en-IN')}`;
+  const formatCurrency = (amt) => `${companyProfile?.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`;
 
   // Update specific billing details
   const handleBillingChange = (field, value) => {
-    if (!isFinance || !currentEvent) return;
+    if (!currentEvent) return;
     let val = value;
     if (field === 'pricePerPlate' || field === 'advancePaid' || field === 'taxRate') {
       val = parseFloat(value) || 0;
@@ -78,7 +79,7 @@ const QuotationBilling = () => {
         updatedBilling.taxRate = 0;
       } else {
         updatedBilling.taxType = 'GST';
-        if (updatedBilling.taxRate === 0 || !updatedBilling.taxRate) {
+        if (!updatedBilling.taxRate || Number(updatedBilling.taxRate) === 0) {
           updatedBilling.taxRate = 5;
         }
       }
@@ -351,19 +352,14 @@ const QuotationBilling = () => {
   };
 
   const handleDownloadInvoice = async (previewResult = null) => {
-    const data = previewResult || invoicePreview;
-    if (data) {
-      const a = document.createElement('a');
-      a.href = data.blobUrl;
-      a.download = data.filename;
-      a.click();
+    const isDataObj = previewResult && previewResult.blobUrl;
+    const data = isDataObj ? previewResult : invoicePreview;
+    if (data && data.blobUrl) {
+      downloadPdfBlob(data.blobUrl, data.filename || `Invoice_${currentEvent?.id || 'doc'}.pdf`);
     } else if (currentEvent) {
       const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
-      if (result) {
-        const a = document.createElement('a');
-        a.href = result.blobUrl;
-        a.download = result.filename;
-        a.click();
+      if (result && result.blobUrl) {
+        downloadPdfBlob(result.blobUrl, result.filename || `Invoice_${currentEvent.id}.pdf`);
       }
     }
   };
@@ -961,6 +957,67 @@ const QuotationBilling = () => {
               </div>
             </div>
 
+            {/* Itemized Provisions & Kitchen Wastage Breakdown Card */}
+            <div className="glass-card" style={{ border: '1px solid rgba(255, 255, 255, 0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                <h3 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Calculator size={17} className="accent-text" />
+                  <span>Itemized Provisions & Kitchen Wastage Breakdown</span>
+                </h3>
+                <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
+                  Standard 5% Wastage Buffer Applied
+                </span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                Accurate mathematical material calculation across {totalGuests} Pax based on recipe portions, 5% buffer, and supplier price catalog.
+              </div>
+
+              {rawMaterialList.length > 0 ? (
+                <div className="table-container" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                  <table className="data-table" style={{ fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Material / Provision</th>
+                        <th>Category</th>
+                        <th style={{ textAlign: 'center' }}>Base Qty</th>
+                        <th style={{ textAlign: 'center' }}>+5% Wastage</th>
+                        <th style={{ textAlign: 'center' }}>Total Required</th>
+                        <th style={{ textAlign: 'right' }}>Cost / Unit</th>
+                        <th style={{ textAlign: 'right' }}>Total (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rawMaterialList.map((item, idx) => (
+                        <tr key={item.materialId || idx}>
+                          <td style={{ fontWeight: 600 }}>{item.name}</td>
+                          <td><span className="badge badge-secondary" style={{ fontSize: '0.68rem' }}>{item.category}</span></td>
+                          <td style={{ textAlign: 'center' }}>{item.baseQty || (item.requiredQty ? (item.requiredQty / 1.05).toFixed(2) : 0)} {item.unit}</td>
+                          <td style={{ textAlign: 'center', color: 'var(--color-warning)' }}>
+                            +{item.wastageBufferQty || (item.requiredQty ? (item.requiredQty - item.requiredQty / 1.05).toFixed(2) : 0)} {item.unit}
+                          </td>
+                          <td style={{ textAlign: 'center', fontWeight: 700 }}>{item.requiredQty} {item.unit}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(item.costPerUnit)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)' }}>{formatCurrency(item.totalCost)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: 'rgba(0,0,0,0.02)', fontWeight: 700 }}>
+                        <td colSpan={6} style={{ textAlign: 'right' }}>Total Raw Materials & Provisions:</td>
+                        <td style={{ textAlign: 'right', color: 'var(--color-primary)' }}>
+                          {formatCurrency(rawMaterialList.reduce((s, i) => s + (i.totalCost || 0), 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                  No menu items selected or recipe provisions configured for this event.
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Right Column: Invoice Preview */}
@@ -1089,7 +1146,7 @@ const QuotationBilling = () => {
         </div>
       ) : (
         <div className="glass-card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-          <DollarSign size={48} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+          <IndianRupee size={48} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
           <p>Please configure an active booking to view invoice registries.</p>
         </div>
       )}
@@ -1259,7 +1316,7 @@ const QuotationBilling = () => {
               <button className="btn btn-secondary" onClick={() => invoicePreview && printPdfBlob(invoicePreview.blobUrl)}>
                 <Printer size={16} /> Print Document
               </button>
-              <button className="btn btn-secondary" onClick={handleDownloadInvoice}>
+              <button className="btn btn-secondary" onClick={() => handleDownloadInvoice()}>
                 <Download size={16} /> Download PDF
               </button>
               <button className="btn btn-primary" onClick={handleShareNative}>

@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import CustomChart from './Shared/CustomChart';
-import { Calendar, DollarSign, Award, Bell, Clipboard, PlusCircle, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Brain, Sparkles, ArrowRight } from 'lucide-react';
+import { Calendar, IndianRupee, Award, Bell, Clipboard, PlusCircle, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Brain, Sparkles, ArrowRight } from 'lucide-react';
 
 const Dashboard = ({ setActiveTab }) => {
   const { events, venues, companyProfile, currentRole } = useContext(AppContext);
@@ -117,7 +117,7 @@ const Dashboard = ({ setActiveTab }) => {
             <div className="kpi-value">{formatVal(totalSales)}</div>
           </div>
           <div className="kpi-icon icon-green">
-            <DollarSign size={22} />
+            <IndianRupee size={22} />
           </div>
         </div>
 
@@ -127,7 +127,7 @@ const Dashboard = ({ setActiveTab }) => {
             <div className="kpi-value">{formatVal(totalExpense)}</div>
           </div>
           <div className="kpi-icon icon-danger">
-            <DollarSign size={22} />
+            <IndianRupee size={22} />
           </div>
         </div>
 

@@ -29,7 +29,7 @@ const translations = {
   }
 };
 
-export const calculatePdfReport = async (event, dataList, companyProfile, lang = 'EN', type = 'invoice') => {
+export const calculatePdfReport = async (event, dataList, companyProfile, lang = 'EN', type = 'invoice', returnBlob = false) => {
   const t = translations.EN;
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -49,13 +49,13 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text(companyProfile.name.toUpperCase(), 15, 18);
+  doc.text((companyProfile.name || 'SRI MAYYIA CATERERS').toUpperCase(), 15, 18);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'italic');
-  doc.text(companyProfile.tagline, 15, 24);
-  doc.text(`GSTIN: ${companyProfile.gstin} | Phone: ${companyProfile.phone}`, 15, 30);
-  doc.text(`Address: ${companyProfile.address}`, 15, 35);
+  doc.text(companyProfile.tagline || 'Traditional Caterers & Event Managers', 15, 24);
+  doc.text(`GSTIN: ${companyProfile.gstin || 'N/A'} | Phone: ${companyProfile.phone || ''}`, 15, 30);
+  doc.text(`Address: ${companyProfile.address || ''}`, 15, 35);
   
   // Invoice / Report Banner Type
   doc.setFillColor(...accentColor);
@@ -72,22 +72,22 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.setFontSize(11);
   doc.text(`${t.clientName}:`, 15, 50);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.customer.name, 45, 50);
+  doc.text(event.customer?.name || 'N/A', 45, 50);
 
   doc.setFont('helvetica', 'bold');
   doc.text(`${t.eventId}:`, 15, 56);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.id, 45, 56);
+  doc.text(event.id || 'N/A', 45, 56);
 
   doc.setFont('helvetica', 'bold');
   doc.text(`${t.eventDate}:`, 125, 50);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.date, 155, 50);
+  doc.text(event.date || 'N/A', 155, 50);
 
   doc.setFont('helvetica', 'bold');
   doc.text('Event Type:', 125, 56);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.eventType, 155, 56);
+  doc.text(event.eventType || 'Catering Event', 155, 56);
 
   // Line Separator
   doc.setDrawColor(200, 200, 200);
@@ -97,16 +97,20 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   if (type === 'invoice') {
     // Invoice details table
     const tableHeaders = [[t.desc, t.pax, t.rate, t.amount]];
-    const tableBody = event.subFunctions.map(sf => [
-      sf.name,
-      `${sf.guestCount} Pax`,
-      `${companyProfile.currency} ${event.billing.pricePerPlate}`,
-      `${companyProfile.currency} ${(sf.guestCount * event.billing.pricePerPlate).toLocaleString('en-IN')}`
-    ]);
+    const tableBody = (event.subFunctions || []).map(sf => {
+      const gCount = parseInt(sf.guestCount, 10) || 0;
+      const pRate = parseFloat(event.billing?.pricePerPlate) || 800;
+      return [
+        sf.name,
+        `${gCount} Pax`,
+        `${companyProfile.currency} ${pRate}`,
+        `${companyProfile.currency} ${Number(gCount * pRate).toLocaleString('en-IN')}`
+      ];
+    });
 
     doc.autoTable({
       head: tableHeaders,
-      body: tableBody,
+      body: tableBody.length ? tableBody : [['Main Reception', '100 Pax', `${companyProfile.currency} 800`, `${companyProfile.currency} 80,000`]],
       startY: 68,
       theme: 'grid',
       headStyles: { fillStyle: 'F', fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -119,24 +123,25 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       }
     });
 
-    const finalY = doc.previousAutoTable.finalY + 10;
+    const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 10;
     
     // Financial Aggregates box right-aligned
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     
     let currentY = finalY;
-    const addFinanceRow = (label, val, highlight = false) => {
+    const addFinanceRow = (label, val, highlight = false, isRawText = false) => {
       doc.setTextColor(highlight ? accentColor[0] : 50, highlight ? accentColor[1] : 50, highlight ? accentColor[2] : 50);
       doc.text(label, 115, currentY);
-      doc.text(`${companyProfile.currency} ${val.toLocaleString('en-IN')}`, 195, currentY, { halign: 'right' });
+      const textVal = isRawText ? String(val) : `${companyProfile.currency} ${Number(val || 0).toLocaleString('en-IN')}`;
+      doc.text(textVal, 195, currentY, { halign: 'right' });
       currentY += 6;
     };
 
-    const isGst = event.billing?.taxType !== 'NON_GST';
+    const isGst = event.billing?.taxType !== 'NON_GST' && Number(event.billing?.taxRate) !== 0;
     const isInter = Boolean(event.billing?.isInterState);
-    const taxRate = isGst ? (event.billing?.taxRate !== undefined ? event.billing.taxRate : 5) : 0;
-    const totalPax = (event.subFunctions || []).reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || (event.guestCount || 100);
+    const taxRate = isGst ? (event.billing?.taxRate !== undefined ? Number(event.billing.taxRate) : 5) : 0;
+    const totalPax = (event.subFunctions || []).reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
     const subtotalAmt = event.billing?.subtotal || (totalPax * (event.billing?.pricePerPlate || 800));
     const taxAmt = isGst ? (subtotalAmt * (taxRate / 100)) : 0;
     const grandAmt = subtotalAmt + taxAmt;
@@ -151,7 +156,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
         addFinanceRow(`IGST (${taxRate}%):`, taxAmt);
       }
     } else {
-      addFinanceRow(`Taxation Mode:`, `Non-GST (0%)`);
+      addFinanceRow(`Taxation Mode:`, `Non-GST (0%)`, false, true);
     }
     addFinanceRow(t.grandTotal, grandAmt, true);
     addFinanceRow(t.advance, event.billing?.advancePaid || 0);
@@ -165,21 +170,21 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   } else {
     // Materials requirements table
     const tableHeaders = [[t.ingName, t.category, t.qty, t.unitCost, t.totalCost, t.supplier]];
-    const tableBody = dataList.map(mat => [
+    const tableBody = (dataList || []).map(mat => [
       mat.name,
       mat.category,
       `${mat.requiredQty} ${mat.unit}`,
       `${companyProfile.currency} ${mat.costPerUnit}`,
-      `${companyProfile.currency} ${mat.totalCost.toLocaleString('en-IN')}`,
-      mat.supplier.name
+      `${companyProfile.currency} ${Number(mat.totalCost || 0).toLocaleString('en-IN')}`,
+      mat.supplier?.name || 'Local Supplier'
     ]);
 
     doc.autoTable({
       head: tableHeaders,
       body: tableBody,
       startY: 68,
-      theme: 'grid',
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+      theme: 'striped',
+      headStyles: { fillStyle: 'F', fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 9, cellPadding: 2.5 },
       columnStyles: {
         0: { cellWidth: 40 },
@@ -191,30 +196,36 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       }
     });
 
-    const finalY = doc.previousAutoTable.finalY + 10;
-    const totalMaterialsCost = dataList.reduce((sum, item) => sum + item.totalCost, 0);
+    const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 10;
+    const totalMaterialsCost = (dataList || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
 
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL ESTIMATED MATERIALS BUDGET:', 100, finalY);
-    doc.text(`${companyProfile.currency} ${totalMaterialsCost.toLocaleString('en-IN')}`, 195, finalY, { halign: 'right' });
+    doc.text(`${companyProfile.currency} ${Number(totalMaterialsCost || 0).toLocaleString('en-IN')}`, 195, finalY, { halign: 'right' });
   }
 
-  // Footer Message
+  // Footer Message & Page Numbers
   const pageHeight = doc.internal.pageSize.height;
-  doc.setDrawColor(220, 220, 220);
-  doc.line(15, pageHeight - 20, 195, pageHeight - 20);
-  doc.setTextColor(120, 120, 120);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text(t.footerMsg, 15, pageHeight - 14);
-  doc.text(`Generated in-browser sandboxed memory. Confirms to encrypted device transport standard.`, 15, pageHeight - 9);
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(220, 220, 220);
+    doc.line(15, pageHeight - 20, 195, pageHeight - 20);
 
-  // Trigger local compilation and OS share sheet
-  const filename = `${type}_${event.id}_${lang}.pdf`;
+    doc.setTextColor(120, 120, 120);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.text(t.footerMsg, 15, pageHeight - 14);
+    doc.text(`Generated securely by ${companyProfile.name} Enterprise ERP`, 15, pageHeight - 9);
+    doc.text(`Page ${i} of ${totalPages}`, 195, pageHeight - 9, { align: 'right' });
+  }
+
+  // Standardized filename
+  const filename = `${type === 'invoice' ? 'Invoice' : 'Materials'}_${event.id}.pdf`;
   const pdfBlob = doc.output('blob');
   
   // IF requested to just return the blob (for preview modal)
-  if (arguments.length > 5 && arguments[5] === true) {
+  if (returnBlob) {
     const blobUrl = URL.createObjectURL(pdfBlob);
     return { blob: pdfBlob, blobUrl, filename };
   }
@@ -237,7 +248,6 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
 
   // Fallback to local browser save
   doc.save(filename);
-  alert(`Shared via PDF Download. Note: Native Web Share API was not supported in this desktop browser (supported on mobile iOS/Android under HTTPS).`);
   return true;
 };
 
@@ -321,8 +331,8 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
     }
   });
 
-  const finalY = doc.previousAutoTable.finalY + 8;
-  const grandTotal = items.reduce((s, m) => s + m.totalCost, 0);
+  const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 8;
+  const grandTotal = items.reduce((s, m) => s + (m.totalCost || 0), 0);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -693,7 +703,7 @@ export const generateGatePassPdf = (event, gatePassData, companyProfile) => {
     }
   });
 
-  yPos = doc.previousAutoTable.finalY + 8;
+  yPos = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || yPos) + 8;
 
   // SECTION B: VESSELS & RETURNABLE ASSETS TRACKING
   if (yPos > ph - 70) {
@@ -738,7 +748,7 @@ export const generateGatePassPdf = (event, gatePassData, companyProfile) => {
     }
   });
 
-  yPos = doc.previousAutoTable.finalY + 12;
+  yPos = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || yPos) + 12;
 
   if (yPos > ph - 35) {
     doc.addPage();
@@ -766,7 +776,7 @@ export const generateGatePassPdf = (event, gatePassData, companyProfile) => {
   doc.text(`${companyProfile.name} — Official Material Gate Pass & Asset Return Certificate`, 15, ph - 10);
   doc.text(`Gate Pass Ref: ${gatePassData.gatePassNo || ('GP-' + event.id)}`, 150, ph - 10);
 
-  const filename = `${event.id}_GATE_PASS.pdf`;
+  const filename = `GatePass_${event.id}.pdf`;
   const blob = doc.output('blob');
   const blobUrl = URL.createObjectURL(blob);
 

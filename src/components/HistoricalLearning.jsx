@@ -10,7 +10,7 @@ import {
 import {
   Brain, Sparkles, TrendingUp, History, CheckCircle2, AlertTriangle,
   FileCheck, Layers, GitBranch, Search, Filter, ShieldCheck, Award,
-  ArrowRight, RefreshCw, BarChart2, DollarSign, Users, Droplets,
+  ArrowRight, RefreshCw, BarChart2, IndianRupee, Users, Droplets,
   Calendar, Check, Info, HelpCircle, Save, Upload, FileUp, Database, Download
 } from 'lucide-react';
 
@@ -379,7 +379,7 @@ const HistoricalLearning = () => {
           onClick={() => setActiveTab('prices')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
         >
-          <DollarSign size={16} />
+          <IndianRupee size={16} />
           <span>Ingredient Pricing & Supplier Intelligence</span>
         </button>
 
@@ -858,7 +858,7 @@ const HistoricalLearning = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <div>
               <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#000000' }}>
-                <DollarSign size={20} />
+                <IndianRupee size={20} />
                 <span>Historical Purchasing & Supplier Reliability Matrix</span>
               </h2>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>

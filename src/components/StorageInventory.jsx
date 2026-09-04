@@ -14,6 +14,9 @@ const StorageInventory = () => {
   // Gate Pass Modal & Tracking State
   const [isGatePassModalOpen, setIsGatePassModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
+  const [gatePassEventSearch, setGatePassEventSearch] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [gatePassForm, setGatePassForm] = useState({
     vehicleNo: 'KA-01-MJ-9921',
     driverName: 'Ramesh Kumar',
@@ -27,7 +30,18 @@ const StorageInventory = () => {
   const damagedCount = vessels.reduce((acc, v) => acc + (Number(v.damagedQty) || 0), 0);
   const totalValue = vessels.reduce((sum, v) => sum + ((Number(v.totalQty) || 0) * (Number(v.valuePerUnit) || 0)), 0);
 
-  const selectedEvent = events.find(e => e.id === selectedEventId) || events[0];
+  const filteredGatePassEvents = (events || []).filter(e => {
+    if (!gatePassEventSearch.trim()) return true;
+    const q = gatePassEventSearch.toLowerCase();
+    return (
+      (e.id && e.id.toLowerCase().includes(q)) ||
+      (e.customer?.name && e.customer.name.toLowerCase().includes(q)) ||
+      (e.eventType && e.eventType.toLowerCase().includes(q)) ||
+      (e.date && e.date.toLowerCase().includes(q))
+    );
+  });
+
+  const selectedEvent = events.find(e => e.id === selectedEventId) || filteredGatePassEvents[0] || events[0];
   const fallbackEvent = {
     id: 'GP-DISPATCH',
     customer: { name: 'General Event Transport' },
@@ -36,68 +50,86 @@ const StorageInventory = () => {
   };
   const activeEvent = selectedEvent || fallbackEvent;
 
-  const handleDownloadGatePass = () => {
-    const consumables = (rawMaterials || []).slice(0, 8).map(m => ({
-      name: m.name,
-      category: m.category,
-      qty: 25,
-      unit: m.unit || 'Kg'
-    }));
+  const handleDownloadGatePass = async () => {
+    try {
+      setIsDownloading(true);
+      const consumables = (rawMaterials || []).slice(0, 8).map(m => ({
+        name: m.name,
+        category: m.category,
+        qty: 25,
+        unit: m.unit || 'Kg'
+      }));
 
-    const vesselList = (vessels || []).slice(0, 10).map(v => ({
-      name: v.name,
-      category: v.category,
-      sentQty: v.totalQty || 10,
-      returnedQty: (v.totalQty || 10) - (v.damagedQty || 0),
-      damagedQty: v.damagedQty || 0,
-      status: v.damagedQty > 0 ? 'Partial Damage' : 'Verified Return'
-    }));
+      const vesselList = (vessels || []).slice(0, 10).map(v => ({
+        name: v.name,
+        category: v.category,
+        sentQty: v.totalQty || 10,
+        returnedQty: (v.totalQty || 10) - (v.damagedQty || 0),
+        damagedQty: v.damagedQty || 0,
+        status: v.damagedQty > 0 ? 'Partial Damage' : 'Verified Return'
+      }));
 
-    const gatePassData = {
-      gatePassNo: `GP-${activeEvent.id}`,
-      vehicleNo: gatePassForm.vehicleNo || 'KA-01-MJ-9921',
-      driverName: gatePassForm.driverName || 'Ramesh Kumar',
-      driverPhone: gatePassForm.driverPhone || '9876543210',
-      issuedBy: gatePassForm.issuedBy || 'Store Incharge',
-      dispatchTime: new Date().toLocaleString('en-IN'),
-      consumables,
-      vessels: vesselList
-    };
+      const gatePassData = {
+        gatePassNo: `GP-${activeEvent.id}`,
+        vehicleNo: gatePassForm.vehicleNo || 'KA-01-MJ-9921',
+        driverName: gatePassForm.driverName || 'Ramesh Kumar',
+        driverPhone: gatePassForm.driverPhone || '9876543210',
+        issuedBy: gatePassForm.issuedBy || 'Store Incharge',
+        dispatchTime: new Date().toLocaleString('en-IN'),
+        consumables,
+        vessels: vesselList
+      };
 
-    const res = generateGatePassPdf(activeEvent, gatePassData, companyProfile);
-    downloadPdfBlob(res.blob, res.filename);
+      const res = generateGatePassPdf(activeEvent, gatePassData, companyProfile);
+      if (res && res.blob) {
+        downloadPdfBlob(res.blob, res.filename || `GatePass_${activeEvent.id}.pdf`);
+      }
+    } catch (err) {
+      console.error('Error generating gate pass PDF:', err);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const handlePrintGatePass = () => {
-    const consumables = (rawMaterials || []).slice(0, 8).map(m => ({
-      name: m.name,
-      category: m.category,
-      qty: 25,
-      unit: m.unit || 'Kg'
-    }));
+  const handlePrintGatePass = async () => {
+    try {
+      setIsPrinting(true);
+      const consumables = (rawMaterials || []).slice(0, 8).map(m => ({
+        name: m.name,
+        category: m.category,
+        qty: 25,
+        unit: m.unit || 'Kg'
+      }));
 
-    const vesselList = (vessels || []).slice(0, 10).map(v => ({
-      name: v.name,
-      category: v.category,
-      sentQty: v.totalQty || 10,
-      returnedQty: (v.totalQty || 10) - (v.damagedQty || 0),
-      damagedQty: v.damagedQty || 0,
-      status: v.damagedQty > 0 ? 'Partial Damage' : 'Verified Return'
-    }));
+      const vesselList = (vessels || []).slice(0, 10).map(v => ({
+        name: v.name,
+        category: v.category,
+        sentQty: v.totalQty || 10,
+        returnedQty: (v.totalQty || 10) - (v.damagedQty || 0),
+        damagedQty: v.damagedQty || 0,
+        status: v.damagedQty > 0 ? 'Partial Damage' : 'Verified Return'
+      }));
 
-    const gatePassData = {
-      gatePassNo: `GP-${activeEvent.id}`,
-      vehicleNo: gatePassForm.vehicleNo || 'KA-01-MJ-9921',
-      driverName: gatePassForm.driverName || 'Ramesh Kumar',
-      driverPhone: gatePassForm.driverPhone || '9876543210',
-      issuedBy: gatePassForm.issuedBy || 'Store Incharge',
-      dispatchTime: new Date().toLocaleString('en-IN'),
-      consumables,
-      vessels: vesselList
-    };
+      const gatePassData = {
+        gatePassNo: `GP-${activeEvent.id}`,
+        vehicleNo: gatePassForm.vehicleNo || 'KA-01-MJ-9921',
+        driverName: gatePassForm.driverName || 'Ramesh Kumar',
+        driverPhone: gatePassForm.driverPhone || '9876543210',
+        issuedBy: gatePassForm.issuedBy || 'Store Incharge',
+        dispatchTime: new Date().toLocaleString('en-IN'),
+        consumables,
+        vessels: vesselList
+      };
 
-    const res = generateGatePassPdf(activeEvent, gatePassData, companyProfile);
-    printPdfBlob(res.blobUrl || res.blob);
+      const res = generateGatePassPdf(activeEvent, gatePassData, companyProfile);
+      if (res && (res.blobUrl || res.blob)) {
+        printPdfBlob(res.blobUrl || res.blob);
+      }
+    } catch (err) {
+      console.error('Error printing gate pass:', err);
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   const filtered = vessels.filter(v => {
@@ -305,18 +337,53 @@ const StorageInventory = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
               <div>
-                <label className="form-label" style={{ fontWeight: 700 }}>Select Event Booking:</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>Search & Select Event Booking:</label>
+                <div style={{ position: 'relative', marginBottom: '0.45rem' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="🔍 Type client name, event ID, date, or occasion to filter..."
+                    value={gatePassEventSearch}
+                    onChange={e => {
+                      setGatePassEventSearch(e.target.value);
+                      const q = e.target.value.toLowerCase();
+                      const matched = (events || []).filter(ev => 
+                        (ev.id && ev.id.toLowerCase().includes(q)) ||
+                        (ev.customer?.name && ev.customer.name.toLowerCase().includes(q)) ||
+                        (ev.eventType && ev.eventType.toLowerCase().includes(q)) ||
+                        (ev.date && ev.date.toLowerCase().includes(q))
+                      );
+                      if (matched.length > 0) {
+                        setSelectedEventId(matched[0].id);
+                      }
+                    }}
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                  {gatePassEventSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setGatePassEventSearch('')}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
                 <select
                   value={selectedEventId}
                   onChange={e => setSelectedEventId(e.target.value)}
                   className="form-select"
                   style={{ fontSize: '0.88rem' }}
                 >
-                  {events.map(evt => (
-                    <option key={evt.id} value={evt.id}>
-                      {evt.id} - {evt.customer?.name} ({evt.eventType} · {evt.date})
-                    </option>
-                  ))}
+                  {filteredGatePassEvents.length > 0 ? (
+                    filteredGatePassEvents.map(evt => (
+                      <option key={evt.id} value={evt.id}>
+                        {evt.id} - {evt.customer?.name} ({evt.eventType} · {evt.date})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No matching events found</option>
+                  )}
                 </select>
               </div>
 
@@ -365,20 +432,22 @@ const StorageInventory = () => {
                 type="button"
                 className="btn btn-secondary"
                 onClick={handlePrintGatePass}
+                disabled={isPrinting || !selectedEventId}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
               >
-                <Printer size={16} /> Print Gate Pass
+                <Printer size={16} /> {isPrinting ? 'Preparing Print...' : 'Print Gate Pass'}
               </button>
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => {
-                  handleDownloadGatePass();
+                onClick={async () => {
+                  await handleDownloadGatePass();
                   setIsGatePassModalOpen(false);
                 }}
+                disabled={isDownloading || !selectedEventId}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
               >
-                <Download size={16} /> Download Gate Pass PDF
+                <Download size={16} /> {isDownloading ? 'Generating PDF...' : 'Download Gate Pass PDF'}
               </button>
             </div>
           </div>
