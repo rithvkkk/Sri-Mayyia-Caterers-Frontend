@@ -66,7 +66,7 @@ const EventBooking = () => {
 
   // Filter visible events for Sales Executives so they only see sales assigned/created by them
   const baseVisibleEvents = isSalesExec
-    ? events.filter(e => e.createdBy === currentUser || e.createdByName === currentUser || e.salesExecutive === currentUser)
+    ? events.filter(e => !e.createdBy || e.createdBy === currentUser || e.createdByName === currentUser || e.salesExecutive === currentUser || (currentUser && e.createdBy && e.createdBy.toLowerCase() === currentUser.toLowerCase()))
     : events;
 
   // Apply Search, Status Filtering, and Multi-criteria Sorting

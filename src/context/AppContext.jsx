@@ -29,7 +29,7 @@ const getSafeLocal = (key, fallback) => {
         localStorage.setItem(key, JSON.stringify(fallback));
         return fallback;
       }
-      if (key === 'cater_events' && parsed.some(e => e.eventType === 'Wedding Reception')) {
+      if (key === 'cater_events' && parsed.some(e => e.id === 'e1' || e.id === 'e2')) {
         localStorage.setItem(key, JSON.stringify(fallback));
         return fallback;
       }
@@ -71,7 +71,11 @@ export const AppProvider = ({ children }) => {
           ...options
         });
         clearTimeout(timeoutId);
-        if (!res.ok) return null;
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          console.warn(`API ${options.method || 'GET'} ${fullUrl} error ${res.status}:`, errData);
+          return null;
+        }
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('text/html')) return null;
         const data = await res.json().catch(() => null);
@@ -249,7 +253,7 @@ export const AppProvider = ({ children }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [laborRates, setLaborRates] = useState([]);
   const [agencies, setAgencies] = useState([]);
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(() => getSafeLocal('cater_events', []));
   const [vessels, setVessels] = useState([]);
   const [provisions, setProvisions] = useState([]);
   const [vegetables, setVegetables] = useState([]);
@@ -317,7 +321,23 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(sList)) setSuppliers(sList);
       if (Array.isArray(lrList)) setLaborRates(lrList);
       if (Array.isArray(aList)) setAgencies(aList);
-      if (Array.isArray(evList)) setEvents(evList);
+      if (Array.isArray(evList)) {
+        setEvents(prevEvents => {
+          const serverIds = new Set(evList.map(e => e.id));
+          const localOnly = prevEvents.filter(e => e && e.id && !serverIds.has(e.id));
+
+          if (localOnly.length === 0) {
+            return evList;
+          }
+
+          // Re-sync local events to server in background
+          localOnly.forEach(localEv => {
+            apiCall('/events', { method: 'POST', body: JSON.stringify(localEv) }).catch(() => {});
+          });
+
+          return [...evList, ...localOnly];
+        });
+      }
       if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
       if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
       if (Array.isArray(vesList)) setVessels(vesList);
@@ -649,14 +669,25 @@ export const AppProvider = ({ children }) => {
 
   // Event actions
   const createEvent = async (eventDetails) => {
-    if (!requireMongoConnection()) return null;
     const year = new Date().getFullYear();
-    const lastEvent = events[events.length - 1];
-    let nextNum = 1;
-    if (lastEvent && lastEvent.id.startsWith(`EV-${year}`)) {
-      const parts = lastEvent.id.split('-');
-      nextNum = parseInt(parts[2], 10) + 1;
-    }
+    
+    // Scan all existing events (in memory and localStorage) to calculate guaranteed safe next ID
+    let maxNum = 0;
+    const allKnown = [...events];
+    try {
+      const cached = JSON.parse(localStorage.getItem('cater_events') || '[]');
+      if (Array.isArray(cached)) allKnown.push(...cached);
+    } catch (e) {}
+
+    allKnown.forEach(e => {
+      if (e?.id && typeof e.id === 'string' && e.id.startsWith(`EV-${year}-`)) {
+        const parts = e.id.split('-');
+        const n = parseInt(parts[2], 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+    });
+
+    const nextNum = maxNum + 1;
     const newId = `EV-${year}-${String(nextNum).padStart(3, '0')}`;
 
     const primaryDate = eventDetails.date || (eventDetails.dates && eventDetails.dates[0]) || new Date().toISOString().split('T')[0];
@@ -666,8 +697,12 @@ export const AppProvider = ({ children }) => {
 
     const newEvent = {
       id: newId,
-      customer: eventDetails.customer || { name: '', phone: '', email: '' },
-      eventType: eventDetails.eventType || 'Event',
+      customer: {
+        name: (eventDetails.customer?.name || '').trim() || 'Client',
+        phone: (eventDetails.customer?.phone || '').trim(),
+        email: (eventDetails.customer?.email || '').trim()
+      },
+      eventType: eventDetails.eventType || 'Wedding Reception',
       createdBy: currentUser || currentRole || 'admin',
       createdByName: currentUser || currentRole || 'admin',
       salesExecutive: currentUser || currentRole || 'admin',
@@ -678,7 +713,7 @@ export const AppProvider = ({ children }) => {
       reminders: eventDetails.reminders || [],
       subFunctions: (eventDetails.subFunctions || []).map((sf, idx) => ({
         id: sf.id || `sf-${Date.now()}-${idx}`,
-        name: sf.name || `${eventDetails.eventType || 'Main'} Function`,
+        name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${eventDetails.eventType || 'Main'} Function`,
         date: sf.date || primaryDate,
         guestCount: parseInt(sf.guestCount, 10) || 100,
         menuItems: sf.menuItems || [],
@@ -714,15 +749,34 @@ export const AppProvider = ({ children }) => {
         balanceDue: 0,
         status: 'Unpaid',
         ...(eventDetails.billing || {})
-      }
+      },
+      createdAt: new Date().toISOString()
     };
 
     recalculateEventFinances(newEvent);
 
-    setEvents(prev => [...prev, newEvent]);
-    const res = await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
-    if (res) {
-      setEvents(prev => prev.map(e => e.id === newId ? res : e));
+    // Optimistic local state update
+    setEvents(prev => {
+      const filtered = prev.filter(e => e.id !== newEvent.id);
+      return [...filtered, newEvent];
+    });
+
+    // Save immediately to localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem('cater_events') || '[]');
+      const filtered = Array.isArray(stored) ? stored.filter(e => e.id !== newEvent.id) : [];
+      localStorage.setItem('cater_events', JSON.stringify([...filtered, newEvent]));
+    } catch (e) {}
+
+    // Background sync to MongoDB API
+    try {
+      const res = await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
+      if (res && res.id) {
+        setEvents(prev => prev.map(e => e.id === newId || e.id === res.id ? res : e));
+        return res.id;
+      }
+    } catch (err) {
+      console.warn('Background event sync error:', err);
     }
     return newId;
   };
@@ -730,6 +784,12 @@ export const AppProvider = ({ children }) => {
   const updateEvent = async (updatedEvent) => {
     // Optimistic update
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+    try {
+      const stored = JSON.parse(localStorage.getItem('cater_events') || '[]');
+      if (Array.isArray(stored)) {
+        localStorage.setItem('cater_events', JSON.stringify(stored.map(e => e.id === updatedEvent.id ? updatedEvent : e)));
+      }
+    } catch (e) {}
     const res = await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
     if (res) {
       setEvents(prev => prev.map(e => e.id === updatedEvent.id ? res : e));
@@ -738,6 +798,12 @@ export const AppProvider = ({ children }) => {
 
   const deleteEvent = async (id) => {
     setEvents(prev => prev.filter(e => e.id !== id));
+    try {
+      const stored = JSON.parse(localStorage.getItem('cater_events') || '[]');
+      if (Array.isArray(stored)) {
+        localStorage.setItem('cater_events', JSON.stringify(stored.filter(e => e.id !== id)));
+      }
+    } catch (e) {}
     await apiCall(`/events/${id}`, { method: 'DELETE' });
   };
 
