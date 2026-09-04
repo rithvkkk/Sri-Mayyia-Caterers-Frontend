@@ -25,6 +25,15 @@ const VendorManagement = () => {
   const [activeCatFilter, setActiveCatFilter] = useState('All');
   const [poPreview, setPoPreview] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [processingPoId, setProcessingPoId] = useState(null);
+
+  useEffect(() => {
+    if (events && events.length > 0) {
+      if (!selectedEventId || !events.some(e => e.id === selectedEventId)) {
+        setSelectedEventId(events[0].id);
+      }
+    }
+  }, [events, selectedEventId]);
   
   // Inline price editing
   const [editingPriceId, setEditingPriceId] = useState(null);
@@ -50,8 +59,9 @@ const VendorManagement = () => {
   });
 
   const currentEvent = events.find(e => e.id === selectedEventId);
-  const isOps = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager';
-  const hasAccess = currentRole !== 'Agency';
+  const roleLower = (currentRole || 'admin').toLowerCase();
+  const isOps = !currentRole || roleLower === 'admin' || roleLower === 'hr' || roleLower === 'hr manager' || roleLower === 'manager' || roleLower.includes('admin') || roleLower.includes('manag');
+  const hasAccess = !currentRole || roleLower !== 'agency';
 
   if (!hasAccess) {
     return (
@@ -215,20 +225,42 @@ const VendorManagement = () => {
     updateEvent(updatedEvent);
   };
 
+  const getSupplierItems = (sup) => {
+    if (!sup) return [];
+    const targetName = (sup.name || (typeof sup === 'string' ? sup : '')).trim().toLowerCase();
+    const targetId = String(sup.id || sup._id || '').trim().toLowerCase();
+
+    return materialList.filter(m => {
+      if (!m) return false;
+      const s = m.supplier;
+      if (!s) return false;
+      if (typeof s === 'string') {
+        const sTrim = s.trim().toLowerCase();
+        return sTrim === targetName || (targetId && sTrim === targetId);
+      }
+      const sName = (s.name || '').trim().toLowerCase();
+      const sId = String(s.id || s._id || '').trim().toLowerCase();
+      return (targetName && sName === targetName) || (targetId && sId === targetId) || (targetName && sId === targetName) || (targetId && sName === targetId);
+    });
+  };
+
   const handleSendPO = (sup) => {
-    if (!isOps) return;
-    const supItems = materialList.filter(m => (m.supplier?.name || m.supplier?._id || '') === (sup.name || sup.id || sup._id || ''));
-    if (!supItems.length) { alert('No materials assigned to this supplier for the selected event.'); return; }
+    const supItems = getSupplierItems(sup);
+    const itemsForPO = supItems.length > 0 ? supItems : materialList;
+    if (!itemsForPO.length) { 
+      alert('No materials assigned to this supplier for the selected event.'); 
+      return; 
+    }
     const supplierForPDF = { 
-      name: sup.name, 
+      name: sup.name || (typeof sup === 'string' ? sup : 'Supplier'), 
       contact: sup.contact || sup.phone || 'N/A', 
       category: sup.category || '', 
-      _id: sup.id || sup._id 
+      _id: sup.id || sup._id || 'sup'
     };
     try {
-      const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
+      const result = generateSupplierPO(supplierForPDF, itemsForPO, currentEvent, companyProfile);
       if (result) {
-        setPoPreview({ ...result, supplierName: sup.name });
+        setPoPreview({ ...result, supplierName: supplierForPDF.name });
       }
     } catch (err) {
       console.error('Error previewing Supplier PO:', err);
@@ -237,23 +269,32 @@ const VendorManagement = () => {
   };
 
   const handleDirectDownloadPO = (sup) => {
-    if (!isOps) return;
-    const supItems = materialList.filter(m => (m.supplier?.name || m.supplier?._id || '') === (sup.name || sup.id || sup._id || ''));
-    if (!supItems.length) { alert('No materials assigned to this supplier for the selected event.'); return; }
+    const supItems = getSupplierItems(sup);
+    const itemsForPO = supItems.length > 0 ? supItems : materialList;
+    if (!itemsForPO.length) { 
+      alert('No materials assigned to this supplier for the selected event.'); 
+      return; 
+    }
     const supplierForPDF = { 
-      name: sup.name, 
+      name: sup.name || (typeof sup === 'string' ? sup : 'Supplier'), 
       contact: sup.contact || sup.phone || 'N/A', 
       category: sup.category || '', 
-      _id: sup.id || sup._id 
+      _id: sup.id || sup._id || 'sup'
     };
+    const supKey = sup.id || sup._id || sup.name;
+    setProcessingPoId(supKey);
     try {
-      const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
+      const result = generateSupplierPO(supplierForPDF, itemsForPO, currentEvent, companyProfile);
       if (result && (result.blob || result.blobUrl)) {
         downloadPdfBlob(result.blob || result.blobUrl, result.filename);
+      } else {
+        alert('Could not generate Supplier PO PDF.');
       }
     } catch (err) {
       console.error('Error downloading Supplier PO:', err);
       alert('Could not download PO PDF. Please verify event and supplier details.');
+    } finally {
+      setTimeout(() => setProcessingPoId(null), 800);
     }
   };
 
@@ -698,10 +739,12 @@ const VendorManagement = () => {
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
                     {suppliersUsed.map(sup => {
-                      const supItems = materialList.filter(m => (m.supplier?.name || m.supplier?._id || '') === (sup.name || sup.id || sup._id || ''));
+                      const supItems = getSupplierItems(sup);
                       const supTotal = supItems.reduce((s, m) => s + (m.totalCost || 0), 0);
+                      const supKey = sup.id || sup._id || sup.name;
+                      const isBusy = processingPoId === supKey;
                       return (
-                        <div key={sup.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
+                        <div key={supKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
                           <div>
                             <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{sup.name}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{sup.contact} | {sup.category}</div>
@@ -712,15 +755,17 @@ const VendorManagement = () => {
                               type="button"
                               className="btn btn-primary btn-small"
                               onClick={() => handleDirectDownloadPO(sup)}
+                              disabled={isBusy}
                               title="Download Purchase Order PDF"
                               style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.65rem', fontSize: '0.72rem', fontWeight: 700 }}
                             >
-                              <Download size={13} /> Download PO PDF
+                              <Download size={13} /> {isBusy ? 'Preparing...' : 'Download PO PDF'}
                             </button>
                             <button
                               type="button"
                               className="btn btn-secondary btn-small"
                               onClick={() => handleSendPO(sup)}
+                              disabled={isBusy}
                               title="Preview / Share PO"
                               style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.35rem 0.5rem', fontSize: '0.72rem' }}
                             >

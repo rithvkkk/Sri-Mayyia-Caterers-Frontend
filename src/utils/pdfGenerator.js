@@ -914,6 +914,10 @@ export const printPdfBlob = (blobOrUrl) => {
  * Compatible with Web Browsers, Desktop EXE, and Mobile APK
  */
 export const downloadPdfBlob = (blobOrUrl, filename = 'Document.pdf') => {
+  if (!blobOrUrl) {
+    console.error('downloadPdfBlob: No blob or URL provided');
+    return false;
+  }
   try {
     let url = blobOrUrl;
     let isCreatedUrl = false;
@@ -928,7 +932,6 @@ export const downloadPdfBlob = (blobOrUrl, filename = 'Document.pdf') => {
     a.href = url;
     a.setAttribute('download', safeFilename);
     a.download = safeFilename;
-    a.target = '_blank';
     document.body.appendChild(a);
     a.click();
     
