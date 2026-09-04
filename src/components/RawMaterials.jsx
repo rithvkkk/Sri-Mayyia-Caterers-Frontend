@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, generateSupplierPO, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 import { ShoppingBag, Truck, Check, Share2, ShieldAlert, FileText, Download, Eye, X, Plus, Trash2, Save, Printer } from 'lucide-react';
