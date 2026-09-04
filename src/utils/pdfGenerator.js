@@ -30,7 +30,9 @@ const translations = {
 };
 
 export const calculatePdfReport = async (event, dataList, companyProfile, lang = 'EN', type = 'invoice', returnBlob = false) => {
-  const t = translations.EN;
+  const ev = event || {};
+  const cp = companyProfile || {};
+  const t = (translations && translations[lang]) || translations.EN;
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -41,6 +43,13 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const primaryColor = [22, 30, 49]; // Slate Navy
   const accentColor = [59, 130, 246];  // Accent Blue
   
+  const cpName = cp.name || 'Sri Mayyia Caterers';
+  const cpTagline = cp.tagline || 'Traditional Caterers & Event Managers';
+  const cpGstin = cp.gstin || 'N/A';
+  const cpPhone = cp.phone || '';
+  const cpAddress = cp.address || '';
+  const cpCurrency = cp.currency || '₹';
+
   // Title / Corporate Header
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, 210, 40, 'F');
@@ -49,13 +58,13 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text((companyProfile.name || 'SRI MAYYIA CATERERS').toUpperCase(), 15, 18);
+  doc.text(cpName.toUpperCase(), 15, 18);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'italic');
-  doc.text(companyProfile.tagline || 'Traditional Caterers & Event Managers', 15, 24);
-  doc.text(`GSTIN: ${companyProfile.gstin || 'N/A'} | Phone: ${companyProfile.phone || ''}`, 15, 30);
-  doc.text(`Address: ${companyProfile.address || ''}`, 15, 35);
+  doc.text(cpTagline, 15, 24);
+  doc.text(`GSTIN: ${cpGstin} | Phone: ${cpPhone}`, 15, 30);
+  doc.text(`Address: ${cpAddress}`, 15, 35);
   
   // Invoice / Report Banner Type
   doc.setFillColor(...accentColor);
@@ -67,27 +76,32 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.text(titleText, 147, 18, { maxWidth: 46 });
 
   // Event Details Registry metadata
+  const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Valued Client';
+  const evId = ev.id || 'EVT-DOC';
+  const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
+  const evType = ev.eventType || 'Catering Event';
+
   doc.setTextColor(50, 50, 50);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text(`${t.clientName}:`, 15, 50);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.customer?.name || 'N/A', 45, 50);
+  doc.text(clientName, 45, 50);
 
   doc.setFont('helvetica', 'bold');
   doc.text(`${t.eventId}:`, 15, 56);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.id || 'N/A', 45, 56);
+  doc.text(evId, 45, 56);
 
   doc.setFont('helvetica', 'bold');
   doc.text(`${t.eventDate}:`, 125, 50);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.date || 'N/A', 155, 50);
+  doc.text(evDate, 155, 50);
 
   doc.setFont('helvetica', 'bold');
   doc.text('Event Type:', 125, 56);
   doc.setFont('helvetica', 'normal');
-  doc.text(event.eventType || 'Catering Event', 155, 56);
+  doc.text(evType, 155, 56);
 
   // Line Separator
   doc.setDrawColor(200, 200, 200);
@@ -96,24 +110,28 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   // Table Generation based on report type
   if (type === 'invoice') {
     // Invoice details table
+    const subFunctions = Array.isArray(ev.subFunctions) && ev.subFunctions.length > 0
+      ? ev.subFunctions
+      : [{ id: 'sf-1', name: 'Main Function & Reception', guestCount: 100 }];
+
     const tableHeaders = [[t.desc, t.pax, t.rate, t.amount]];
-    const tableBody = (event.subFunctions || []).map(sf => {
+    const tableBody = subFunctions.map(sf => {
       const gCount = parseInt(sf.guestCount, 10) || 0;
-      const pRate = parseFloat(event.billing?.pricePerPlate) || 800;
+      const pRate = parseFloat(ev.billing?.pricePerPlate) || 800;
       return [
-        sf.name,
+        sf.name || 'Catering Function',
         `${gCount} Pax`,
-        `${companyProfile.currency} ${pRate}`,
-        `${companyProfile.currency} ${Number(gCount * pRate).toLocaleString('en-IN')}`
+        `${cpCurrency} ${pRate.toLocaleString('en-IN')}`,
+        `${cpCurrency} ${Number(gCount * pRate).toLocaleString('en-IN')}`
       ];
     });
 
     doc.autoTable({
       head: tableHeaders,
-      body: tableBody.length ? tableBody : [['Main Reception', '100 Pax', `${companyProfile.currency} 800`, `${companyProfile.currency} 80,000`]],
+      body: tableBody,
       startY: 68,
       theme: 'grid',
-      headStyles: { fillStyle: 'F', fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
       styles: { fontSize: 10, cellPadding: 3 },
       columnStyles: {
         0: { cellWidth: 80 },
@@ -131,21 +149,22 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     
     let currentY = finalY;
     const addFinanceRow = (label, val, highlight = false, isRawText = false) => {
+      doc.setFont('helvetica', highlight ? 'bold' : 'normal');
       doc.setTextColor(highlight ? accentColor[0] : 50, highlight ? accentColor[1] : 50, highlight ? accentColor[2] : 50);
       doc.text(label, 115, currentY);
-      const textVal = isRawText ? String(val) : `${companyProfile.currency} ${Number(val || 0).toLocaleString('en-IN')}`;
-      doc.text(textVal, 195, currentY, { halign: 'right' });
+      const textVal = isRawText ? String(val) : `${cpCurrency} ${Number(val || 0).toLocaleString('en-IN')}`;
+      doc.text(textVal, 195, currentY, { align: 'right' });
       currentY += 6;
     };
 
-    const isGst = event.billing?.taxType !== 'NON_GST' && Number(event.billing?.taxRate) !== 0;
-    const isInter = Boolean(event.billing?.isInterState);
-    const taxRate = isGst ? (event.billing?.taxRate !== undefined ? Number(event.billing.taxRate) : 5) : 0;
-    const totalPax = (event.subFunctions || []).reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
-    const subtotalAmt = event.billing?.subtotal || (totalPax * (event.billing?.pricePerPlate || 800));
+    const isGst = ev.billing?.taxType !== 'NON_GST' && Number(ev.billing?.taxRate) !== 0;
+    const isInter = Boolean(ev.billing?.isInterState);
+    const taxRate = isGst ? (ev.billing?.taxRate !== undefined ? Number(ev.billing.taxRate) : 5) : 0;
+    const totalPax = subFunctions.reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+    const subtotalAmt = ev.billing?.subtotal || (totalPax * (ev.billing?.pricePerPlate || 800));
     const taxAmt = isGst ? (subtotalAmt * (taxRate / 100)) : 0;
     const grandAmt = subtotalAmt + taxAmt;
-    const balAmt = grandAmt - (event.billing?.advancePaid || 0);
+    const balAmt = grandAmt - (ev.billing?.advancePaid || 0);
 
     addFinanceRow(t.subtotal, subtotalAmt);
     if (isGst) {
@@ -159,7 +178,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       addFinanceRow(`Taxation Mode:`, `Non-GST (0%)`, false, true);
     }
     addFinanceRow(t.grandTotal, grandAmt, true);
-    addFinanceRow(t.advance, event.billing?.advancePaid || 0);
+    addFinanceRow(t.advance, ev.billing?.advancePaid || 0);
     
     // Draw boundary line for balance
     doc.setDrawColor(150, 150, 150);
@@ -170,21 +189,22 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   } else {
     // Materials requirements table
     const tableHeaders = [[t.ingName, t.category, t.qty, t.unitCost, t.totalCost, t.supplier]];
-    const tableBody = (dataList || []).map(mat => [
-      mat.name,
-      mat.category,
-      `${mat.requiredQty} ${mat.unit}`,
-      `${companyProfile.currency} ${mat.costPerUnit}`,
-      `${companyProfile.currency} ${Number(mat.totalCost || 0).toLocaleString('en-IN')}`,
+    const safeDataList = Array.isArray(dataList) ? dataList : [];
+    const tableBody = safeDataList.map(mat => [
+      mat.name || 'Ingredient',
+      mat.category || 'General',
+      `${mat.requiredQty || 0} ${mat.unit || 'kg'}`,
+      `${cpCurrency} ${Number(mat.costPerUnit || 0).toLocaleString('en-IN')}`,
+      `${cpCurrency} ${Number(mat.totalCost || 0).toLocaleString('en-IN')}`,
       mat.supplier?.name || 'Local Supplier'
     ]);
 
     doc.autoTable({
       head: tableHeaders,
-      body: tableBody,
+      body: tableBody.length ? tableBody : [['General Provisions', 'Provisions', '1 batch', `${cpCurrency} 0`, `${cpCurrency} 0`, 'Local Supplier']],
       startY: 68,
       theme: 'striped',
-      headStyles: { fillStyle: 'F', fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
       styles: { fontSize: 9, cellPadding: 2.5 },
       columnStyles: {
         0: { cellWidth: 40 },
@@ -197,11 +217,11 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     });
 
     const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 10;
-    const totalMaterialsCost = (dataList || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const totalMaterialsCost = safeDataList.reduce((sum, item) => sum + (item.totalCost || 0), 0);
 
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL ESTIMATED MATERIALS BUDGET:', 100, finalY);
-    doc.text(`${companyProfile.currency} ${Number(totalMaterialsCost || 0).toLocaleString('en-IN')}`, 195, finalY, { halign: 'right' });
+    doc.text(`${cpCurrency} ${Number(totalMaterialsCost || 0).toLocaleString('en-IN')}`, 195, finalY, { align: 'right' });
   }
 
   // Footer Message & Page Numbers
@@ -215,18 +235,25 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.setTextColor(120, 120, 120);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
-    doc.text(t.footerMsg, 15, pageHeight - 14);
-    doc.text(`Generated securely by ${companyProfile.name} Enterprise ERP`, 15, pageHeight - 9);
+    doc.text(t.footerMsg || 'Thank you for choosing our services.', 15, pageHeight - 14);
+    doc.text(`Generated securely by ${cpName} Enterprise ERP`, 15, pageHeight - 9);
     doc.text(`Page ${i} of ${totalPages}`, 195, pageHeight - 9, { align: 'right' });
   }
 
   // Standardized filename
-  const filename = `${type === 'invoice' ? 'Invoice' : 'Materials'}_${event.id}.pdf`;
-  const pdfBlob = doc.output('blob');
+  const safeEvId = String(evId).replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+  const filename = `${type === 'invoice' ? 'Invoice' : 'Materials'}_${safeEvId || 'Document'}.pdf`;
+  
+  let pdfBlob;
+  try {
+    pdfBlob = doc.output('blob');
+  } catch (e) {
+    pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+  }
+  const blobUrl = URL.createObjectURL(pdfBlob);
   
   // IF requested to just return the blob (for preview modal)
   if (returnBlob) {
-    const blobUrl = URL.createObjectURL(pdfBlob);
     return { blob: pdfBlob, blobUrl, filename };
   }
 
@@ -237,8 +264,8 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     try {
       await navigator.share({
         files: [file],
-        title: `${type === 'invoice' ? 'Tax Invoice' : 'Materials List'} - ${event.id}`,
-        text: `Share catering report for ${event.id} in ${lang}.`
+        title: `${type === 'invoice' ? 'Tax Invoice' : 'Materials List'} - ${evId}`,
+        text: `Share catering report for ${evId} in ${lang}.`
       });
       return true;
     } catch (err) {
@@ -246,9 +273,16 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     }
   }
 
-  // Fallback to local browser save
-  doc.save(filename);
+  // Fallback to universal blob download
+  downloadPdfBlob(pdfBlob, filename);
   return true;
+};
+
+/**
+ * Direct Invoice PDF Generator alias returning { blob, blobUrl, filename }
+ */
+export const generateInvoicePdf = (event, rawMaterials, companyProfile) => {
+  return calculatePdfReport(event, rawMaterials, companyProfile, 'EN', 'invoice', true);
 };
 
 /**
@@ -261,6 +295,23 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   const primaryColor = [22, 30, 49];
   const accentColor  = [59, 130, 246];
 
+  const cp = companyProfile || {};
+  const cpName = cp.name || 'Sri Mayyia Caterers';
+  const cpPhone = cp.phone || '+91 99988 77766';
+  const cpAddress = cp.address || 'Malleshwaram, Bangalore';
+  const cpGstin = cp.gstin || '29AAAAA0000A1Z5';
+  const cpCurrency = cp.currency || '₹';
+
+  const sup = supplier || {};
+  const supName = sup.name || 'Vendor / Supplier';
+  const supContact = sup.contact || sup.phone || 'N/A';
+  const supCategory = sup.category || 'General';
+
+  const ev = event || {};
+  const evId = ev.id || 'PO-REQ';
+  const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Valued Client';
+  const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
+
   // Header band
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, 210, 40, 'F');
@@ -268,11 +319,11 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.text(companyProfile.name.toUpperCase(), 15, 17);
+  doc.text(cpName.toUpperCase(), 15, 17);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
-  doc.text(`${companyProfile.phone} | ${companyProfile.address}`, 15, 24);
-  doc.text(`GSTIN: ${companyProfile.gstin}`, 15, 30);
+  doc.text(`${cpPhone} | ${cpAddress}`, 15, 24);
+  doc.text(`GSTIN: ${cpGstin}`, 15, 30);
 
   // PO badge
   doc.setFillColor(...accentColor);
@@ -288,35 +339,40 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.setFont('helvetica', 'bold');
   doc.text('TO SUPPLIER:', 15, 50);
   doc.setFont('helvetica', 'normal');
-  doc.text(supplier.name, 55, 50);
+  doc.text(supName, 55, 50);
   doc.setFontSize(9);
-  doc.text(`Contact: ${supplier.contact || 'N/A'} | Category: ${supplier.category}`, 15, 56);
+  doc.text(`Contact: ${supContact} | Category: ${supCategory}`, 15, 56);
 
   // Event ref
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text(`REF EVENT: ${event.id}`, 130, 50);
+  doc.text(`REF EVENT: ${evId}`, 130, 50);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Client: ${event.customer.name}`, 130, 56);
-  doc.text(`Event Date: ${event.date}`, 130, 62);
+  doc.text(`Client: ${clientName}`, 130, 56);
+  doc.text(`Event Date: ${evDate}`, 130, 62);
 
   doc.setDrawColor(200, 200, 200);
   doc.line(15, 66, 195, 66);
 
   // Items table
+  const safeItems = Array.isArray(items) ? items : [];
   const headers = [['#', 'Ingredient', 'Category', 'Qty Required', 'Unit Cost', 'Total Est.']];
-  const rows = items.map((m, i) => [
-    i + 1,
-    m.name,
-    m.category,
-    `${m.requiredQty} ${m.unit}`,
-    `${companyProfile.currency} ${m.costPerUnit}`,
-    `${companyProfile.currency} ${m.totalCost.toLocaleString('en-IN')}`
-  ]);
+  const rows = safeItems.map((m, i) => {
+    const unitCost = Number(m.costPerUnit || 0);
+    const totalCost = Number(m.totalCost !== undefined && m.totalCost !== null ? m.totalCost : unitCost * (m.requiredQty || 0));
+    return [
+      i + 1,
+      m.name || 'Ingredient Item',
+      m.category || 'General',
+      `${m.requiredQty || 0} ${m.unit || 'kg'}`,
+      `${cpCurrency} ${unitCost.toLocaleString('en-IN')}`,
+      `${cpCurrency} ${totalCost.toLocaleString('en-IN')}`
+    ];
+  });
 
   doc.autoTable({
     head: headers,
-    body: rows,
+    body: rows.length ? rows : [[1, 'General Provisions', 'Grocery', '1 batch', `${cpCurrency} 0`, `${cpCurrency} 0`]],
     startY: 70,
     theme: 'grid',
     headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
@@ -332,14 +388,17 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   });
 
   const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 8;
-  const grandTotal = items.reduce((s, m) => s + (m.totalCost || 0), 0);
+  const grandTotal = safeItems.reduce((s, m) => {
+    const cost = Number(m.totalCost !== undefined && m.totalCost !== null ? m.totalCost : (m.costPerUnit || 0) * (m.requiredQty || 0));
+    return s + (isNaN(cost) ? 0 : cost);
+  }, 0);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(40, 40, 40);
   doc.text('TOTAL ORDER VALUE:', 115, finalY);
   doc.setTextColor(...accentColor);
-  doc.text(`${companyProfile.currency} ${grandTotal.toLocaleString('en-IN')}`, 195, finalY, { align: 'right' });
+  doc.text(`${cpCurrency} ${grandTotal.toLocaleString('en-IN')}`, 195, finalY, { align: 'right' });
 
   // Footer
   const ph = doc.internal.pageSize.height;
@@ -350,10 +409,17 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.setFontSize(9);
   doc.text('Authorized Signature: ____________________', 15, ph - 14);
   doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 150, ph - 14);
-  doc.text(`${companyProfile.name} — Catering Management System`, 15, ph - 8);
+  doc.text(`${cpName} — Catering Management System`, 15, ph - 8);
 
-  const filename = `${event.id}_${supplier.name.replace(/\s+/g, '_')}_PO.pdf`;
-  const blob = doc.output('blob');
+  const safeSupFilename = supName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+  const filename = `PO_${evId}_${safeSupFilename || 'Supplier'}.pdf`;
+  
+  let blob;
+  try {
+    blob = doc.output('blob');
+  } catch (e) {
+    blob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+  }
   const blobUrl = URL.createObjectURL(blob);
   return { blobUrl, blob, filename };
 };
@@ -856,21 +922,35 @@ export const downloadPdfBlob = (blobOrUrl, filename = 'Document.pdf') => {
       isCreatedUrl = true;
     }
 
+    const safeFilename = filename || 'Document.pdf';
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = filename;
+    a.setAttribute('download', safeFilename);
+    a.download = safeFilename;
+    a.target = '_blank';
     document.body.appendChild(a);
     a.click();
     
     setTimeout(() => {
-      if (document.body.contains(a)) document.body.removeChild(a);
-      if (isCreatedUrl) URL.revokeObjectURL(url);
-    }, 1500);
+      try {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        if (isCreatedUrl) URL.revokeObjectURL(url);
+      } catch (e) {
+        // ignore cleanup error
+      }
+    }, 2500);
     return true;
   } catch (err) {
-    console.error('Download Error:', err);
-    return false;
+    console.error('Download Error, trying window.open fallback:', err);
+    try {
+      const fallbackUrl = blobOrUrl instanceof Blob ? URL.createObjectURL(blobOrUrl) : blobOrUrl;
+      window.open(fallbackUrl, '_blank');
+      return true;
+    } catch (e) {
+      console.error('Popup fallback also failed:', e);
+      return false;
+    }
   }
 };
 

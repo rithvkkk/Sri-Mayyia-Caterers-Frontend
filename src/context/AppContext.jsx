@@ -318,8 +318,18 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(vList)) setVenues(vList);
       if (Array.isArray(rmList)) setRawMaterials(rmList);
       if (Array.isArray(dList)) setDishes(dList);
-      if (Array.isArray(sList)) setSuppliers(sList);
       if (Array.isArray(lrList)) setLaborRates(lrList);
+      if (Array.isArray(sList)) {
+        setSuppliers(prevSuppliers => {
+          const serverIds = new Set(sList.map(s => s.id));
+          const localOnly = prevSuppliers.filter(s => s && s.id && !serverIds.has(s.id));
+          if (localOnly.length === 0) return sList;
+          localOnly.forEach(localSup => {
+            apiCall('/suppliers', { method: 'POST', body: JSON.stringify(localSup) }).catch(() => {});
+          });
+          return [...sList, ...localOnly];
+        });
+      }
       if (Array.isArray(aList)) setAgencies(aList);
       if (Array.isArray(evList)) {
         setEvents(prevEvents => {
@@ -510,20 +520,44 @@ export const AppProvider = ({ children }) => {
 
   const addSupplier = async (sup) => {
     const payload = { ...sup, id: sup.id || ('s_' + Date.now()) };
-    setSuppliers(prev => [...prev, payload]);
+    setSuppliers(prev => {
+      const next = [...prev.filter(s => s.id !== payload.id), payload];
+      try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     const res = await apiCall('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
-    if (res) setSuppliers(prev => prev.map(s => s.id === payload.id ? res : s));
+    if (res) {
+      setSuppliers(prev => {
+        const next = prev.map(s => s.id === payload.id ? res : s);
+        try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
     return payload;
   };
 
   const updateSupplier = async (updated) => {
-    setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s));
+    setSuppliers(prev => {
+      const next = prev.map(s => s.id === updated.id ? updated : s);
+      try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     const res = await apiCall(`/suppliers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (res) setSuppliers(prev => prev.map(s => s.id === updated.id ? res : s));
+    if (res) {
+      setSuppliers(prev => {
+        const next = prev.map(s => s.id === updated.id ? res : s);
+        try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
   };
 
   const deleteSupplier = async (id) => {
-    setSuppliers(prev => prev.filter(s => s.id !== id));
+    setSuppliers(prev => {
+      const next = prev.filter(s => s.id !== id);
+      try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     await apiCall(`/suppliers/${id}`, { method: 'DELETE' });
   };
 
@@ -782,6 +816,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateEvent = async (updatedEvent) => {
+    recalculateEventFinances(updatedEvent);
     // Optimistic update
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
     try {
@@ -790,9 +825,13 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('cater_events', JSON.stringify(stored.map(e => e.id === updatedEvent.id ? updatedEvent : e)));
       }
     } catch (e) {}
-    const res = await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
-    if (res) {
-      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? res : e));
+    try {
+      const res = await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
+      if (res) {
+        setEvents(prev => prev.map(e => e.id === updatedEvent.id ? res : e));
+      }
+    } catch (err) {
+      console.warn('Background updateEvent sync error:', err);
     }
   };
 

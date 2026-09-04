@@ -20,6 +20,15 @@ const QuotationBilling = () => {
 
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
   const [invoicePreview, setInvoicePreview] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  useEffect(() => {
+    if (events && events.length > 0) {
+      if (!selectedEventId || !events.some(e => e.id === selectedEventId)) {
+        setSelectedEventId(events[0].id);
+      }
+    }
+  }, [events, selectedEventId]);
   
   // Markup Simulator State
   const [markupPercent, setMarkupPercent] = useState(30); // 30% default target markup
@@ -344,23 +353,50 @@ const QuotationBilling = () => {
   }
 
   const handlePreviewInvoice = async () => {
-    if (!currentEvent) return;
-    const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
-    if (result && result.blobUrl) {
-      setInvoicePreview(result);
+    if (!currentEvent) {
+      alert('Please select an event before generating invoice.');
+      return;
+    }
+    setIsGeneratingPdf(true);
+    try {
+      const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
+      if (result && result.blobUrl) {
+        setInvoicePreview(result);
+      } else {
+        alert('Could not generate invoice preview.');
+      }
+    } catch (err) {
+      console.error('Error previewing invoice:', err);
+      alert('Failed to generate invoice preview. Please check event details.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
   const handleDownloadInvoice = async (previewResult = null) => {
-    const isDataObj = previewResult && previewResult.blobUrl;
-    const data = isDataObj ? previewResult : invoicePreview;
-    if (data && data.blobUrl) {
-      downloadPdfBlob(data.blobUrl, data.filename || `Invoice_${currentEvent?.id || 'doc'}.pdf`);
-    } else if (currentEvent) {
-      const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
-      if (result && result.blobUrl) {
-        downloadPdfBlob(result.blobUrl, result.filename || `Invoice_${currentEvent.id}.pdf`);
+    if (!currentEvent) {
+      alert('Please select an event before downloading invoice.');
+      return;
+    }
+    setIsGeneratingPdf(true);
+    try {
+      const isDataObj = previewResult && (previewResult.blob || previewResult.blobUrl);
+      const data = isDataObj ? previewResult : invoicePreview;
+      if (data && (data.blob || data.blobUrl)) {
+        downloadPdfBlob(data.blob || data.blobUrl, data.filename || `Invoice_${currentEvent?.id || 'doc'}.pdf`);
+      } else {
+        const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
+        if (result && (result.blob || result.blobUrl)) {
+          downloadPdfBlob(result.blob || result.blobUrl, result.filename || `Invoice_${currentEvent.id}.pdf`);
+        } else {
+          alert('Could not prepare invoice PDF for download.');
+        }
       }
+    } catch (err) {
+      console.error('Error downloading invoice:', err);
+      alert('Failed to download invoice PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -382,7 +418,9 @@ const QuotationBilling = () => {
   };
 
   const closePreview = () => {
-    if (invoicePreview?.blobUrl) URL.revokeObjectURL(invoicePreview.blobUrl);
+    if (invoicePreview?.blobUrl) {
+      try { URL.revokeObjectURL(invoicePreview.blobUrl); } catch (e) {}
+    }
     setInvoicePreview(null);
   };
 
@@ -1029,11 +1067,21 @@ const QuotationBilling = () => {
               </h2>
               
               <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                <button className="btn btn-secondary btn-small" onClick={handlePreviewInvoice} style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Eye size={14} /> Preview
+                <button 
+                  className="btn btn-secondary btn-small" 
+                  onClick={handlePreviewInvoice} 
+                  disabled={isGeneratingPdf}
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                >
+                  <Eye size={14} /> {isGeneratingPdf ? 'Processing...' : 'Preview'}
                 </button>
-                <button className="btn btn-primary btn-small" onClick={() => handleDownloadInvoice()} style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Download size={14} /> Download PDF
+                <button 
+                  className="btn btn-primary btn-small" 
+                  onClick={() => handleDownloadInvoice()} 
+                  disabled={isGeneratingPdf}
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                >
+                  <Download size={14} /> {isGeneratingPdf ? 'Preparing...' : 'Download PDF'}
                 </button>
               </div>
             </div>
@@ -1294,32 +1342,49 @@ const QuotationBilling = () => {
 
       {/* Invoice Preview Modal */}
       {invoicePreview && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '800px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
-            <div className="modal-header">
+        <div className="modal-overlay" onClick={closePreview}>
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '820px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>Invoice Preview</h2>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{invoicePreview.filename}</p>
+                <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Tax Invoice Preview</h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.15rem 0 0' }}>{invoicePreview.filename}</p>
               </div>
               <button type="button" className="btn btn-secondary btn-small" onClick={closePreview}>
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
-            <div className="modal-body" style={{ flexGrow: 1, padding: 0, position: 'relative' }}>
+            
+            <div className="modal-body" style={{ flexGrow: 1, padding: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#525659' }}>
               <iframe 
                 src={invoicePreview.blobUrl} 
-                style={{ width: '100%', height: '100%', border: 'none', background: '#333' }}
+                style={{ width: '100%', height: '100%', border: 'none', flexGrow: 1 }}
                 title="Invoice Preview"
               />
+              <div style={{ padding: '0.45rem 1rem', background: '#f8fafc', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>PDF rendered successfully</span>
+                <a 
+                  href={invoicePreview.blobUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}
+                >
+                  Open PDF in New Window / Tab
+                </a>
+              </div>
             </div>
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button className="btn btn-secondary" onClick={() => invoicePreview && printPdfBlob(invoicePreview.blobUrl)}>
+
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '0.85rem 1.25rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-secondary)' }}>
+              <button className="btn btn-secondary" onClick={() => invoicePreview && printPdfBlob(invoicePreview.blobUrl)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Printer size={16} /> Print Document
               </button>
-              <button className="btn btn-secondary" onClick={() => handleDownloadInvoice()}>
+              <button className="btn btn-secondary" onClick={() => handleDownloadInvoice(invoicePreview)} disabled={isGeneratingPdf} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Download size={16} /> Download PDF
               </button>
-              <button className="btn btn-primary" onClick={handleShareNative}>
+              <button className="btn btn-primary" onClick={handleShareNative} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Share2 size={16} /> Share via Apps
               </button>
             </div>

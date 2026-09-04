@@ -145,10 +145,21 @@ const VendorManagement = () => {
 
   const handleSupplierSubmit = (e) => {
     e.preventDefault();
+    if (!supplierForm.name.trim()) {
+      alert('Supplier name is required');
+      return;
+    }
+    const supPayload = {
+      ...supplierForm,
+      name: supplierForm.name.trim(),
+      phone: (supplierForm.phone || '').trim(),
+      address: (supplierForm.address || '').trim(),
+      category: supplierForm.category || 'Grocery'
+    };
     if (editingSupplier) {
-      updateSupplier({ ...supplierForm, id: editingSupplier.id });
+      updateSupplier({ ...supPayload, id: editingSupplier.id || editingSupplier._id });
     } else {
-      addSupplier(supplierForm);
+      addSupplier(supPayload);
     }
     setIsSupplierModalOpen(false);
     setEditingSupplier(null);
@@ -190,40 +201,66 @@ const VendorManagement = () => {
       supplier: { _id: sup.id, name: sup.name, contact: sup.phone || sup.contact || '', category: sup.category }
     };
     const updatedEvent = { ...currentEvent, manualMaterials: [...materialList, manualMat] };
-    updateEvent(updatedEvent).then(() => { if (refreshEventTotals) refreshEventTotals(updatedEvent.id); });
+    
+    // Clear inputs immediately for zero delay
     setNewMaterial({ rawMaterialId: '', requiredQty: '', supplierId: '' });
+    
+    // Trigger synchronous finance calculation & background sync
+    updateEvent(updatedEvent);
   };
 
   const handleRemoveMaterial = (indexToRemove) => {
     const updatedMaterials = materialList.filter((_, idx) => idx !== indexToRemove);
     const updatedEvent = { ...currentEvent, manualMaterials: updatedMaterials };
-    updateEvent(updatedEvent).then(() => { if (refreshEventTotals) refreshEventTotals(updatedEvent.id); });
+    updateEvent(updatedEvent);
   };
 
   const handleSendPO = (sup) => {
     if (!isOps) return;
-    const supItems = materialList.filter(m => m.supplier.name === sup.name);
+    const supItems = materialList.filter(m => (m.supplier?.name || m.supplier?._id || '') === (sup.name || sup.id || sup._id || ''));
     if (!supItems.length) { alert('No materials assigned to this supplier for the selected event.'); return; }
-    const supplierForPDF = { name: sup.name, contact: sup.contact || sup.phone || 'N/A', category: sup.category || '', _id: sup.id };
-    const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
-    setPoPreview({ ...result, supplierName: sup.name });
+    const supplierForPDF = { 
+      name: sup.name, 
+      contact: sup.contact || sup.phone || 'N/A', 
+      category: sup.category || '', 
+      _id: sup.id || sup._id 
+    };
+    try {
+      const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
+      if (result) {
+        setPoPreview({ ...result, supplierName: sup.name });
+      }
+    } catch (err) {
+      console.error('Error previewing Supplier PO:', err);
+      alert('Could not generate PO preview. Please verify event and supplier details.');
+    }
   };
 
   const handleDirectDownloadPO = (sup) => {
     if (!isOps) return;
-    const supItems = materialList.filter(m => m.supplier.name === sup.name);
+    const supItems = materialList.filter(m => (m.supplier?.name || m.supplier?._id || '') === (sup.name || sup.id || sup._id || ''));
     if (!supItems.length) { alert('No materials assigned to this supplier for the selected event.'); return; }
-    const supplierForPDF = { name: sup.name, contact: sup.contact || sup.phone || 'N/A', category: sup.category || '', _id: sup.id };
-    const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
-    if (result && result.blobUrl) {
-      const a = document.createElement('a');
-      a.href = result.blobUrl;
-      a.download = result.filename;
-      a.click();
+    const supplierForPDF = { 
+      name: sup.name, 
+      contact: sup.contact || sup.phone || 'N/A', 
+      category: sup.category || '', 
+      _id: sup.id || sup._id 
+    };
+    try {
+      const result = generateSupplierPO(supplierForPDF, supItems, currentEvent, companyProfile);
+      if (result && (result.blob || result.blobUrl)) {
+        downloadPdfBlob(result.blob || result.blobUrl, result.filename);
+      }
+    } catch (err) {
+      console.error('Error downloading Supplier PO:', err);
+      alert('Could not download PO PDF. Please verify event and supplier details.');
     }
   };
 
-  const handleDownloadPO = () => { if (!poPreview) return; const a = document.createElement('a'); a.href = poPreview.blobUrl; a.download = poPreview.filename; a.click(); };
+  const handleDownloadPO = () => { 
+    if (!poPreview) return; 
+    downloadPdfBlob(poPreview.blob || poPreview.blobUrl, poPreview.filename); 
+  };
   const handleSharePO = async () => {
     if (!poPreview) return;
     const file = new File([poPreview.blob], poPreview.filename, { type: 'application/pdf' });
@@ -661,8 +698,8 @@ const VendorManagement = () => {
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
                     {suppliersUsed.map(sup => {
-                      const supItems = materialList.filter(m => m.supplier.name === sup.name);
-                      const supTotal = supItems.reduce((s, m) => s + m.totalCost, 0);
+                      const supItems = materialList.filter(m => (m.supplier?.name || m.supplier?._id || '') === (sup.name || sup.id || sup._id || ''));
+                      const supTotal = supItems.reduce((s, m) => s + (m.totalCost || 0), 0);
                       return (
                         <div key={sup.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
                           <div>
@@ -818,7 +855,15 @@ const VendorManagement = () => {
                 <X size={20} />
               </button>
             </div>
-            <iframe src={poPreview.blobUrl} title="PO Preview" style={{ flex: 1, border: 'none', minHeight: '520px', background: '#fff' }} />
+            <div style={{ flex: 1, minHeight: '520px', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+              <iframe src={poPreview.blobUrl} title="PO Preview" style={{ width: '100%', height: '520px', border: 'none' }} />
+              <div style={{ padding: '0.4rem 1rem', background: '#f1f5f9', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>PDF preview active</span>
+                <a href={poPreview.blobUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>
+                  Open PDF in New Window / Tab
+                </a>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: '0.75rem', padding: '0.9rem 1.25rem', borderTop: '1px solid var(--border-color)', flexShrink: 0, justifyContent: 'flex-end', background: 'var(--bg-secondary)', flexWrap: 'wrap' }}>
               <button className="btn btn-secondary" onClick={() => poPreview && printPdfBlob(poPreview.blobUrl)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Printer size={16} /> Print Document
