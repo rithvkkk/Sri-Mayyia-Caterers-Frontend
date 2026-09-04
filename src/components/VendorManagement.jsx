@@ -264,7 +264,7 @@ const VendorManagement = () => {
       }
     } catch (err) {
       console.error('Error previewing Supplier PO:', err);
-      alert('Could not generate PO preview. Please verify event and supplier details.');
+      alert('Could not generate PO preview: ' + (err?.message || 'Unknown error'));
     }
   };
 
@@ -292,7 +292,7 @@ const VendorManagement = () => {
       }
     } catch (err) {
       console.error('Error downloading Supplier PO:', err);
-      alert('Could not download PO PDF. Please verify event and supplier details.');
+      alert('Could not download PO PDF: ' + (err?.message || 'Unknown error'));
     } finally {
       setTimeout(() => setProcessingPoId(null), 800);
     }

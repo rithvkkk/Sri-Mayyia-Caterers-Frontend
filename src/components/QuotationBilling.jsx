@@ -367,7 +367,7 @@ const QuotationBilling = () => {
       }
     } catch (err) {
       console.error('Error previewing invoice:', err);
-      alert('Failed to generate invoice preview. Please check event details.');
+      alert('Failed to generate invoice preview: ' + (err?.message || 'Check event details'));
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -394,7 +394,7 @@ const QuotationBilling = () => {
       }
     } catch (err) {
       console.error('Error downloading invoice:', err);
-      alert('Failed to download invoice PDF.');
+      alert('Failed to download invoice PDF: ' + (err?.message || 'Check event details'));
     } finally {
       setIsGeneratingPdf(false);
     }

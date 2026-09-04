@@ -1,5 +1,19 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
+// Cross-environment helper for jspdf-autotable in ESM/Vite
+const renderTable = (doc, options) => {
+  if (typeof doc.autoTable === 'function') {
+    return doc.autoTable(options);
+  }
+  if (typeof autoTable === 'function') {
+    return autoTable(doc, options);
+  }
+  if (autoTable && typeof autoTable.default === 'function') {
+    return autoTable.default(doc, options);
+  }
+  throw new Error('AutoTable plugin is not available on jsPDF');
+};
 
 // Language translation mappings
 const translations = {
@@ -110,29 +124,32 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   // Table Generation based on report type
   if (type === 'invoice') {
     // Invoice details table
-    const subFunctions = Array.isArray(ev.subFunctions) && ev.subFunctions.length > 0
-      ? ev.subFunctions
+    const safeSubFunctions = (Array.isArray(ev.subFunctions) ? ev.subFunctions : []).filter(Boolean);
+    const subFunctions = safeSubFunctions.length > 0
+      ? safeSubFunctions
       : [{ id: 'sf-1', name: 'Main Function & Reception', guestCount: 100 }];
 
     const tableHeaders = [[t.desc, t.pax, t.rate, t.amount]];
     const tableBody = subFunctions.map(sf => {
-      const gCount = parseInt(sf.guestCount, 10) || 0;
+      const itm = (sf && typeof sf === 'object') ? sf : { name: String(sf || 'Function') };
+      const gCount = parseInt(itm.guestCount, 10) || 0;
       const pRate = parseFloat(ev.billing?.pricePerPlate) || 800;
       return [
-        sf.name || 'Catering Function',
+        itm.name || 'Catering Function',
         `${gCount} Pax`,
         `${cpCurrency} ${pRate.toLocaleString('en-IN')}`,
         `${cpCurrency} ${Number(gCount * pRate).toLocaleString('en-IN')}`
       ];
     });
 
-    doc.autoTable({
+    renderTable(doc, {
       head: tableHeaders,
       body: tableBody,
       startY: 68,
       theme: 'grid',
       headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
       styles: { fontSize: 10, cellPadding: 3 },
+      margin: { left: 15, right: 15 },
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 30, halign: 'center' },
@@ -199,16 +216,17 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       mat.supplier?.name || 'Local Supplier'
     ]);
 
-    doc.autoTable({
+    renderTable(doc, {
       head: tableHeaders,
       body: tableBody.length ? tableBody : [['General Provisions', 'Provisions', '1 batch', `${cpCurrency} 0`, `${cpCurrency} 0`, 'Local Supplier']],
       startY: 68,
       theme: 'striped',
       headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
       styles: { fontSize: 9, cellPadding: 2.5 },
+      margin: { left: 15, right: 15 },
       columnStyles: {
-        0: { cellWidth: 40 },
-        1: { cellWidth: 20 },
+        0: { cellWidth: 38 },
+        1: { cellWidth: 22 },
         2: { cellWidth: 25, halign: 'center' },
         3: { cellWidth: 20, halign: 'center' },
         4: { cellWidth: 25, halign: 'right' },
@@ -225,7 +243,9 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   }
 
   // Footer Message & Page Numbers
-  const pageHeight = doc.internal.pageSize.height;
+  const pageHeight = typeof doc.internal.pageSize.getHeight === 'function'
+    ? doc.internal.pageSize.getHeight()
+    : (doc.internal.pageSize.height || 297);
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -248,7 +268,11 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   try {
     pdfBlob = doc.output('blob');
   } catch (e) {
-    pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+    try {
+      pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+    } catch (e2) {
+      pdfBlob = new Blob([doc.output()], { type: 'application/pdf' });
+    }
   }
   const blobUrl = URL.createObjectURL(pdfBlob);
   
@@ -355,41 +379,44 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.line(15, 66, 195, 66);
 
   // Items table
-  const safeItems = Array.isArray(items) ? items : [];
+  const safeItems = (Array.isArray(items) ? items : []).filter(Boolean);
   const headers = [['#', 'Ingredient', 'Category', 'Qty Required', 'Unit Cost', 'Total Est.']];
   const rows = safeItems.map((m, i) => {
-    const unitCost = Number(m.costPerUnit || 0);
-    const totalCost = Number(m.totalCost !== undefined && m.totalCost !== null ? m.totalCost : unitCost * (m.requiredQty || 0));
+    const itm = (m && typeof m === 'object') ? m : { name: String(m || 'Item') };
+    const unitCost = Number(itm.costPerUnit || 0);
+    const totalCost = Number(itm.totalCost !== undefined && itm.totalCost !== null ? itm.totalCost : unitCost * (itm.requiredQty || 0));
     return [
       i + 1,
-      m.name || 'Ingredient Item',
-      m.category || 'General',
-      `${m.requiredQty || 0} ${m.unit || 'kg'}`,
+      itm.name || 'Ingredient Item',
+      itm.category || 'General',
+      `${itm.requiredQty || 0} ${itm.unit || 'kg'}`,
       `${cpCurrency} ${unitCost.toLocaleString('en-IN')}`,
       `${cpCurrency} ${totalCost.toLocaleString('en-IN')}`
     ];
   });
 
-  doc.autoTable({
+  renderTable(doc, {
     head: headers,
     body: rows.length ? rows : [[1, 'General Provisions', 'Grocery', '1 batch', `${cpCurrency} 0`, `${cpCurrency} 0`]],
     startY: 70,
     theme: 'grid',
     headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
     styles: { fontSize: 9, cellPadding: 2.5 },
+    margin: { left: 15, right: 15 },
     columnStyles: {
-      0: { cellWidth: 8,  halign: 'center' },
-      1: { cellWidth: 50 },
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 52 },
       2: { cellWidth: 25 },
-      3: { cellWidth: 30, halign: 'center' },
-      4: { cellWidth: 30, halign: 'right' },
+      3: { cellWidth: 28, halign: 'center' },
+      4: { cellWidth: 32, halign: 'right' },
       5: { cellWidth: 35, halign: 'right' }
     }
   });
 
   const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 8;
   const grandTotal = safeItems.reduce((s, m) => {
-    const cost = Number(m.totalCost !== undefined && m.totalCost !== null ? m.totalCost : (m.costPerUnit || 0) * (m.requiredQty || 0));
+    const itm = (m && typeof m === 'object') ? m : {};
+    const cost = Number(itm.totalCost !== undefined && itm.totalCost !== null ? itm.totalCost : (itm.costPerUnit || 0) * (itm.requiredQty || 0));
     return s + (isNaN(cost) ? 0 : cost);
   }, 0);
 
@@ -401,7 +428,9 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.text(`${cpCurrency} ${grandTotal.toLocaleString('en-IN')}`, 195, finalY, { align: 'right' });
 
   // Footer
-  const ph = doc.internal.pageSize.height;
+  const ph = typeof doc.internal.pageSize.getHeight === 'function'
+    ? doc.internal.pageSize.getHeight()
+    : (doc.internal.pageSize.height || 297);
   doc.setDrawColor(220, 220, 220);
   doc.line(15, ph - 22, 195, ph - 22);
   doc.setTextColor(120, 120, 120);
@@ -753,7 +782,7 @@ export const generateGatePassPdf = (event, gatePassData, companyProfile) => {
     item.unit || 'Kg'
   ]);
 
-  doc.autoTable({
+  renderTable(doc, {
     head: consumableHeaders,
     body: consumableRows.length ? consumableRows : [[1, 'Provisions & Groceries Pack', 'Storage Bulk', '1', 'Lot']],
     startY: yPos,
@@ -796,7 +825,7 @@ export const generateGatePassPdf = (event, gatePassData, companyProfile) => {
     item.status || 'Verified Return'
   ]);
 
-  doc.autoTable({
+  renderTable(doc, {
     head: vesselHeaders,
     body: vesselRows.length ? vesselRows : [[1, 'Cooking Degchis & Handis', 'Cooking Vessel', '10', '10', '0', 'Verified Return']],
     startY: yPos,
