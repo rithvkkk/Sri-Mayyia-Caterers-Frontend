@@ -24,7 +24,7 @@ const StorageInventory = () => {
     issuedBy: 'Store Manager'
   });
 
-  const formatCurrency = (amount) => `${companyProfile.currency} ${Number(amount || 0).toLocaleString('en-IN')}`;
+  const formatCurrency = (amount) => `${companyProfile?.currency || '₹'} ${Number(amount || 0).toLocaleString('en-IN')}`;
 
   const totalCount = vessels.reduce((acc, v) => acc + (Number(v.totalQty) || 0), 0);
   const damagedCount = vessels.reduce((acc, v) => acc + (Number(v.damagedQty) || 0), 0);
@@ -306,7 +306,7 @@ const StorageInventory = () => {
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Asset Value / Unit ({companyProfile.currency})</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Asset Value / Unit ({companyProfile?.currency || '₹'})</label>
                 <input type="number" min="0" required placeholder="e.g. 5000" value={form.valuePerUnit} onChange={(e) => setForm({ ...form, valuePerUnit: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>
@@ -342,7 +342,7 @@ const StorageInventory = () => {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="🔍 Type client name, event ID, date, or occasion to filter..."
+                    placeholder="Type client name, event ID, date, or occasion to filter..."
                     value={gatePassEventSearch}
                     onChange={e => {
                       setGatePassEventSearch(e.target.value);

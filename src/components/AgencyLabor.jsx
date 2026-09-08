@@ -259,7 +259,7 @@ const AgencyLabor = () => {
     URL.revokeObjectURL(url);
   };
 
-  const formatCurrency = (amt) => `${companyProfile.currency} ${Number(amt || 0).toLocaleString('en-IN')}`;
+  const formatCurrency = (amt) => `${companyProfile?.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`;
 
   // Worker Submit
   const handleWorkerSubmit = (e) => {
@@ -1702,7 +1702,9 @@ const AgencyLabor = () => {
                           <td>
                             <div style={{ fontWeight: 600 }}>{row.workerName || '—'}</div>
                             {row.matchedWorkerId && (
-                              <span style={{ fontSize: '0.68rem', color: 'var(--color-success)' }}>✓ Matched in directory</span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-success)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <Check size={11} /> Matched in directory
+                              </span>
                             )}
                           </td>
                           <td>{row.workerRole}</td>

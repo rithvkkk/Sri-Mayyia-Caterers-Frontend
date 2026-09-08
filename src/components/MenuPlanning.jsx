@@ -855,7 +855,7 @@ const MenuPlanning = () => {
                                       {dish.name}
                                     </div>
                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                      <span>{companyProfile.currency} {dish.price}</span>
+                                      <span>{companyProfile?.currency || '₹'} {dish.price}</span>
                                       {dish.dietary && dish.dietary[0] && (
                                         <span style={{ opacity: 0.7 }}>• {dish.dietary[0]}</span>
                                       )}

@@ -776,7 +776,7 @@ export const AppProvider = ({ children }) => {
         taxType: eventDetails.billing?.taxType || 'GST',
         isInterState: !!eventDetails.billing?.isInterState,
         subtotal: 0,
-        taxRate: eventDetails.billing?.taxType === 'NON_GST' ? 0 : (companyProfile.defaultTaxRate || 5),
+        taxRate: eventDetails.billing?.taxType === 'NON_GST' ? 0 : (companyProfile?.defaultTaxRate || 5),
         taxAmount: 0,
         totalAmount: 0,
         advancePaid: 0,
@@ -901,8 +901,10 @@ export const AppProvider = ({ children }) => {
 
   // Recalculates all costs & totals of an event dynamically
   const recalculateEventFinances = (event) => {
+    if (!event) return;
+    const subFunctions = Array.isArray(event.subFunctions) ? event.subFunctions : [];
     let rawMaterialsCost = (event.manualMaterials || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
-    if ((!event.manualMaterials || event.manualMaterials.length === 0) && event.subFunctions && event.subFunctions.length > 0) {
+    if ((!event.manualMaterials || event.manualMaterials.length === 0) && subFunctions.length > 0) {
       const autoMats = calculateEventRawMaterials(event);
       if (autoMats.length > 0) {
         rawMaterialsCost = autoMats.reduce((sum, item) => sum + (item.totalCost || 0), 0);
@@ -927,16 +929,16 @@ export const AppProvider = ({ children }) => {
     const venue = venues.find(v => v.id === event.venueId);
     const venueRent = venue ? venue.price : 0;
 
-    const totalGuests = (event.subFunctions || []).reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
+    const totalGuests = subFunctions.reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
     const subtotal = totalGuests * (parseFloat(event.billing?.pricePerPlate) || 0);
 
     const isNonGst = event.billing?.taxType === 'NON_GST' || Number(event.billing?.taxRate) === 0;
-    const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? parseFloat(event.billing.taxRate) : (companyProfile.defaultTaxRate || 5));
+    const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? parseFloat(event.billing.taxRate) : (companyProfile?.defaultTaxRate || 5));
     const taxAmount = isNonGst ? 0 : (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
     
     const advancePaid = parseFloat(event.billing?.advancePaid) || 0;
-    const balanceDue = Math.max(0, totalAmount - advancePaid);
+    const balanceDue = Math.max(0, parseFloat((totalAmount - advancePaid).toFixed(2)));
 
     let paymentStatus = 'Unpaid';
     if (advancePaid >= totalAmount && totalAmount > 0) {
@@ -1074,7 +1076,7 @@ export const AppProvider = ({ children }) => {
       calculateEventRawMaterials,
       companyProfile,
       setCompanyProfile: updateCompanyProfile,
-      formatCurrency: (amt) => `${companyProfile.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`,
+      formatCurrency: (amt) => `${companyProfile?.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`,
       rbacMatrix,
       updateRolePermission,
       hasPermission,

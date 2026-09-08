@@ -76,7 +76,7 @@ const VendorManagement = () => {
   }
 
   const formatCurrency = (amount) => {
-    return `${companyProfile.currency} ${Number(amount || 0).toLocaleString('en-IN')}`;
+    return `${companyProfile?.currency || '₹'} ${Number(amount || 0).toLocaleString('en-IN')}`;
   };
 
   // === MATERIALS FUNCTIONS ===
@@ -628,8 +628,8 @@ const VendorManagement = () => {
                             }`} style={{ fontSize: '0.7rem' }}>{mat.category}</span>
                           </td>
                           <td style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{mat.requiredQty} {mat.unit}</td>
-                          <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{companyProfile.currency} {mat.costPerUnit}</td>
-                          <td style={{ fontWeight: 600 }}>{companyProfile.currency} {mat.totalCost.toLocaleString('en-IN')}</td>
+                          <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{companyProfile?.currency || '₹'} {mat.costPerUnit}</td>
+                          <td style={{ fontWeight: 600 }}>{companyProfile?.currency || '₹'} {mat.totalCost.toLocaleString('en-IN')}</td>
                           <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{mat.supplier?.name}</td>
                           {isOps && (
                             <td>
@@ -717,13 +717,13 @@ const VendorManagement = () => {
                     {Object.keys(categoryCosts).map(cat => (
                       <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
                         <span style={{ color: 'var(--text-secondary)' }}>{cat} Total:</span>
-                        <span style={{ fontWeight: 600 }}>{companyProfile.currency} {categoryCosts[cat].toLocaleString('en-IN')}</span>
+                        <span style={{ fontWeight: 600 }}>{companyProfile?.currency || '₹'} {categoryCosts[cat].toLocaleString('en-IN')}</span>
                       </div>
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', marginTop: '0.25rem' }}>
                       <span style={{ fontWeight: 600 }}>Total Materials Budget:</span>
                       <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--color-primary)' }}>
-                        {companyProfile.currency} {totalRawCost.toLocaleString('en-IN')}
+                        {companyProfile?.currency || '₹'} {totalRawCost.toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
@@ -748,7 +748,7 @@ const VendorManagement = () => {
                           <div>
                             <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{sup.name}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{sup.contact} | {sup.category}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', marginTop: '0.15rem' }}>{supItems.length} items · {companyProfile.currency} {supTotal.toLocaleString('en-IN')}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', marginTop: '0.15rem' }}>{supItems.length} items · {companyProfile?.currency || '₹'} {supTotal.toLocaleString('en-IN')}</div>
                           </div>
                           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                             <button
@@ -822,7 +822,7 @@ const VendorManagement = () => {
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Cost / Unit ({companyProfile.currency})</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Cost / Unit ({companyProfile?.currency || '₹'})</label>
                 <input type="number" min="0" step="0.01" required value={materialForm.costPerUnit} onChange={(e) => setMaterialForm({ ...materialForm, costPerUnit: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>

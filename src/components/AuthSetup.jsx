@@ -190,7 +190,7 @@ const AuthSetup = () => {
               </div>
               <div className="form-group">
                 <label className="form-label">Currency Symbol</label>
-                <input className="form-input" name="currency" defaultValue={companyProfile.currency} required />
+                <input className="form-input" name="currency" defaultValue={companyProfile?.currency || '₹'} required />
               </div>
             </div>
             <button className="btn btn-primary" type="submit" style={{ marginTop: '0.5rem' }}>Save Profile Details</button>
@@ -236,7 +236,7 @@ const AuthSetup = () => {
                       <td>
                         {isEditing ? (
                           <input className="form-input" type="number" value={tempData.price || ''} onChange={e => setTempData({ ...tempData, price: parseFloat(e.target.value) })} />
-                        ) : `${companyProfile.currency} ${v.price.toLocaleString('en-IN')}`}
+                        ) : `${companyProfile?.currency || '₹'} ${v.price.toLocaleString('en-IN')}`}
                       </td>
                       <td>
                         {isEditing ? (
@@ -319,7 +319,7 @@ const AuthSetup = () => {
                       <td>
                         {isEditing ? (
                           <input className="form-input" type="number" value={tempData.costPerUnit || ''} onChange={e => setTempData({ ...tempData, costPerUnit: parseFloat(e.target.value) })} />
-                        ) : `${companyProfile.currency} ${rm.costPerUnit}`}
+                        ) : `${companyProfile?.currency || '₹'} ${rm.costPerUnit}`}
                       </td>
                       <td>
                         {isEditing ? (
@@ -375,7 +375,7 @@ const AuthSetup = () => {
                       <tr key={d.id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.04)' : 'transparent' }}>
                         <td>{d.name}</td>
                         <td>{d.category}</td>
-                        <td>{companyProfile.currency} {d.price}</td>
+                        <td>{companyProfile?.currency || '₹'} {d.price}</td>
                         <td>{d.recipe ? d.recipe.length : 0} ingredients</td>
                         <td>
                           <button className="btn btn-secondary btn-small" onClick={() => startEdit(d)}>
@@ -436,7 +436,7 @@ const AuthSetup = () => {
                           <div key={idx} className="recipe-builder-row" style={{ padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                             <span style={{ fontSize: '0.85rem' }}>{material ? material.name : 'Unknown Ingredient'}</span>
                             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{item.quantity} {material ? material.unit : 'unit'}</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{companyProfile.currency} {material ? (material.costPerUnit * item.quantity).toFixed(2) : 0}</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{companyProfile?.currency || '₹'} {material ? (material.costPerUnit * item.quantity).toFixed(2) : 0}</span>
                             <button type="button" className="btn btn-danger btn-small" style={{ padding: '0.15rem 0.35rem' }} onClick={() => removeRecipeItemFromTemp(item.materialId)}>
                               <X size={12} />
                             </button>

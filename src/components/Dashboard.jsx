@@ -32,10 +32,13 @@ const Dashboard = ({ setActiveTab }) => {
     return sum + (costs.rawMaterialsCost || 0) + (costs.laborCost || 0) + (transportCost || 0) + (costs.venueRent || 0) + (costs.otherExpenses || 0);
   }, 0);
   
-  const netProfit = Math.max(0, totalSales - totalExpense);
+  const netProfit = totalSales - totalExpense;
 
   const formatVal = (val) => {
-    return companyProfile.currency + ' ' + Math.round(val).toLocaleString('en-IN');
+    const symbol = companyProfile?.currency || '₹';
+    const num = Math.round(val || 0);
+    const sign = num < 0 ? '-' : '';
+    return `${sign}${symbol} ${Math.abs(num).toLocaleString('en-IN')}`;
   };
 
   // Get venue name helper
@@ -91,7 +94,7 @@ const Dashboard = ({ setActiveTab }) => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
           <h1 className="gradient-text" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>Executive Dashboard</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Welcome to {companyProfile.name} Central Control Console.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Welcome to {companyProfile?.name || 'Sri Mayyia Caterers'} Central Control Console.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setActiveTab('bookings')}>
           <PlusCircle size={18} />
@@ -450,7 +453,7 @@ const Dashboard = ({ setActiveTab }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="glass-card">
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Expense vs Sales Distribution</h2>
-            <CustomChart sales={totalSales} expense={totalExpense} currency={companyProfile.currency} currentRole={currentRole} />
+            <CustomChart sales={totalSales} expense={totalExpense} currency={companyProfile?.currency || '₹'} currentRole={currentRole} />
           </div>
         </div>
       </div>

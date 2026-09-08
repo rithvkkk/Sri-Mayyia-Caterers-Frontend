@@ -84,7 +84,7 @@ const Inventory = () => {
   });
 
   const formatCurrency = (amount) => {
-    return `${companyProfile.currency} ${Number(amount || 0).toLocaleString('en-IN')}`;
+    return `${companyProfile?.currency || '₹'} ${Number(amount || 0).toLocaleString('en-IN')}`;
   };
 
   // Helper supplier name lookup
@@ -724,7 +724,7 @@ const Inventory = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Asset Value / Unit ({companyProfile.currency})</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Asset Value / Unit ({companyProfile?.currency || '₹'})</label>
                 <input
                   type="number"
                   min="0"
@@ -820,7 +820,7 @@ const Inventory = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Cost / Unit ({companyProfile.currency})</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Cost / Unit ({companyProfile?.currency || '₹'})</label>
                   <input
                     type="number"
                     min="0"

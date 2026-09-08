@@ -10,7 +10,7 @@ const ProvisionInventory = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({ name: '', category: 'Grocery', unit: 'kg', stockQty: 100, reorderLevel: 25, costPerUnit: 80, supplierId: suppliers[0]?.id || '' });
 
-  const formatCurrency = (amount) => `${companyProfile.currency} ${Number(amount || 0).toLocaleString('en-IN')}`;
+  const formatCurrency = (amount) => `${companyProfile?.currency || '₹'} ${Number(amount || 0).toLocaleString('en-IN')}`;
   const getSupplierName = (supId) => { const s = suppliers.find(sup => sup.id === supId); return s ? s.name : 'Local Market / Wholesaler'; };
 
   const lowStockCount = provisions.filter(p => Number(p.stockQty) <= Number(p.reorderLevel)).length;
@@ -172,7 +172,7 @@ const ProvisionInventory = () => {
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Cost / Unit ({companyProfile.currency})</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Cost / Unit ({companyProfile?.currency || '₹'})</label>
                   <input type="number" min="0" required value={form.costPerUnit} onChange={(e) => setForm({ ...form, costPerUnit: e.target.value })}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
                 </div>

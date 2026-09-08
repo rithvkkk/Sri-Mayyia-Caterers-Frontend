@@ -55,7 +55,7 @@ const Reports = () => {
         <div className="kpi-card">
           <div className="kpi-details">
             <h3>Total Expected Revenue</h3>
-            <div className="kpi-value">{companyProfile.currency} {totalRevenue.toLocaleString('en-IN')}</div>
+            <div className="kpi-value">{companyProfile?.currency || '₹'} {totalRevenue.toLocaleString('en-IN')}</div>
           </div>
           <div className="kpi-icon icon-green">
             <IndianRupee size={24} />
@@ -88,7 +88,7 @@ const Reports = () => {
             {isAdmin ? (
               <div>
                 <div className="kpi-value" style={{ color: 'var(--color-success)' }}>
-                  {companyProfile.currency} {netProfit.toLocaleString('en-IN')}
+                  {companyProfile?.currency || '₹'} {netProfit.toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                   Margin: <strong>{profitMargin}%</strong>
@@ -121,7 +121,7 @@ const Reports = () => {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} tickFormatter={(value) => `${value >= 1000 ? (value/1000).toFixed(0) + 'k' : value}`} />
                 <Tooltip 
-                  formatter={(value) => [`${companyProfile.currency} ${value.toLocaleString('en-IN')}`, 'Revenue']}
+                  formatter={(value) => [`${companyProfile?.currency || '₹'} ${value.toLocaleString('en-IN')}`, 'Revenue']}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-md)' }}
                 />
                 <Line type="monotone" dataKey="revenue" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--color-primary)', strokeWidth: 0 }} activeDot={{ r: 6 }} />

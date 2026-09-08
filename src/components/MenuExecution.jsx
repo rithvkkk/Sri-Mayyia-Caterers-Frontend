@@ -23,21 +23,25 @@ const MenuExecution = () => {
   const getEventDishes = () => {
     if (!currentEvent) return [];
     const ids = new Set();
-    currentEvent.subFunctions.forEach(sf => {
-      sf.menuItems.forEach(id => ids.add(id));
+    const subFunctions = Array.isArray(currentEvent.subFunctions) ? currentEvent.subFunctions : [];
+    subFunctions.forEach(sf => {
+      (sf?.menuItems || []).forEach(id => ids.add(id));
     });
+    const routes = currentEvent.execution?.teamRoutes || {};
+    const statuses = currentEvent.execution?.dishStatuses || {};
+
     return Array.from(ids).map(id => {
       const dish = dishes.find(d => d.id === id);
       if (!dish) return null;
 
       // Calculate total headcount for this dish
-      const totalPax = currentEvent.subFunctions
-        .filter(sf => sf.menuItems.includes(id))
-        .reduce((sum, sf) => sum + sf.guestCount, 0);
+      const totalPax = subFunctions
+        .filter(sf => (sf?.menuItems || []).includes(id))
+        .reduce((sum, sf) => sum + (parseInt(sf?.guestCount, 10) || 0), 0);
 
       // Get current route and status
-      const route = currentEvent.execution.teamRoutes[id] || 'internal';
-      const status = currentEvent.execution.dishStatuses?.[id] || 'Pending';
+      const route = routes[id] || 'internal';
+      const status = statuses[id] || 'Pending';
 
       return {
         ...dish,

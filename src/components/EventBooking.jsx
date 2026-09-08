@@ -233,7 +233,7 @@ const EventBooking = () => {
           id: `sf-${Date.now()}-${idx}`,
           name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${eventType || 'Main'} Function`,
           date: sf.date || primaryDate,
-          guestCount: parseInt(sf.guestCount, 10) || 100,
+          guestCount: Math.max(1, parseInt(sf.guestCount, 10) || 100),
           menuItems: [],
           clientNotes: sf.clientNotes || ''
         }))
@@ -1091,7 +1091,7 @@ const EventBooking = () => {
                     <input className="form-input" type="date" value={primaryDate} onChange={e => setPrimaryDate(e.target.value)} required />
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Billing Price per Plate ({companyProfile.currency})</label>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Billing Price per Plate ({companyProfile?.currency || '₹'})</label>
                     <input className="form-input" type="number" placeholder="800" value={pricePerPlate} onChange={e => setPricePerPlate(e.target.value)} />
                   </div>
                 </div>

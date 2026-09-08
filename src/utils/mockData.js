@@ -146,7 +146,7 @@ export const initialEvents = [
     status: 'Completed',
     reminders: [],
     subFunctions: [
-      { id: 'sf-1', name: 'Traditional Andhra Lunch', date: '2026-06-15', guestCount: 500, menuItems: ['d_a1', 'd_a2', 'd_a6', 'd_a8', 'd_a9', 'd_a10', 'd_a12', 'd_a15', 'd_a18', 'd_a20', 'd_a22', 'd_a24', 'd_a31', 'd_a36', 'd_a37'], clientNotes: 'Authentic Guntur style spicy rasam and freshly made podi on plantain leaves.' }
+      { id: 'sf-1', name: 'Traditional Andhra Lunch', date: '2026-06-15', guestCount: 500, menuItems: ['si_rc_1', 'si_rc_2', 'si_rc_potali', 'si_grv_1', 'si_grv_9', 'si_grv_8', 'si_grv_16', 'si_grv_24', 'sd_ply_1', 'sd_sld_1', 'sw_hol_1', 'sw_hol_8', 'sw_hol_appi', 'bev_hot_1', 'fin_tam_2'], clientNotes: 'Authentic Guntur style spicy rasam and freshly made podi on plantain leaves.' }
     ],
     transport: {
       vehicles: [
@@ -159,8 +159,8 @@ export const initialEvents = [
       totalTransportCost: 12000
     },
     execution: {
-      teamRoutes: { 'd_a1': 'internal', 'd_a2': 'outsourced', 'd_a9': 'internal', 'd_a10': 'internal', 'd_a15': 'agency' },
-      dishStatuses: { 'd_a1': 'Served', 'd_a2': 'Served', 'd_a9': 'Served', 'd_a10': 'Served', 'd_a15': 'Served' },
+      teamRoutes: { 'si_rc_1': 'internal', 'si_rc_2': 'internal', 'si_rc_potali': 'outsourced', 'si_grv_1': 'internal', 'si_grv_9': 'internal', 'sw_hol_1': 'agency' },
+      dishStatuses: { 'si_rc_1': 'Served', 'si_rc_2': 'Served', 'si_rc_potali': 'Served', 'si_grv_1': 'Served', 'si_grv_9': 'Served', 'sw_hol_1': 'Served' },
       costs: { rawMaterialsCost: 185000, laborCost: 45000, transportCost: 12000, venueRent: 200000, otherExpenses: 25000 }
     },
     laborAllocations: [
@@ -184,8 +184,8 @@ export const initialEvents = [
       { id: 'rem-1', date: '2026-07-25', time: '11:00', note: 'Confirm morning filter coffee live dispenser installation with team', priority: 'High', completed: true, createdAt: '2026-07-20T10:00:00Z' }
     ],
     subFunctions: [
-      { id: 'sf-2', name: 'Tamil Nadu Traditional Breakfast', date: '2026-07-28', guestCount: 300, menuItems: ['d_tn1', 'd_tn2', 'd_tn3', 'd_tn7', 'd_tn8', 'd_tn9', 'd_tn12'], clientNotes: 'Hot filter coffee in brass davarah-tumbler for all senior family guests.' },
-      { id: 'sf-3', name: 'Evening High Tea & Refreshments', date: '2026-07-28', guestCount: 250, menuItems: ['d_s1', 'd_s2', 'd_s5', 'd_s8', 'd_s9', 'd_s12', 'd_s14'], clientNotes: 'Serve mocktails chilled on entrance arrival.' }
+      { id: 'sf-2', name: 'Tamil Nadu Traditional Breakfast', date: '2026-07-28', guestCount: 300, menuItems: ['si_dsa_1', 'si_idl_5', 'si_dsa_4', 'si_grv_1', 'sd_acc_1', 'bev_hot_1'], clientNotes: 'Hot filter coffee in brass davarah-tumbler for all senior family guests.' },
+      { id: 'sf-3', name: 'Evening High Tea & Refreshments', date: '2026-07-28', guestCount: 250, menuItems: ['app_snk_8', 'app_cht_1', 'bev_ffj_1', 'bev_mkl_1', 'sw_hol_4', 'fin_pan_1'], clientNotes: 'Serve mocktails chilled on entrance arrival.' }
     ],
     transport: {
       vehicles: [
@@ -197,8 +197,8 @@ export const initialEvents = [
       totalTransportCost: 6950
     },
     execution: {
-      teamRoutes: { 'd_tn1': 'internal', 'd_tn2': 'internal', 'd_tn7': 'internal', 'd_s5': 'outsourced', 'd_s8': 'agency' },
-      dishStatuses: { 'd_tn1': 'Preparing', 'd_tn2': 'Preparing', 'd_tn7': 'Preparing', 'd_s5': 'Pending', 'd_s8': 'Pending' },
+      teamRoutes: { 'si_dsa_1': 'internal', 'si_idl_5': 'internal', 'app_snk_8': 'internal', 'app_cht_1': 'outsourced', 'bev_mkl_1': 'agency' },
+      dishStatuses: { 'si_dsa_1': 'Preparing', 'si_idl_5': 'Preparing', 'app_snk_8': 'Pending', 'app_cht_1': 'Pending', 'bev_mkl_1': 'Pending' },
       costs: { rawMaterialsCost: 120000, laborCost: 28000, transportCost: 6950, venueRent: 150000, otherExpenses: 15000 }
     },
     laborAllocations: [
@@ -223,7 +223,7 @@ export const initialEvents = [
       { id: 'rem-3', date: '2026-08-20', time: '09:00', note: 'Send revised tax quotation with 15% discount for 2-day booking', priority: 'Medium', completed: false, createdAt: '2026-08-18T14:30:00Z' }
     ],
     subFunctions: [
-      { id: 'sf-4', name: 'Royal Rajasthani Banquet', date: '2026-08-20', guestCount: 400, menuItems: ['d_r1', 'd_r2', 'd_r3', 'd_r9', 'd_r10', 'd_r13', 'd_r16', 'd_r19', 'd_r26', 'd_r28'], clientNotes: 'Pure desi cow ghee only for Dal Baati Churma. 50 Pax separate Jain counter without onion/garlic.' }
+      { id: 'sf-4', name: 'Royal Rajasthani Banquet', date: '2026-08-20', guestCount: 400, menuItems: ['ni_brd_chur', 'ni_brd_1', 'ni_grv_2', 'ni_grv_6', 'ni_rc_makh', 'app_str_sp1', 'sw_nor_1', 'sw_nor_chan', 'sw_ice_triv', 'fin_pan_4'], clientNotes: 'Pure desi cow ghee only for Dal Baati Churma. 50 Pax separate Jain counter without onion/garlic.' }
     ],
     transport: {
       vehicles: [
@@ -236,8 +236,8 @@ export const initialEvents = [
       totalTransportCost: 13700
     },
     execution: {
-      teamRoutes: { 'd_r1': 'internal', 'd_r9': 'internal', 'd_r19': 'internal', 'd_r28': 'outsourced' },
-      dishStatuses: { 'd_r1': 'Pending', 'd_r9': 'Pending', 'd_r19': 'Pending', 'd_r28': 'Pending' },
+      teamRoutes: { 'ni_brd_chur': 'internal', 'ni_grv_2': 'internal', 'app_str_sp1': 'internal', 'sw_nor_1': 'outsourced' },
+      dishStatuses: { 'ni_brd_chur': 'Pending', 'ni_grv_2': 'Pending', 'app_str_sp1': 'Pending', 'sw_nor_1': 'Pending' },
       costs: { rawMaterialsCost: 195000, laborCost: 48000, transportCost: 13700, venueRent: 120000, otherExpenses: 20000 }
     },
     laborAllocations: [
@@ -261,7 +261,7 @@ export const initialEvents = [
       { id: 'rem-4', date: '2026-09-08', time: '17:00', note: 'Pre-event banquet layout briefing with Arvind Rao', priority: 'Low', completed: false, createdAt: '2026-08-15T09:00:00Z' }
     ],
     subFunctions: [
-      { id: 'sf-5', name: 'Global Multi-Cuisine Gala Dinner', date: '2026-09-12', guestCount: 650, menuItems: ['d_d1', 'd_d4', 'd_d12', 'd_d15', 'd_d23', 'd_d26', 'd_d45', 'd_d47', 'd_d56', 'd_d64', 'd_d65', 'd_d81', 'd_d86', 'd_d102', 'd_d105', 'd_d110', 'd_d113'], clientNotes: 'Live Artisan Pasta counter and Turkish Kunafa dessert live station requested.' }
+      { id: 'sf-5', name: 'Global Multi-Cuisine Gala Dinner', date: '2026-09-12', guestCount: 650, menuItems: ['glb_ita_1', 'glb_chn_1', 'app_cht_13', 'app_str_op1', 'bev_mkl_3', 'ni_grv_6', 'si_rc_flw', 'sw_hol_cova', 'sw_ice_fig', 'fin_pan_1'], clientNotes: 'Live Artisan Pasta counter and Turkish Kunafa dessert live station requested.' }
     ],
     transport: {
       vehicles: [
@@ -274,8 +274,8 @@ export const initialEvents = [
       totalTransportCost: 19800
     },
     execution: {
-      teamRoutes: { 'd_d15': 'agency', 'd_d26': 'outsourced', 'd_d45': 'internal', 'd_d65': 'internal', 'd_d81': 'internal' },
-      dishStatuses: { 'd_d15': 'Pending', 'd_d26': 'Pending', 'd_d45': 'Pending', 'd_d65': 'Pending', 'd_d81': 'Pending' },
+      teamRoutes: { 'glb_ita_1': 'agency', 'glb_chn_1': 'outsourced', 'app_cht_13': 'internal', 'ni_grv_6': 'internal', 'sw_ice_fig': 'internal' },
+      dishStatuses: { 'glb_ita_1': 'Pending', 'glb_chn_1': 'Pending', 'app_cht_13': 'Pending', 'ni_grv_6': 'Pending', 'sw_ice_fig': 'Pending' },
       costs: { rawMaterialsCost: 340000, laborCost: 85000, transportCost: 19800, venueRent: 200000, otherExpenses: 40000 }
     },
     laborAllocations: [

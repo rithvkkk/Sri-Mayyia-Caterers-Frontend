@@ -250,7 +250,7 @@ const QuotationBilling = () => {
   const otherExpenses = currentEvent ? (currentEvent.execution?.costs?.otherExpenses || 0) : 0;
 
   const totalCost = rawMaterialsCost + laborCost + transportCost + venueRent + otherExpenses;
-  const totalGuests = currentEvent ? currentEvent.subFunctions.reduce((sum, sf) => sum + sf.guestCount, 0) : 0;
+  const totalGuests = currentEvent ? (currentEvent.subFunctions || []).reduce((sum, sf) => sum + (parseInt(sf?.guestCount, 10) || 0), 0) : 0;
   const costPerPlate = totalGuests > 0 ? (totalCost / totalGuests) : 0;
   
   // Customer Bargain Simulator State & Sync
@@ -475,7 +475,7 @@ const QuotationBilling = () => {
                   </label>
                   <div style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--color-primary)', fontSize: '1.1rem' }}>
-                      {companyProfile.currency}
+                      {companyProfile?.currency || '₹'}
                     </span>
                     <input
                       type="number"
@@ -1089,9 +1089,9 @@ const QuotationBilling = () => {
             {/* Bill Sheet */}
             <div style={{ border: '1px dashed var(--border-color)', borderRadius: '12px', padding: '1.25rem', background: 'rgba(255, 255, 255, 0.5)' }}>
               <div style={{ textAlign: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }} className="gradient-text">{companyProfile.name}</h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.2rem 0' }}>{companyProfile.address}</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>GSTIN: {companyProfile.gstin}</p>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }} className="gradient-text">{companyProfile?.name || 'Sri Mayyia Caterers'}</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.2rem 0' }}>{companyProfile?.address || ''}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>GSTIN: {companyProfile?.gstin || 'N/A'}</p>
               </div>
 
               {/* Bill Details */}
@@ -1114,15 +1114,19 @@ const QuotationBilling = () => {
                   <span>Billing Description</span>
                   <span style={{ textAlign: 'right' }}>Taxable Amt</span>
                 </div>
-                {currentEvent.subFunctions.map(sf => (
-                  <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                    <div>
-                      <div>{sf.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{sf.guestCount} guests @ {formatCurrency(currentEvent.billing?.pricePerPlate || 800)}/plate</div>
+                {(currentEvent.subFunctions || []).map(sf => {
+                  const sfGuests = parseInt(sf?.guestCount, 10) || 0;
+                  const price = parseFloat(currentEvent.billing?.pricePerPlate) || 800;
+                  return (
+                    <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                      <div>
+                        <div>{sf.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{sfGuests} guests @ {formatCurrency(price)}/plate</div>
+                      </div>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(sfGuests * price)}</span>
                     </div>
-                    <span style={{ fontWeight: 600 }}>{formatCurrency(sf.guestCount * (currentEvent.billing?.pricePerPlate || 800))}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Invoicing calculation */}
@@ -1172,11 +1176,22 @@ const QuotationBilling = () => {
                   <span>Outstanding Balance Due:</span>
                   <span>{formatCurrency(balanceDue)}</span>
                 </div>
+                {advancePaid > grandTotal && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
+                    <span>Customer Credit / Excess Advance:</span>
+                    <span>{formatCurrency(advancePaid - grandTotal)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Status footer */}
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
-                {balanceDue === 0 ? (
+                {advancePaid > grandTotal ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 1rem', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.3)', borderRadius: '20px', color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <CheckCircle2 size={16} />
+                    <span>CREDIT BALANCE / OVERPAID ({formatCurrency(advancePaid - grandTotal)})</span>
+                  </div>
+                ) : balanceDue === 0 ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 1rem', background: 'rgba(156, 21, 25, 0.06)', border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '20px', color: 'var(--color-success)', fontSize: '0.85rem', fontWeight: 600 }}>
                     <CheckCircle2 size={16} />
                     <span>INVOICE FULLY CLEARED</span>
