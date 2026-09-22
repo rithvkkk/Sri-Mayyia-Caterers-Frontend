@@ -374,24 +374,38 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
       if (Array.isArray(vesList)) {
         setVessels(prevVes => {
-          const serverIds = new Set(vesList.map(v => v.id || v._id));
-          const localOnly = prevVes.filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id));
-          if (localOnly.length === 0) return vesList;
-          localOnly.forEach(localVes => {
-            apiCall('/vessels', { method: 'POST', body: JSON.stringify(localVes) }).catch(() => {});
+          const prevMap = new Map((prevVes || []).map(v => [v.id || v._id, v]));
+          const mergedServer = vesList.map(sv => {
+            const lv = prevMap.get(sv.id || sv._id);
+            if (!lv) return sv;
+            return {
+              ...sv,
+              photo: sv.photo || lv.photo || '',
+            };
           });
-          return [...vesList, ...localOnly];
+          const serverIds = new Set(vesList.map(v => v.id || v._id));
+          const localOnly = (prevVes || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id));
+          const next = [...mergedServer, ...localOnly];
+          try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
+          return next;
         });
       }
       if (Array.isArray(prvList)) {
         setProvisions(prevPrv => {
-          const serverIds = new Set(prvList.map(p => p.id || p._id));
-          const localOnly = prevPrv.filter(p => p && (p.id || p._id) && !serverIds.has(p.id || p._id));
-          if (localOnly.length === 0) return prvList;
-          localOnly.forEach(localPrv => {
-            apiCall('/provisions', { method: 'POST', body: JSON.stringify(localPrv) }).catch(() => {});
+          const prevMap = new Map((prevPrv || []).map(p => [p.id || p._id, p]));
+          const mergedServer = prvList.map(sp => {
+            const lp = prevMap.get(sp.id || sp._id);
+            if (!lp) return sp;
+            return {
+              ...sp,
+              photo: sp.photo || lp.photo || '',
+            };
           });
-          return [...prvList, ...localOnly];
+          const serverIds = new Set(prvList.map(p => p.id || p._id));
+          const localOnly = (prevPrv || []).filter(p => p && (p.id || p._id) && !serverIds.has(p.id || p._id));
+          const next = [...mergedServer, ...localOnly];
+          try { localStorage.setItem('cater_provisions', JSON.stringify(next)); } catch (e) {}
+          return next;
         });
       }
       if (Array.isArray(vegList)) {
@@ -765,6 +779,38 @@ export const AppProvider = ({ children }) => {
       return next;
     });
     await apiCall(`/vessels/${id}`, { method: 'DELETE' });
+  };
+
+  // Cloud Image Upload (AWS S3)
+  const uploadCloudImage = async (dataUrl, fileName = 'vessel.jpg', folder = 'vessels') => {
+    try {
+      const res = await apiCall('/upload/image', {
+        method: 'POST',
+        body: JSON.stringify({ image: dataUrl, name: fileName, folder })
+      });
+      if (res && res.success && res.url) {
+        return { success: true, url: res.url, key: res.key };
+      }
+      return {
+        success: false,
+        error: res?.error || 'Failed to upload image to AWS S3 Cloud Storage.',
+        configured: res?.configured !== false
+      };
+    } catch (err) {
+      console.error('uploadCloudImage error:', err);
+      return { success: false, error: err.message || 'Network error during upload' };
+    }
+  };
+
+  const deleteCloudImage = async (keyOrUrl) => {
+    try {
+      await apiCall('/upload/image', {
+        method: 'DELETE',
+        body: JSON.stringify({ key: keyOrUrl, url: keyOrUrl })
+      });
+    } catch (err) {
+      console.warn('deleteCloudImage error:', err);
+    }
   };
 
   // Provision Actions
@@ -1347,6 +1393,8 @@ export const AppProvider = ({ children }) => {
       addVessel,
       updateVessel,
       deleteVessel,
+      uploadCloudImage,
+      deleteCloudImage,
       provisions,
       addProvision,
       updateProvision,

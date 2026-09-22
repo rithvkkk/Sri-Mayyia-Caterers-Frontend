@@ -1,6 +1,6 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload, AlertCircle } from 'lucide-react';
+import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload, AlertCircle, Cloud } from 'lucide-react';
 import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
 /**
@@ -87,7 +87,7 @@ const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) =
 };
 
 const StorageInventory = () => {
-  const { vessels, addVessel, updateVessel, deleteVessel, companyProfile, events = [], rawMaterials = [] } = useContext(AppContext);
+  const { vessels, addVessel, updateVessel, deleteVessel, uploadCloudImage, deleteCloudImage, companyProfile, events = [], rawMaterials = [] } = useContext(AppContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,6 +95,7 @@ const StorageInventory = () => {
   const [photoPreviewItem, setPhotoPreviewItem] = useState(null);
   const [imgError, setImgError] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const photoFileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
   const [form, setForm] = useState({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
@@ -244,22 +245,38 @@ const StorageInventory = () => {
 
     try {
       setIsCompressing(true);
+      setUploadStatus('Optimizing image...');
       const dataUrl = await compressImage(file);
+
+      setUploadStatus('Uploading to AWS S3 Cloud...');
+      const uploadRes = await uploadCloudImage(dataUrl, file.name, 'vessels');
+
       setIsCompressing(false);
+      setUploadStatus('');
+
+      let finalPhotoUrl = dataUrl;
+      if (uploadRes && uploadRes.success && uploadRes.url) {
+        finalPhotoUrl = uploadRes.url;
+      } else if (uploadRes && uploadRes.configured === false) {
+        alert('AWS S3 Cloud Storage is not yet configured in backend/.env. The photo has been temporarily saved in local session. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET_NAME in backend/.env for direct AWS S3 storage.');
+      } else if (uploadRes && uploadRes.error) {
+        alert(`AWS S3 Upload Notice: ${uploadRes.error}. Temporary local preview retained.`);
+      }
 
       const itemToUpdate = targetItem || photoPreviewItem;
       if (itemToUpdate) {
         const targetId = itemToUpdate.id || itemToUpdate._id;
-        const updated = { ...itemToUpdate, id: targetId, photo: dataUrl };
+        const updated = { ...itemToUpdate, id: targetId, photo: finalPhotoUrl };
         setPhotoPreviewItem(updated);
         setImgError(false);
         updateVessel(updated);
       } else {
-        setForm(prev => ({ ...prev, photo: dataUrl }));
+        setForm(prev => ({ ...prev, photo: finalPhotoUrl }));
       }
     } catch (err) {
       setIsCompressing(false);
-      console.error('Photo upload compression error:', err);
+      setUploadStatus('');
+      console.error('Photo upload error:', err);
       alert('Failed to process image. Please try another photo.');
     }
   };
@@ -268,6 +285,9 @@ const StorageInventory = () => {
     const itemToUpdate = targetItem || photoPreviewItem;
     if (itemToUpdate) {
       const targetId = itemToUpdate.id || itemToUpdate._id;
+      if (itemToUpdate.photo && itemToUpdate.photo.includes('amazonaws.com')) {
+        deleteCloudImage(itemToUpdate.photo);
+      }
       const updated = { ...itemToUpdate, id: targetId, photo: '' };
       setPhotoPreviewItem(updated);
       setImgError(false);
@@ -550,7 +570,7 @@ const StorageInventory = () => {
                       style={{ fontSize: '0.82rem' }}
                     />
                     {isCompressing && (
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }}>Optimizing image...</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }}>{uploadStatus || 'Optimizing image...'}</span>
                     )}
                     {form.photo && !isCompressing && (
                       <button
@@ -722,6 +742,11 @@ const StorageInventory = () => {
               <div style={{ textAlign: 'left' }}>
                 <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{photoPreviewItem.name}</h2>
                 <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{photoPreviewItem.category}</span>
+                {photoPreviewItem.photo && (photoPreviewItem.photo.startsWith('http://') || photoPreviewItem.photo.startsWith('https://')) && (
+                  <span className="badge badge-success" style={{ fontSize: '0.72rem', marginTop: '0.2rem', marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Cloud size={11} /> AWS S3
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -736,8 +761,8 @@ const StorageInventory = () => {
               {isCompressing ? (
                 <div style={{ padding: '3rem 1.5rem', color: 'var(--text-secondary)' }}>
                   <div style={{ width: '32px', height: '32px', border: '3px solid rgba(0,0,0,0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.75rem auto' }}></div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Optimizing & uploading photo...</div>
-                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Compressing for fast loading</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{uploadStatus || 'Optimizing & uploading photo...'}</div>
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Cloud Object Storage (AWS S3)</div>
                 </div>
               ) : photoPreviewItem.photo && !imgError ? (
                 <img
@@ -754,14 +779,24 @@ const StorageInventory = () => {
                   <div style={{ fontSize: '0.82rem', marginBottom: '1rem', maxWidth: '340px', margin: '0 auto 1rem auto' }}>
                     The photo data may have been corrupted or improperly encoded. Please replace it with a fresh image.
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-small"
-                    onClick={() => photoFileInputRef.current?.click()}
-                    style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
-                  >
-                    <Upload size={14} /> Upload Fresh Photo
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      onClick={() => photoFileInputRef.current?.click()}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+                    >
+                      <Upload size={14} /> Upload Fresh Photo
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => handleRemovePhoto(photoPreviewItem)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: 'var(--color-danger, #ef4444)' }}
+                    >
+                      <Trash2 size={14} /> Clear Photo
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ padding: '3rem', color: 'var(--text-secondary)' }}>
