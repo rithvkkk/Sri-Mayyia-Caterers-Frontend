@@ -1,54 +1,86 @@
-import React, { useState, useContext, useRef, useMemo } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload, AlertCircle } from 'lucide-react';
 import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
 /**
  * Compresses an image file client-side via HTML5 canvas.
- * Scales down high-res photos to <= 1200px and exports optimized JPEG (quality 0.85).
- * Shrinks 2-10MB phone camera shots to 40-100KB, preventing localStorage quota breaches and 413s.
+ * Scales down large photos to <= 1000px and exports optimized JPEG (quality 0.8).
+ * Falls back safely to raw data URL if canvas is unsupported or decode fails.
  */
-const compressImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) => {
+const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) => {
   return new Promise((resolve, reject) => {
     if (!file) return reject(new Error('No file provided'));
     const reader = new FileReader();
     reader.onerror = (err) => reject(err);
     reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      if (!rawDataUrl || typeof rawDataUrl !== 'string') {
+        return reject(new Error('Failed to read file as data URL'));
+      }
+
+      if (typeof window === 'undefined' || !window.Image) {
+        return resolve(rawDataUrl);
+      }
+
       const img = new window.Image();
-      img.onerror = () => reject(new Error('Failed to parse image for compression'));
+      const timeout = setTimeout(() => {
+        resolve(rawDataUrl);
+      }, 5000);
+
       img.onload = () => {
-        let width = img.naturalWidth || img.width;
-        let height = img.naturalHeight || img.height;
+        clearTimeout(timeout);
+        try {
+          const width = img.naturalWidth || img.width;
+          const height = img.naturalHeight || img.height;
 
-        if (width > maxWidth || height > maxHeight) {
-          if (width / height > maxWidth / maxHeight) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
+          // If dimensions are missing or 0, fallback to rawDataUrl
+          if (!width || !height) {
+            return resolve(rawDataUrl);
           }
+
+          let newWidth = width;
+          let newHeight = height;
+
+          if (newWidth > maxWidth || newHeight > maxHeight) {
+            if (newWidth / newHeight > maxWidth / maxHeight) {
+              newHeight = Math.round((newHeight * maxWidth) / newWidth);
+              newWidth = maxWidth;
+            } else {
+              newWidth = Math.round((newWidth * maxHeight) / newHeight);
+              newHeight = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, newWidth);
+          canvas.height = Math.max(1, newHeight);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            return resolve(rawDataUrl);
+          }
+
+          // Fill with clean background for transparency
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          if (!compressed || compressed === 'data:,' || compressed.length < 200) {
+            return resolve(rawDataUrl);
+          }
+          resolve(compressed);
+        } catch (err) {
+          console.warn('Canvas compression fallback to raw image:', err);
+          resolve(rawDataUrl);
         }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, width);
-        canvas.height = Math.max(1, height);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(e.target.result);
-          return;
-        }
-
-        // Fill background with white for transparent images when converting to JPEG
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        // Convert to web-friendly JPEG data URL
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
       };
-      img.src = e.target.result;
+      img.onerror = () => {
+        clearTimeout(timeout);
+        // Fallback to raw data URL on decode failure
+        resolve(rawDataUrl);
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   });
@@ -194,12 +226,6 @@ const StorageInventory = () => {
     return matchesSearch && matchesCat;
   });
 
-  const currentPreviewItem = useMemo(() => {
-    if (!photoPreviewItem) return null;
-    const targetId = photoPreviewItem.id || photoPreviewItem._id;
-    return vessels.find(v => (v.id && v.id === targetId) || (v._id && v._id === targetId)) || photoPreviewItem;
-  }, [photoPreviewItem, vessels]);
-
   const handlePhotoUpload = async (e, targetItem = null) => {
     const file = e.target.files?.[0];
     if (e.target) e.target.value = '';
@@ -221,12 +247,13 @@ const StorageInventory = () => {
       const dataUrl = await compressImage(file);
       setIsCompressing(false);
 
-      if (targetItem) {
-        const targetId = targetItem.id || targetItem._id;
-        const updated = { ...targetItem, id: targetId, photo: dataUrl };
-        updateVessel(updated);
+      const itemToUpdate = targetItem || photoPreviewItem;
+      if (itemToUpdate) {
+        const targetId = itemToUpdate.id || itemToUpdate._id;
+        const updated = { ...itemToUpdate, id: targetId, photo: dataUrl };
         setPhotoPreviewItem(updated);
         setImgError(false);
+        updateVessel(updated);
       } else {
         setForm(prev => ({ ...prev, photo: dataUrl }));
       }
@@ -238,12 +265,13 @@ const StorageInventory = () => {
   };
 
   const handleRemovePhoto = (targetItem = null) => {
-    if (targetItem) {
-      const targetId = targetItem.id || targetItem._id;
-      const updated = { ...targetItem, id: targetId, photo: '' };
-      updateVessel(updated);
+    const itemToUpdate = targetItem || photoPreviewItem;
+    if (itemToUpdate) {
+      const targetId = itemToUpdate.id || itemToUpdate._id;
+      const updated = { ...itemToUpdate, id: targetId, photo: '' };
       setPhotoPreviewItem(updated);
       setImgError(false);
+      updateVessel(updated);
     } else {
       setForm(prev => ({ ...prev, photo: '' }));
     }
@@ -295,7 +323,7 @@ const StorageInventory = () => {
           >
             <Truck size={18} /><span>Generate Event Gate Pass PDF</span>
           </button>
-          <button className="btn btn-primary" onClick={() => { setEditingItem(null); setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000 }); setIsModalOpen(true); }}>
+          <button className="btn btn-primary" onClick={() => { setEditingItem(null); setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' }); setIsModalOpen(true); }}>
             <Plus size={18} /><span>Add Vessel / Gear</span>
           </button>
         </div>
@@ -371,6 +399,7 @@ const StorageInventory = () => {
                   <td style={{ width: '50px', textAlign: 'center' }}>
                     {v.photo ? (
                       <img
+                        key={v.photo ? `${v.id || v._id}_${v.photo.length}_${v.photo.slice(-20)}` : 'ves_thumb'}
                         src={v.photo}
                         alt={v.name}
                         onClick={() => { setImgError(false); setPhotoPreviewItem(v); }}
@@ -486,7 +515,12 @@ const StorageInventory = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   {form.photo ? (
                     <div style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                      <img src={form.photo} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img
+                        key={form.photo ? `form_${form.photo.length}_${form.photo.slice(-20)}` : 'form_img'}
+                        src={form.photo}
+                        alt="Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
                       <button
                         type="button"
                         onClick={() => setForm(f => ({ ...f, photo: '' }))}
@@ -686,8 +720,8 @@ const StorageInventory = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.6rem' }}>
               <div style={{ textAlign: 'left' }}>
-                <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{currentPreviewItem?.name}</h2>
-                <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{currentPreviewItem?.category}</span>
+                <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{photoPreviewItem.name}</h2>
+                <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{photoPreviewItem.category}</span>
               </div>
               <button
                 type="button"
@@ -705,10 +739,11 @@ const StorageInventory = () => {
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Optimizing & uploading photo...</div>
                   <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Compressing for fast loading</div>
                 </div>
-              ) : currentPreviewItem?.photo && !imgError ? (
+              ) : photoPreviewItem.photo && !imgError ? (
                 <img
-                  src={currentPreviewItem.photo}
-                  alt={currentPreviewItem.name}
+                  key={photoPreviewItem.photo ? `modal_${photoPreviewItem.id || photoPreviewItem._id}_${photoPreviewItem.photo.length}_${photoPreviewItem.photo.slice(-20)}` : 'modal_img'}
+                  src={photoPreviewItem.photo}
+                  alt={photoPreviewItem.name}
                   onError={() => setImgError(true)}
                   style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', display: 'block' }}
                 />
@@ -742,7 +777,7 @@ const StorageInventory = () => {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 style={{ display: 'none' }}
-                onChange={e => handlePhotoUpload(e, currentPreviewItem)}
+                onChange={e => handlePhotoUpload(e, photoPreviewItem)}
               />
               <button
                 type="button"
@@ -751,15 +786,15 @@ const StorageInventory = () => {
                 onClick={() => photoFileInputRef.current?.click()}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
               >
-                <Upload size={14} /> {currentPreviewItem?.photo ? 'Replace Photo' : 'Upload Photo'}
+                <Upload size={14} /> {photoPreviewItem.photo ? 'Replace Photo' : 'Upload Photo'}
               </button>
 
-              {currentPreviewItem?.photo && (
+              {photoPreviewItem.photo && (
                 <button
                   type="button"
                   className="btn btn-danger btn-small"
                   disabled={isCompressing}
-                  onClick={() => handleRemovePhoto(currentPreviewItem)}
+                  onClick={() => handleRemovePhoto(photoPreviewItem)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}
                 >
                   <Trash2 size={14} /> Remove Photo
