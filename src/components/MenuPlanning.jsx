@@ -178,9 +178,10 @@ const MenuPlanning = () => {
     );
   });
 
-  const handleDownloadMenuPdf = (templateId = selectedTemplate) => {
-    if (!currentEvent || !selectedSub) return;
-    const res = generateOccasionMenuPdf(currentEvent, selectedSub, companyProfile, templateId, dishes);
+  const handleDownloadMenuPdf = (templateId = selectedTemplate, isAllSessions = false) => {
+    if (!currentEvent) return;
+    const subTarget = isAllSessions ? 'all' : selectedSub;
+    const res = generateOccasionMenuPdf(currentEvent, subTarget, companyProfile, templateId, dishes);
     downloadPdfBlob(res.blob, res.filename);
   };
 
@@ -1061,7 +1062,7 @@ const MenuPlanning = () => {
               })}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -1072,9 +1073,21 @@ const MenuPlanning = () => {
               </button>
               <button
                 type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  handleDownloadMenuPdf(selectedTemplate, true);
+                  setIsMenuPdfModalOpen(false);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
+                title="Download complete multi-session presentation proposal matching official client document"
+              >
+                <Download size={16} /> All Sessions Booklet ({draftSubFunctions?.length || 1} Sessions)
+              </button>
+              <button
+                type="button"
                 className="btn btn-primary"
                 onClick={() => {
-                  handleDownloadMenuPdf(selectedTemplate);
+                  handleDownloadMenuPdf(selectedTemplate, false);
                   setIsMenuPdfModalOpen(false);
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
