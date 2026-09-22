@@ -1,14 +1,50 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { Boxes, Plus, Search, AlertTriangle, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
 
 const ProvisionInventory = () => {
-  const { provisions, addProvision, updateProvision, deleteProvision, suppliers, companyProfile } = useContext(AppContext);
+  const { provisions = [], addProvision, updateProvision, deleteProvision, suppliers = [], companyProfile, vendorCategories = [] } = useContext(AppContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [form, setForm] = useState({ name: '', category: 'Grocery', unit: 'kg', stockQty: 100, reorderLevel: 25, costPerUnit: 80, supplierId: suppliers[0]?.id || '' });
+
+  // Derive categories aligned with Vendor Categories, plus any existing categories in provisions
+  const availableCategories = useMemo(() => {
+    const catSet = new Set();
+    // 1. From vendorCategories master
+    if (Array.isArray(vendorCategories)) {
+      vendorCategories.forEach(vc => {
+        if (vc && vc.name && vc.active !== false) {
+          catSet.add(vc.name.trim());
+        }
+      });
+    }
+    // 2. Also keep any existing categories in provisions so nothing is lost
+    if (Array.isArray(provisions)) {
+      provisions.forEach(p => {
+        if (p && p.category) {
+          catSet.add(p.category.trim());
+        }
+      });
+    }
+    // Fallback if empty
+    if (catSet.size === 0) {
+      ['Grocery', 'Spices', 'Ghee & Oils', 'Dairy', 'Vegetables', 'Fruits', 'Sweets', 'Dry Fruits', 'Plastic Items', 'Cleaning & Housekeeping'].forEach(c => catSet.add(c));
+    }
+    return Array.from(catSet).sort((a, b) => a.localeCompare(b));
+  }, [vendorCategories, provisions]);
+
+  const [form, setForm] = useState({
+    name: '',
+    category: 'Grocery',
+    customCategory: '',
+    unit: 'kg',
+    stockQty: 100,
+    reorderLevel: 25,
+    costPerUnit: 80,
+    supplierId: suppliers[0]?.id || ''
+  });
 
   const formatCurrency = (amount) => `${companyProfile?.currency || '₹'} ${Number(amount || 0).toLocaleString('en-IN')}`;
   const getSupplierName = (supId) => { const s = suppliers.find(sup => sup.id === supId); return s ? s.name : 'Local Market / Wholesaler'; };
@@ -24,13 +60,48 @@ const ProvisionInventory = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...form, stockQty: Number(form.stockQty), reorderLevel: Number(form.reorderLevel), costPerUnit: Number(form.costPerUnit) };
-    if (editingItem) { updateProvision({ ...payload, id: editingItem.id }); } else { addProvision(payload); }
-    setIsModalOpen(false); setEditingItem(null);
-    setForm({ name: '', category: 'Grocery', unit: 'kg', stockQty: 100, reorderLevel: 25, costPerUnit: 80, supplierId: suppliers[0]?.id || '' });
+    const finalCategory = form.category === '__custom__'
+      ? (form.customCategory || '').trim() || 'General'
+      : form.category;
+
+    const payload = {
+      ...form,
+      category: finalCategory,
+      stockQty: Number(form.stockQty),
+      reorderLevel: Number(form.reorderLevel),
+      costPerUnit: Number(form.costPerUnit)
+    };
+    delete payload.customCategory;
+
+    if (editingItem) {
+      updateProvision({ ...payload, id: editingItem.id });
+    } else {
+      addProvision(payload);
+    }
+    setIsModalOpen(false);
+    setEditingItem(null);
+    setForm({
+      name: '',
+      category: availableCategories[0] || 'Grocery',
+      customCategory: '',
+      unit: 'kg',
+      stockQty: 100,
+      reorderLevel: 25,
+      costPerUnit: 80,
+      supplierId: suppliers[0]?.id || ''
+    });
   };
 
-  const openEdit = (p) => { setEditingItem(p); setForm(p); setIsModalOpen(true); };
+  const openEdit = (p) => {
+    setEditingItem(p);
+    const isStandard = availableCategories.includes(p.category);
+    setForm({
+      ...p,
+      category: isStandard ? p.category : (p.category ? '__custom__' : (availableCategories[0] || 'Grocery')),
+      customCategory: isStandard ? '' : (p.category || '')
+    });
+    setIsModalOpen(true);
+  };
 
   return (
     <div>
@@ -80,14 +151,13 @@ const ProvisionInventory = () => {
             style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Vendor Category:</span>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
             style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}>
-            <option value="All">All Categories</option>
-            <option value="Grocery">Grocery</option>
-            <option value="Ghee & Oils">Ghee & Oils</option>
-            <option value="Spices & Condiments">Spices & Condiments</option>
-            <option value="Dry Fruits">Dry Fruits</option>
+            <option value="All">All Categories ({provisions.length})</option>
+            {availableCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -148,11 +218,27 @@ const ProvisionInventory = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                    <option value="Grocery">Grocery</option><option value="Ghee & Oils">Ghee & Oils</option><option value="Spices & Condiments">Spices & Condiments</option><option value="Dry Fruits">Dry Fruits</option>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Vendor Category</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  >
+                    {availableCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="__custom__">+ Custom Vendor Category...</option>
                   </select>
+                  {form.category === '__custom__' && (
+                    <input
+                      type="text"
+                      placeholder="Type custom category name..."
+                      value={form.customCategory || ''}
+                      onChange={(e) => setForm({ ...form, customCategory: e.target.value })}
+                      required
+                      style={{ marginTop: '0.5rem', width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--primary-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                    />
+                  )}
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Unit of Measure</label>

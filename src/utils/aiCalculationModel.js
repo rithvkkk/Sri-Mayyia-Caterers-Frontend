@@ -141,6 +141,620 @@ const DIETARY_FACTORS = {
   }
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CATEGORY-BASED MATERIAL INTELLIGENCE ENGINE
+// ═══════════════════════════════════════════════════════════════════════════════
+// Since dish recipes are empty, we use category intelligence to determine
+// which raw materials are needed based on the types of dishes on the menu.
+// This mimics how professional caterers actually provision — by experience ratios.
+
+/**
+ * Per-pax raw material contribution when a dish category is present on the menu.
+ * Each entry maps a category keyword to the raw materials it demands.
+ * Quantities are in the material's native unit per pax.
+ */
+const CATEGORY_MATERIAL_RATIOS = {
+  // South Indian rice dishes (Bisi Bele Bath, Pulav, Lemon Rice, etc.)
+  'rice': {
+    rm1: 0.046,   // Basmati Rice: 46g raw/pax (yields ~115g cooked at 1:2.5)
+    rm5: 0.008,   // Cooking Oil: 8ml/pax for tempering
+    rm4: 0.004,   // Spices Mix: 4g/pax
+    rm16: 0.012,  // Onions & Potatoes: 12g/pax
+  },
+  // South Indian gravies/curries (Sambar, Rasam, Kootu, Palya)
+  'gravy_south': {
+    rm6: 0.025,   // Lentils: 25g/pax (toor/moong dal base)
+    rm4: 0.006,   // Spices Mix: 6g/pax
+    rm15: 0.030,  // Mixed Vegetables: 30g/pax
+    rm16: 0.015,  // Onions & Potatoes: 15g/pax
+    rm17: 0.012,  // Capsicum & Tomato: 12g/pax for gravy base
+    rm5: 0.010,   // Cooking Oil: 10ml/pax
+    rm14: 0.005,  // Desi Ghee: 5g/pax for finishing
+  },
+  // North Indian gravies (Paneer Butter Masala, Dal Makhani, etc.)
+  'gravy_north': {
+    rm9: 0.045,   // Fresh Paneer: 45g/pax
+    rm10: 0.012,  // Amul Butter: 12g/pax
+    rm11: 0.015,  // Fresh Cream: 15ml/pax
+    rm4: 0.008,   // Spices Mix: 8g/pax (garam masala heavy)
+    rm16: 0.020,  // Onions & Potatoes: 20g/pax
+    rm17: 0.018,  // Capsicum & Tomato: 18g/pax (tomato-heavy gravies)
+    rm5: 0.010,   // Cooking Oil: 10ml/pax
+    rm14: 0.008,  // Desi Ghee: 8g/pax
+  },
+  // North Indian breads (Naan, Roti, Paratha, Churma)
+  'breads': {
+    rm2: 0.060,   // Wheat Flour: 60g/pax (2 breads)
+    rm14: 0.010,  // Desi Ghee: 10g/pax for layering
+    rm10: 0.008,  // Amul Butter: 8g/pax
+    rm5: 0.005,   // Cooking Oil: 5ml/pax
+  },
+  // Desserts & Sweets (Payasam, Gulab Jamun, Halwa, Holige)
+  'desserts': {
+    rm3: 0.035,   // Sugar: 35g/pax
+    rm12: 0.060,  // Full Cream Milk: 60ml/pax
+    rm13: 0.015,  // Khoya: 15g/pax
+    rm14: 0.012,  // Desi Ghee: 12g/pax
+    rm2: 0.010,   // Wheat Flour: 10g/pax (for holige/ladoo)
+  },
+  // Ice Cream & Frozen Desserts
+  'ice_cream': {
+    rm12: 0.040,  // Full Cream Milk: 40ml/pax
+    rm11: 0.020,  // Fresh Cream: 20ml/pax
+    rm3: 0.020,   // Sugar: 20g/pax
+  },
+  // Hot Beverages (Filter Coffee, Masala Chai, Badam Milk)
+  'beverages_hot': {
+    rm7: 0.004,   // Tea Leaves: 4g/pax
+    rm12: 0.080,  // Full Cream Milk: 80ml/pax (coffee/tea)
+    rm3: 0.015,   // Sugar: 15g/pax
+  },
+  // Cold Beverages & Juices (Fresh Juices, Mocktails)
+  'beverages_cold': {
+    rm19: 0.100,  // Assorted Fresh Fruits: 100g/pax
+    rm3: 0.012,   // Sugar: 12g/pax
+    rm18: 0.005,  // Mint & Lemon: 5g/pax garnish
+  },
+  // Chaats & Street Food (Pani Puri, Dahi Puri, Aloo Tikki)
+  'chaats': {
+    rm16: 0.025,  // Onions & Potatoes: 25g/pax
+    rm17: 0.015,  // Capsicum & Tomato: 15g/pax
+    rm4: 0.005,   // Spices Mix: 5g/pax (chaat masala)
+    rm5: 0.015,   // Cooking Oil: 15ml/pax (deep fry)
+    rm18: 0.008,  // Mint & Lemon: 8g/pax (chutney)
+    rm2: 0.015,   // Wheat Flour: 15g/pax (puri shells)
+  },
+  // Appetizers & Starters (Samosa, Bonda, Vada, Cutlet)
+  'starters': {
+    rm2: 0.020,   // Wheat Flour: 20g/pax (coating/shell)
+    rm5: 0.020,   // Cooking Oil: 20ml/pax (deep frying)
+    rm16: 0.015,  // Onions & Potatoes: 15g/pax (filling)
+    rm4: 0.004,   // Spices Mix: 4g/pax
+    rm15: 0.018,  // Mixed Vegetables: 18g/pax (filling)
+  },
+  // Chinese & Global Fusion (Pasta, Manchurian, Fried Rice)
+  'global': {
+    rm8: 0.015,   // Chinese Sauces: 15ml/pax
+    rm17: 0.020,  // Capsicum & Tomato: 20g/pax
+    rm5: 0.015,   // Cooking Oil: 15ml/pax
+    rm15: 0.025,  // Mixed Vegetables: 25g/pax
+    rm11: 0.010,  // Fresh Cream: 10ml/pax (pasta sauces)
+    rm1: 0.030,   // Rice: 30g/pax (fried rice)
+  },
+  // Dosa & Tiffin items
+  'dosa_idli': {
+    rm1: 0.035,   // Rice: 35g/pax (batter base)
+    rm6: 0.015,   // Lentils: 15g/pax (urad dal batter)
+    rm5: 0.012,   // Cooking Oil: 12ml/pax
+    rm14: 0.008,  // Desi Ghee: 8g/pax (benne dosa)
+    rm16: 0.010,  // Onions & Potatoes: 10g/pax (masala filling)
+  },
+  // Salads & Accompaniments (Raita, Kosambari, Pickle, Papad)
+  'sides': {
+    rm15: 0.020,  // Mixed Vegetables: 20g/pax
+    rm12: 0.025,  // Milk: 25ml/pax (raita/curd)
+    rm18: 0.006,  // Mint & Lemon: 6g/pax
+    rm5: 0.003,   // Cooking Oil: 3ml/pax (pickle/papad)
+  },
+  // After-meal finishers (Paan, Tambula, Supari)
+  'finishers': {
+    rm18: 0.004,  // Mint & Lemon: 4g/pax (paan leaf)
+  }
+};
+
+/**
+ * Maps a dish's category + subCategory to one of the CATEGORY_MATERIAL_RATIOS keys.
+ */
+const classifyDish = (dish) => {
+  const cat = (dish.category || '').toLowerCase();
+  const sub = (dish.subCategory || '').toLowerCase();
+  const name = (dish.name || '').toLowerCase();
+
+  // Rice varieties
+  if (sub.includes('rice') || name.includes('pulav') || name.includes('biryani') || name.includes('bath')) return 'rice';
+  
+  // Dosa & Idli & Tiffin
+  if (sub.includes('dosa') || sub.includes('idli') || sub.includes('tiffin') || sub.includes('uttapam')) return 'dosa_idli';
+  
+  // South Indian gravies
+  if (cat.includes('south indian') && (sub.includes('gravy') || sub.includes('curry') || sub.includes('sambar') || sub.includes('rasam') || sub.includes('kootu') || sub.includes('palya'))) return 'gravy_south';
+  
+  // North Indian gravies
+  if ((cat.includes('north indian') || cat.includes('punjabi')) && (sub.includes('gravy') || sub.includes('curry') || sub.includes('paneer') || sub.includes('dal'))) return 'gravy_north';
+  
+  // Breads
+  if (sub.includes('bread') || sub.includes('roti') || sub.includes('naan') || sub.includes('paratha') || sub.includes('chapati') || sub.includes('churma') || sub.includes('puri')) return 'breads';
+  
+  // Ice cream
+  if (sub.includes('ice cream') || sub.includes('kulfi') || sub.includes('frozen')) return 'ice_cream';
+  
+  // Desserts & Sweets
+  if (cat.includes('dessert') || cat.includes('sweet') || sub.includes('payasam') || sub.includes('halwa') || sub.includes('ladoo') || sub.includes('holige') || sub.includes('gulab') || sub.includes('kunafa')) return 'desserts';
+  
+  // Hot beverages
+  if ((cat.includes('beverage') || sub.includes('beverage')) && (sub.includes('hot') || sub.includes('coffee') || sub.includes('tea') || sub.includes('badam'))) return 'beverages_hot';
+  
+  // Cold beverages & juices
+  if (cat.includes('beverage') || sub.includes('juice') || sub.includes('mocktail') || sub.includes('smoothie') || sub.includes('lassi') || sub.includes('sherbet')) return 'beverages_cold';
+  
+  // Chaats
+  if (sub.includes('chaat') || sub.includes('puri') || sub.includes('tikki')) return 'chaats';
+  
+  // Appetizers & starters
+  if (cat.includes('appetizer') || cat.includes('starter') || sub.includes('snack') || sub.includes('starter') || sub.includes('bonda') || sub.includes('vada') || sub.includes('samosa')) return 'starters';
+  
+  // Global & Fusion
+  if (cat.includes('global') || cat.includes('fusion') || sub.includes('italian') || sub.includes('continental') || sub.includes('chinese') || sub.includes('mexican') || sub.includes('thai')) return 'global';
+  
+  // Salads & sides
+  if (cat.includes('side') || cat.includes('accompaniment') || sub.includes('salad') || sub.includes('raita') || sub.includes('pickle') || sub.includes('papad')) return 'sides';
+  
+  // After-meal finishers
+  if (cat.includes('after-meal') || cat.includes('finisher') || sub.includes('paan') || sub.includes('tambula') || sub.includes('supari')) return 'finishers';
+  
+  // Fallback: try to guess from category keywords
+  if (cat.includes('south indian')) return 'gravy_south';
+  if (cat.includes('north indian')) return 'gravy_north';
+  
+  return 'sides'; // safe default
+};
+
+/**
+ * Calculates a complete per-item material breakdown for an event.
+ * Uses category-based intelligence to determine every raw material,
+ * vendor item, and vessel needed for the event based on the menu.
+ * 
+ * @param {Object} params Configuration parameters
+ * @param {number} params.pax Guest count
+ * @param {Array<string>} params.menuItemIds Array of dish IDs on the menu
+ * @param {Array} params.dishCatalog Master dishes array with id, category, subCategory
+ * @param {Array} params.rawMaterialsCatalog Raw materials master with id, name, unit, costPerUnit
+ * @param {string} params.serviceStyle Service style modifier
+ * @param {string} params.season Season modifier
+ * @param {string} params.dietaryProtocol Dietary protocol modifier
+ * @returns {Object} Complete material breakdown with costs
+ */
+export const calculateCompleteEventMaterials = (params = {}) => {
+  const pax = Math.max(25, parseInt(params.pax, 10) || 100);
+  const menuItemIds = params.menuItemIds || [];
+  const dishCatalog = params.dishCatalog || [];
+  const rawMaterialsCatalog = params.rawMaterialsCatalog || [];
+  const serviceStyle = params.serviceStyle || 'Multi-Station Live Buffet';
+  const season = params.season || 'Summer Peak';
+  const dietaryProtocol = params.dietaryProtocol || 'Standard Pure Vegetarian';
+
+  // 1. Resolve modifier factors
+  const styleFactor = SERVICE_STYLE_FACTORS[serviceStyle] || SERVICE_STYLE_FACTORS['Multi-Station Live Buffet'];
+  const seasonFactor = SEASON_FACTORS[season] || SEASON_FACTORS['Summer Peak'];
+  const dietFactor = DIETARY_FACTORS[dietaryProtocol] || DIETARY_FACTORS['Standard Pure Vegetarian'];
+
+  // 2. Resolve selected dishes from catalog
+  const selectedDishes = menuItemIds
+    .map(id => dishCatalog.find(d => (d.id === id || d._id === id)))
+    .filter(Boolean);
+
+  // 3. Classify each dish and count categories
+  const categoryBreakdown = {};
+  const dishClassifications = [];
+  
+  selectedDishes.forEach(dish => {
+    const classification = classifyDish(dish);
+    categoryBreakdown[classification] = (categoryBreakdown[classification] || 0) + 1;
+    dishClassifications.push({ dish, classification });
+  });
+
+  // 4. Aggregate raw material demand from all dish categories
+  // Key: materialId, Value: { totalQtyPerPax, reasons[] }
+  const materialDemand = {};
+
+  Object.entries(categoryBreakdown).forEach(([catKey, dishCount]) => {
+    const ratios = CATEGORY_MATERIAL_RATIOS[catKey];
+    if (!ratios) return;
+
+    Object.entries(ratios).forEach(([materialId, qtyPerPax]) => {
+      if (!materialDemand[materialId]) {
+        materialDemand[materialId] = { totalQtyPerPax: 0, reasons: [] };
+      }
+      // Scale by number of dishes in this category (diminishing returns for multiple similar dishes)
+      // First dish adds 100%, each additional adds ~60% (log curve)
+      const scaleFactor = 1 + Math.log2(dishCount) * 0.6;
+      const adjustedQty = qtyPerPax * scaleFactor;
+      
+      materialDemand[materialId].totalQtyPerPax += adjustedQty;
+      
+      const catLabel = catKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      materialDemand[materialId].reasons.push(
+        `${dishCount} ${catLabel} dish${dishCount > 1 ? 'es' : ''}`
+      );
+    });
+  });
+
+  // 4b. Also incorporate any explicit recipe items if defined on selected dishes
+  selectedDishes.forEach(dish => {
+    if (Array.isArray(dish.recipe) && dish.recipe.length > 0) {
+      dish.recipe.forEach(recipeItem => {
+        const matId = recipeItem.materialId || recipeItem.id;
+        const qty = parseFloat(recipeItem.quantity) || 0;
+        if (matId && qty > 0) {
+          if (!materialDemand[matId]) {
+            materialDemand[matId] = { totalQtyPerPax: 0, reasons: [] };
+          }
+          materialDemand[matId].totalQtyPerPax += qty;
+          materialDemand[matId].reasons.push(
+            `Explicit recipe from ${dish.name} (${qty}/pax)`
+          );
+        }
+      });
+    }
+  });
+
+  // 5. Apply service style, season, and dietary modifiers to specific materials
+  const applyModifiers = (materialId, baseQty) => {
+    let qty = baseQty;
+    
+    // Rice modifiers
+    if (materialId === 'rm1') qty *= styleFactor.riceMultiplier;
+    
+    // Liquid-related (lentils for sambar/rasam)
+    if (materialId === 'rm6') qty *= styleFactor.liquidMultiplier;
+    
+    // Paneer/dairy modifiers
+    if (materialId === 'rm9') qty *= (dietFactor.paneerMultiplier || 1.0);
+    
+    // Oil/ghee for starters
+    if (materialId === 'rm5' || materialId === 'rm14') {
+      qty *= (styleFactor.starterMultiplier > 1.2 ? 1.15 : 1.0);
+    }
+    
+    // Sugar/sweets modifiers
+    if (materialId === 'rm3' || materialId === 'rm13') {
+      qty *= (seasonFactor.dessertMultiplier || 1.0);
+      qty *= (dietFactor.holigeMultiplier || 1.0);
+    }
+    
+    // Milk/cream seasonal
+    if (materialId === 'rm12' || materialId === 'rm11') {
+      qty *= (seasonFactor.beverageMultiplier || 1.0) * 0.85; // 0.85 to avoid over-scaling
+    }
+    
+    // Fruits for beverages
+    if (materialId === 'rm19') qty *= (seasonFactor.beverageMultiplier || 1.0);
+    
+    // Tea leaves
+    if (materialId === 'rm7') qty *= (seasonFactor.beverageMultiplier || 1.0);
+    
+    return qty;
+  };
+
+  // 6. Build raw materials result array
+  const rmLookup = {};
+  rawMaterialsCatalog.forEach(rm => { rmLookup[rm.id] = rm; });
+
+  // If no menu items selected, use baseline ratios for a standard menu
+  const hasMenu = selectedDishes.length > 0;
+  
+  // Default baseline when no menu is selected (assume standard South Indian wedding spread)
+  const DEFAULT_BASELINES = {
+    rm1: 0.046, rm2: 0.030, rm3: 0.035, rm4: 0.012, rm5: 0.025,
+    rm6: 0.020, rm7: 0.003, rm8: 0.000, rm9: 0.025, rm10: 0.008,
+    rm11: 0.012, rm12: 0.080, rm13: 0.010, rm14: 0.015, rm15: 0.025,
+    rm16: 0.025, rm17: 0.015, rm18: 0.008, rm19: 0.040, rm20: 0.013,
+    rm21: 0.003
+  };
+
+  const rawMaterialsResult = rawMaterialsCatalog.map(rm => {
+    let qtyPerPax;
+    let reason;
+
+    if (hasMenu && materialDemand[rm.id]) {
+      qtyPerPax = applyModifiers(rm.id, materialDemand[rm.id].totalQtyPerPax);
+      reason = materialDemand[rm.id].reasons.join(', ');
+    } else if (hasMenu) {
+      // Material not demanded by any dish category on menu
+      qtyPerPax = 0;
+      reason = 'Not required for selected menu';
+    } else {
+      // No menu selected — use baseline
+      qtyPerPax = DEFAULT_BASELINES[rm.id] || 0;
+      reason = 'Standard baseline (no menu selected)';
+    }
+
+    // Fuel items scale differently
+    if (rm.id === 'rm20') {
+      // LPG: 1 cylinder per 75 pax
+      const cylinders = Math.max(hasMenu ? 1 : 0, Math.ceil(pax / 75));
+      return {
+        id: rm.id,
+        name: rm.name,
+        category: rm.category,
+        qty: cylinders,
+        unit: rm.unit,
+        unitCost: rm.costPerUnit,
+        totalCost: cylinders * rm.costPerUnit,
+        qtyPerPax: (cylinders / pax).toFixed(4),
+        reason: `1 cylinder per 75 pax (${pax} pax → ${cylinders} cylinders)`
+      };
+    }
+    if (rm.id === 'rm21') {
+      // Charcoal: 1 bag per 120 pax (only for tandoor/live counter menus)
+      const hasTandoor = Object.keys(categoryBreakdown).some(k => k === 'breads' || k === 'starters');
+      const bags = hasTandoor ? Math.max(1, Math.ceil(pax / 120)) : 0;
+      return {
+        id: rm.id,
+        name: rm.name,
+        category: rm.category,
+        qty: bags,
+        unit: rm.unit,
+        unitCost: rm.costPerUnit,
+        totalCost: bags * rm.costPerUnit,
+        qtyPerPax: bags > 0 ? (bags / pax).toFixed(4) : '0',
+        reason: hasTandoor ? `Tandoor/live counter menu → 1 bag per 120 pax` : 'No tandoor items on menu'
+      };
+    }
+
+    // Add wastage buffer (5-8% based on service style)
+    const wastageBuffer = 1 + (BASELINE_RATIOS.baseWastagePercent * (styleFactor.wasteMultiplier || 1.0) / 100);
+    const totalQty = parseFloat((pax * qtyPerPax * wastageBuffer).toFixed(2));
+    const totalCost = Math.round(totalQty * rm.costPerUnit);
+
+    return {
+      id: rm.id,
+      name: rm.name,
+      category: rm.category,
+      qty: totalQty,
+      unit: rm.unit,
+      unitCost: rm.costPerUnit,
+      totalCost,
+      qtyPerPax: qtyPerPax.toFixed(4),
+      reason: reason || 'Baseline allocation'
+    };
+  }).filter(rm => rm.qty > 0); // Only show materials with non-zero quantities
+
+  // 7. Vendor items calculation
+  const vendorItems = [];
+
+  // Water bottles
+  const waterMultiplier = seasonFactor.waterMultiplier || 1.0;
+  const waterBottles = Math.round(pax * 1.25 * waterMultiplier);
+  vendorItems.push({
+    name: 'Water Bottles (300ml)',
+    category: 'Water Bottle',
+    qty: waterBottles,
+    unit: 'bottles',
+    estimatedCost: Math.round(waterBottles * 10),
+    reason: `1.25 bottles/pax × ${season} (${waterMultiplier}x) = ${(1.25 * waterMultiplier).toFixed(2)}/pax`
+  });
+
+  // Water cans for kitchen
+  const waterCans = Math.max(2, Math.ceil(pax / 100));
+  vendorItems.push({
+    name: 'Water Cans (20L)',
+    category: 'Water Can',
+    qty: waterCans,
+    unit: 'cans',
+    estimatedCost: waterCans * 40,
+    reason: `Kitchen prep water: 1 can per 100 pax`
+  });
+
+  // Plantain leaves / plates
+  if (serviceStyle === 'Plantain Leaf Seated') {
+    const leaves = Math.round(pax * 1.15); // 15% buffer
+    vendorItems.push({
+      name: 'Fresh Plantain Leaves',
+      category: 'Plant and Leaf',
+      qty: leaves,
+      unit: 'leaves',
+      estimatedCost: Math.round(leaves * 12),
+      reason: `Seated service: 1.15x pax buffer for tears/replacements`
+    });
+  } else {
+    const plates = Math.round(pax * 1.10);
+    vendorItems.push({
+      name: 'Buffet Plates (Melamine/Disposable)',
+      category: 'Plastic Items',
+      qty: plates,
+      unit: 'plates',
+      estimatedCost: Math.round(plates * 8),
+      reason: `Buffet service: 1.10x pax buffer for multiple rounds`
+    });
+  }
+
+  // Disposables (spoons, napkins, garbage bags)
+  vendorItems.push({
+    name: 'Disposable Spoons & Cups Set',
+    category: 'Plastic Items',
+    qty: Math.round(pax * 1.5),
+    unit: 'pieces',
+    estimatedCost: Math.round(pax * 1.5 * 2),
+    reason: `1.5 sets/pax (dessert + chaat + beverages)`
+  });
+
+  vendorItems.push({
+    name: 'Paper Napkins',
+    category: 'Plastic Items',
+    qty: Math.round(pax * 2),
+    unit: 'pieces',
+    estimatedCost: Math.round(pax * 2 * 0.5),
+    reason: `2 napkins/pax standard`
+  });
+
+  const garbageBags = Math.max(5, Math.ceil(pax / 50));
+  vendorItems.push({
+    name: 'Heavy Duty Garbage Bags',
+    category: 'Cleaning & Housekeeping',
+    qty: garbageBags,
+    unit: 'bags',
+    estimatedCost: garbageBags * 25,
+    reason: `1 bag per 50 pax for wet + dry waste`
+  });
+
+  // Coconut (if South Indian menu)
+  const hasSouthIndian = Object.keys(categoryBreakdown).some(k => k.includes('south') || k === 'rice' || k === 'dosa_idli');
+  if (hasSouthIndian || !hasMenu) {
+    const coconuts = Math.max(10, Math.ceil(pax * 0.08));
+    vendorItems.push({
+      name: 'Fresh Coconuts (for chutney/garnish)',
+      category: 'Coconut',
+      qty: coconuts,
+      unit: 'pieces',
+      estimatedCost: coconuts * 35,
+      reason: `South Indian menu: ~0.08 coconut/pax for chutneys & garnish`
+    });
+  }
+
+  // Tender coconut (for beverages in summer)
+  if (season === 'Summer Peak') {
+    const tenderCoconuts = Math.round(pax * 0.30);
+    vendorItems.push({
+      name: 'Tender Coconuts',
+      category: 'Coconut',
+      qty: tenderCoconuts,
+      unit: 'pieces',
+      estimatedCost: tenderCoconuts * 40,
+      reason: `Summer peak: ~30% of pax opt for tender coconut`
+    });
+  }
+
+  // Thambula/Return gifts (for weddings)
+  vendorItems.push({
+    name: 'Thambula / Return Gift Bags',
+    category: 'Thambula',
+    qty: Math.round(pax * 0.85),
+    unit: 'pieces',
+    estimatedCost: Math.round(pax * 0.85 * 45),
+    reason: `~85% of pax receive thambula (family grouping)`
+  });
+
+  // Handwash & sanitizer
+  const handwashStations = Math.max(2, Math.ceil(pax / 100));
+  vendorItems.push({
+    name: 'Handwash Liquid & Sanitiser Bottles',
+    category: 'Cleaning & Housekeeping',
+    qty: handwashStations * 2,
+    unit: 'bottles',
+    estimatedCost: handwashStations * 2 * 120,
+    reason: `${handwashStations} wash stations × 2 bottles each`
+  });
+
+  // 8. Vessel requirements
+  const vesselRequirements = [];
+
+  // Cooking vessels scale with pax
+  const degchiCount = Math.max(2, Math.ceil(pax / 80));
+  vesselRequirements.push({
+    name: 'Aluminium Degchi (100 Litre)',
+    category: 'Cooking Vessel',
+    qty: degchiCount,
+    reason: `1 per 80 pax for rice, dal, sambar batches`
+  });
+
+  if (categoryBreakdown['rice'] || categoryBreakdown['gravy_north'] || !hasMenu) {
+    const handiCount = Math.max(1, Math.ceil(pax / 150));
+    vesselRequirements.push({
+      name: 'Brass Biryani Handi (50L)',
+      category: 'Cooking Vessel',
+      qty: handiCount,
+      reason: `Pulav/Biryani/heavy gravy cooking`
+    });
+  }
+
+  const kadaiCount = Math.max(2, Math.ceil(pax / 100));
+  vesselRequirements.push({
+    name: 'Stainless Steel Kadai (Big)',
+    category: 'Cooking Vessel',
+    qty: kadaiCount,
+    reason: `Deep fry (starters/chaats) + palya/sabzi`
+  });
+
+  // Serving gear
+  const uniqueDishCount = selectedDishes.length || 12; // default 12 for no menu
+  const chafingCount = Math.min(30, Math.max(4, Math.ceil(uniqueDishCount * 1.1)));
+  vesselRequirements.push({
+    name: 'Chafing Dishes Roll-Top Set',
+    category: 'Serving Gear',
+    qty: chafingCount,
+    reason: `~1.1x per dish on buffet line (${uniqueDishCount} dishes)`
+  });
+
+  const hotBoxCount = Math.max(2, Math.ceil(pax / 150));
+  vesselRequirements.push({
+    name: 'Thermal Hot Transport Boxes (80L)',
+    category: 'Serving Gear',
+    qty: hotBoxCount,
+    reason: `1 per 150 pax for hot food transport to venue`
+  });
+
+  // Plates & crockery
+  const plateSetCount = Math.max(2, Math.ceil(pax / 100));
+  vesselRequirements.push({
+    name: 'Royal Melamine Dinner Plates (Set of 100)',
+    category: 'Utensils',
+    qty: plateSetCount,
+    reason: `1 set per 100 pax + replacement buffer`
+  });
+
+  // Gas stoves
+  const stoveCount = Math.max(2, Math.ceil(pax / 200));
+  vesselRequirements.push({
+    name: 'Commercial 3-Burner Gas Stove',
+    category: 'Heating & Fuel',
+    qty: stoveCount,
+    reason: `1 per 200 pax for simultaneous cooking stations`
+  });
+
+  // 9. Calculate summary
+  const totalRawMaterialCost = rawMaterialsResult.reduce((sum, rm) => sum + rm.totalCost, 0);
+  const totalVendorItemCost = vendorItems.reduce((sum, v) => sum + v.estimatedCost, 0);
+  const grandTotal = totalRawMaterialCost + totalVendorItemCost;
+
+  // Readable category breakdown
+  const menuCategoryBreakdown = {};
+  dishClassifications.forEach(({ dish, classification }) => {
+    const label = classification.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    menuCategoryBreakdown[label] = (menuCategoryBreakdown[label] || 0) + 1;
+  });
+
+  return {
+    rawMaterials: rawMaterialsResult,
+    vendorItems,
+    vesselRequirements,
+    summary: {
+      totalRawMaterialCost,
+      totalVendorItemCost,
+      grandTotal,
+      costPerPax: pax > 0 ? Math.round(grandTotal / pax) : 0,
+      menuCategoryBreakdown,
+      totalMenuItems: selectedDishes.length,
+      totalUniqueItems: rawMaterialsResult.length + vendorItems.length,
+      pax,
+      serviceStyle,
+      season,
+      dietaryProtocol
+    },
+    timestamp: new Date().toISOString()
+  };
+};
+
 /**
  * Executes AI Predictive Calculation based on input parameters and optional historical training set.
  * 

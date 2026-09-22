@@ -9,20 +9,24 @@ import {
 } from '../utils/historicalDataEngine';
 import {
   predictEventCatering,
-  queryCateringAiCopilot
+  queryCateringAiCopilot,
+  calculateCompleteEventMaterials
 } from '../utils/aiCalculationModel';
 import {
   Brain, Sparkles, TrendingUp, History, CheckCircle2, AlertTriangle,
   FileCheck, Layers, GitBranch, Search, Filter, ShieldCheck, Award,
   ArrowRight, RefreshCw, BarChart2, IndianRupee, Users, Droplets,
   Calendar, Check, Info, HelpCircle, Save, Upload, FileUp, Database, Download,
-  Sliders, MessageSquare, Send, Cpu, Zap, ShoppingCart, Truck, Utensils
+  Sliders, MessageSquare, Send, Cpu, Zap, ShoppingCart, Truck, Utensils,
+  Package, List, Box, Flame, Plus, Trash2, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 const HistoricalLearning = () => {
   const {
     currentRole,
     events,
+    dishes,
+    rawMaterials,
     companyProfile,
     updateEvent
   } = useContext(AppContext);
@@ -47,6 +51,21 @@ const HistoricalLearning = () => {
   const [aiEventType, setAiEventType] = useState('Wedding Reception');
   const [aiDietaryProtocol, setAiDietaryProtocol] = useState('Standard Pure Vegetarian');
   const [aiApplySuccess, setAiApplySuccess] = useState(false);
+
+  // Selected Menu Items for Complete Granular Calculation
+  const [aiSelectedMenuEventId, setAiSelectedMenuEventId] = useState(events[0]?.id || '');
+  const [aiSelectedMenuItems, setAiSelectedMenuItems] = useState(() => {
+    const firstEv = events[0];
+    if (firstEv?.subFunctions?.[0]?.menuItems?.length) {
+      return [...firstEv.subFunctions[0].menuItems];
+    }
+    return ['si_rc_1', 'si_rc_2', 'si_grv_1', 'si_grv_9', 'sw_hol_1', 'sw_hol_8', 'sd_ply_1'];
+  });
+  const [aiMaterialCategoryFilter, setAiMaterialCategoryFilter] = useState('ALL'); // ALL, Grocery, Dairy, Veg/Fruit, Fuel
+  const [aiActiveBreakdownTab, setAiActiveBreakdownTab] = useState('rawMaterials'); // rawMaterials, vendorItems, vessels, summary
+  const [aiDishSearch, setAiDishSearch] = useState('');
+  const [isDishSelectorOpen, setIsDishSelectorOpen] = useState(false);
+  const [aiMaterialsApplySuccess, setAiMaterialsApplySuccess] = useState(false);
 
   // AI Copilot Interactive Query State
   const [aiUserQuery, setAiUserQuery] = useState('');
@@ -276,6 +295,100 @@ const HistoricalLearning = () => {
     eventType: aiEventType,
     dietaryProtocol: aiDietaryProtocol
   }, historicalList);
+
+  // Complete Per-Item Material Breakdown Calculation
+  const aiItemBreakdown = calculateCompleteEventMaterials({
+    pax: aiPax,
+    menuItemIds: aiSelectedMenuItems,
+    dishCatalog: dishes || [],
+    rawMaterialsCatalog: rawMaterials || [],
+    serviceStyle: aiServiceStyle,
+    season: aiSeason,
+    dietaryProtocol: aiDietaryProtocol
+  });
+
+  const handleLoadMenuFromEvent = (eventId) => {
+    setAiSelectedMenuEventId(eventId);
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    const items = [];
+    if (Array.isArray(ev.subFunctions)) {
+      ev.subFunctions.forEach(sf => {
+        if (Array.isArray(sf.menuItems)) {
+          sf.menuItems.forEach(id => {
+            if (!items.includes(id)) items.push(id);
+          });
+        }
+      });
+    }
+    if (items.length > 0) {
+      setAiSelectedMenuItems(items);
+    }
+    if (ev.guestCount) {
+      setAiPax(ev.guestCount);
+    }
+  };
+
+  const handleToggleMenuItem = (dishId) => {
+    setAiSelectedMenuItems(prev =>
+      prev.includes(dishId) ? prev.filter(x => x !== dishId) : [...prev, dishId]
+    );
+  };
+
+  const handleApplyMaterialsToEvent = () => {
+    const targetEv = events.find(e => e.id === (aiSelectedMenuEventId || targetEventId));
+    if (!targetEv) {
+      alert('Please select a valid event to apply materials to.');
+      return;
+    }
+
+    const manualMaterials = aiItemBreakdown.rawMaterials.map(rm => ({
+      materialId: rm.id,
+      name: rm.name,
+      category: rm.category,
+      unit: rm.unit,
+      costPerUnit: rm.unitCost,
+      requiredQty: rm.qty,
+      totalCost: rm.totalCost,
+      notes: rm.reason
+    }));
+
+    const updated = {
+      ...targetEv,
+      guestCount: aiPax,
+      manualMaterials: manualMaterials,
+      execution: {
+        ...(targetEv.execution || {}),
+        costs: {
+          ...(targetEv.execution?.costs || {}),
+          rawMaterialsCost: aiItemBreakdown.summary.totalRawMaterialCost,
+          totalExecutionCost: (targetEv.execution?.costs?.laborCost || 0) + 
+                              (targetEv.execution?.costs?.transportCost || 0) + 
+                              aiItemBreakdown.summary.totalRawMaterialCost
+        }
+      },
+      aiProvisioningApplied: {
+        timestamp: new Date().toISOString(),
+        totalRawMaterials: aiItemBreakdown.rawMaterials.length,
+        totalRawMaterialCost: aiItemBreakdown.summary.totalRawMaterialCost,
+        totalVendorItemsCost: aiItemBreakdown.summary.totalVendorItemCost,
+        grandTotalCost: aiItemBreakdown.summary.grandTotal,
+        costPerPax: aiItemBreakdown.summary.costPerPax
+      }
+    };
+
+    updateEvent(updated);
+    setAiMaterialsApplySuccess(true);
+    setTimeout(() => setAiMaterialsApplySuccess(false), 4000);
+  };
+
+  const filteredCatalogDishes = (dishes || []).filter(d => {
+    if (!aiDishSearch.trim()) return true;
+    const term = aiDishSearch.toLowerCase();
+    return (d.name || '').toLowerCase().includes(term) ||
+           (d.category || '').toLowerCase().includes(term) ||
+           (d.subCategory || '').toLowerCase().includes(term);
+  });
 
   // Apply AI Predictions to Target Event in ERP
   const handleApplyAiToEvent = () => {
@@ -854,6 +967,516 @@ const HistoricalLearning = () => {
                 Fleet Allocation: <strong>{aiCalculation.financials.vehicleCount} vehicle trip(s)</strong> budgeted at ₹ {aiCalculation.financials.totalTransportCost.toLocaleString('en-IN')}.
               </div>
             </div>
+
+          </div>
+
+          {/* COMPLETE ITEM-BY-ITEM EVENT PROVISIONING & VESSEL ENGINE */}
+          <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid rgba(156, 21, 25, 0.22)', background: 'linear-gradient(135deg, rgba(156, 21, 25, 0.02) 0%, rgba(255, 255, 255, 0.95) 100%)' }}>
+            
+            {/* Header with Title & Live KPI Badges */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+                  <div style={{ padding: '0.45rem', borderRadius: '8px', background: 'linear-gradient(135deg, #9c1519 0%, #b91c1c 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Package size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Complete Item-by-Item Event Material Provisioning Engine
+                    </h3>
+                    <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      AI category intelligence calculates every raw grocery, dairy, vegetable, fuel, vendor item, and vessel needed for {aiPax} Pax.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Summary Pill Badges */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.2)', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary-color)' }}>
+                  📦 {aiItemBreakdown.summary.totalUniqueItems} Unique Items Required
+                </div>
+                <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, color: '#047857' }}>
+                  ₹ {aiItemBreakdown.summary.grandTotal.toLocaleString('en-IN')} Total Cost
+                </div>
+                <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, color: '#1d4ed8' }}>
+                  ₹ {aiItemBreakdown.summary.costPerPax} / Pax
+                </div>
+              </div>
+            </div>
+
+            {/* Menu Connection & Event Link Bar */}
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Utensils size={15} style={{ color: 'var(--primary-color)' }} />
+                    <span>Event Menu Source:</span>
+                  </span>
+                  <select
+                    className="form-select"
+                    value={aiSelectedMenuEventId}
+                    onChange={e => handleLoadMenuFromEvent(e.target.value)}
+                    style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', minWidth: '220px' }}
+                  >
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.id} - {ev.customer?.name} ({ev.eventType})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => handleLoadMenuFromEvent(aiSelectedMenuEventId)}
+                    style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                    title="Reload dishes and guest count from this event"
+                  >
+                    <RefreshCw size={13} /> Sync from Event
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="badge badge-primary" style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}>
+                    {aiSelectedMenuItems.length} Dishes on Active Menu
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => setIsDishSelectorOpen(!isDishSelectorOpen)}
+                    style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                  >
+                    <List size={13} /> {isDishSelectorOpen ? 'Close Menu Drawer' : 'Manage Dishes & Add Items'}
+                    {isDishSelectorOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Active Menu Category Distribution Pills */}
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.75rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.65rem' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', alignSelf: 'center', marginRight: '0.3rem' }}>
+                  Menu Classification:
+                </span>
+                {Object.entries(aiItemBreakdown.summary.menuCategoryBreakdown || {}).map(([cat, count]) => (
+                  <span key={cat} style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem', borderRadius: '12px', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                    <strong>{cat}</strong>: {count}
+                  </span>
+                ))}
+                {Object.keys(aiItemBreakdown.summary.menuCategoryBreakdown || {}).length === 0 && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    No specific dishes selected — applying standard baseline catering spread.
+                  </span>
+                )}
+              </div>
+
+              {/* Expandable Dish Selector Drawer */}
+              {isDishSelectorOpen && (
+                <div style={{ marginTop: '0.85rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
+                      <Search size={14} style={{ color: 'var(--text-secondary)' }} />
+                      <input
+                        type="text"
+                        placeholder="Search 374 master catalog dishes (e.g. Biryani, Paneer, Dosa, Payasam)..."
+                        className="form-control"
+                        value={aiDishSearch}
+                        onChange={e => setAiDishSearch(e.target.value)}
+                        style={{ fontSize: '0.82rem', padding: '0.35rem 0.65rem' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => {
+                          const idsToAdd = filteredCatalogDishes.slice(0, 30).map(d => d.id || d._id);
+                          setAiSelectedMenuItems(prev => Array.from(new Set([...prev, ...idsToAdd])));
+                        }}
+                        style={{ fontSize: '0.74rem' }}
+                      >
+                        + Add All Shown
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => setAiSelectedMenuItems([])}
+                        style={{ fontSize: '0.74rem', color: '#dc2626' }}
+                      >
+                        Clear Menu
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.45rem', padding: '0.25rem' }}>
+                    {filteredCatalogDishes.slice(0, 80).map(dish => {
+                      const dishId = dish.id || dish._id;
+                      const isSelected = aiSelectedMenuItems.includes(dishId);
+                      return (
+                        <div
+                          key={dishId}
+                          onClick={() => handleToggleMenuItem(dishId)}
+                          style={{
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: '6px',
+                            border: isSelected ? '1.5px solid var(--primary-color)' : '1px solid var(--border-color)',
+                            background: isSelected ? 'rgba(156, 21, 25, 0.07)' : 'var(--bg-card)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ minWidth: 0, paddingRight: '0.4rem' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {dish.name}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                              {dish.category} • {dish.subCategory || 'Special'}
+                            </div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // Handled by div onClick
+                            style={{ cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {filteredCatalogDishes.length > 80 && (
+                    <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
+                      Showing 80 of {filteredCatalogDishes.length} dishes. Use the search box to refine dishes.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Breakdown Sub-Tabs (Raw Materials, Vendor Items, Vessels, Cost Summary) */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <button
+                type="button"
+                className={`btn btn-small ${aiActiveBreakdownTab === 'rawMaterials' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setAiActiveBreakdownTab('rawMaterials')}
+                style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+              >
+                <Package size={14} />
+                <span>Raw Materials & Ingredients ({aiItemBreakdown.rawMaterials.length})</span>
+              </button>
+              
+              <button
+                type="button"
+                className={`btn btn-small ${aiActiveBreakdownTab === 'vendorItems' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setAiActiveBreakdownTab('vendorItems')}
+                style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+              >
+                <Truck size={14} />
+                <span>Vendor Consumables & Logistics ({aiItemBreakdown.vendorItems.length})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-small ${aiActiveBreakdownTab === 'vessels' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setAiActiveBreakdownTab('vessels')}
+                style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+              >
+                <Box size={14} />
+                <span>Cooking Vessels & Equipment ({aiItemBreakdown.vesselRequirements.length})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-small ${aiActiveBreakdownTab === 'summary' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setAiActiveBreakdownTab('summary')}
+                style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+              >
+                <BarChart2 size={14} />
+                <span>Cost & Margin Analytics</span>
+              </button>
+            </div>
+
+            {/* TAB 1: RAW MATERIALS TABLE */}
+            {aiActiveBreakdownTab === 'rawMaterials' && (
+              <div>
+                {/* Category Filter Chips */}
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.85rem' }}>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginRight: '0.3rem' }}>
+                    <Filter size={12} /> Category Filter:
+                  </span>
+                  {['ALL', 'Grocery', 'Dairy', 'Veg/Fruit', 'Fuel'].map(cat => {
+                    const count = cat === 'ALL' 
+                      ? aiItemBreakdown.rawMaterials.length 
+                      : aiItemBreakdown.rawMaterials.filter(rm => rm.category === cat).length;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setAiMaterialCategoryFilter(cat)}
+                        style={{
+                          fontSize: '0.74rem',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '15px',
+                          border: aiMaterialCategoryFilter === cat ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
+                          background: aiMaterialCategoryFilter === cat ? 'var(--primary-color)' : 'var(--bg-card)',
+                          color: aiMaterialCategoryFilter === cat ? '#fff' : 'var(--text-primary)',
+                          cursor: 'pointer',
+                          fontWeight: aiMaterialCategoryFilter === cat ? 700 : 500
+                        }}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Table */}
+                <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <table className="table table-hover" style={{ margin: 0, fontSize: '0.82rem' }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1, borderBottom: '2px solid var(--border-color)' }}>
+                      <tr>
+                        <th style={{ padding: '0.65rem 0.8rem' }}>#</th>
+                        <th style={{ padding: '0.65rem 0.8rem' }}>Raw Material / Item</th>
+                        <th style={{ padding: '0.65rem 0.8rem' }}>Category</th>
+                        <th style={{ padding: '0.65rem 0.8rem', textAlign: 'right' }}>Calculated Qty</th>
+                        <th style={{ padding: '0.65rem 0.8rem' }}>Unit</th>
+                        <th style={{ padding: '0.65rem 0.8rem', textAlign: 'right' }}>Unit Cost</th>
+                        <th style={{ padding: '0.65rem 0.8rem', textAlign: 'right' }}>Total Cost (₹)</th>
+                        <th style={{ padding: '0.65rem 0.8rem' }}>AI Allocation Rationale</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aiItemBreakdown.rawMaterials
+                        .filter(rm => aiMaterialCategoryFilter === 'ALL' || rm.category === aiMaterialCategoryFilter)
+                        .map((rm, idx) => {
+                          const categoryColorMap = {
+                            Grocery: { bg: 'rgba(16, 185, 129, 0.1)', color: '#047857', border: 'rgba(16, 185, 129, 0.25)' },
+                            Dairy: { bg: 'rgba(59, 130, 246, 0.1)', color: '#1d4ed8', border: 'rgba(59, 130, 246, 0.25)' },
+                            'Veg/Fruit': { bg: 'rgba(245, 158, 11, 0.1)', color: '#b45309', border: 'rgba(245, 158, 11, 0.25)' },
+                            Fuel: { bg: 'rgba(168, 85, 247, 0.1)', color: '#7e22ce', border: 'rgba(168, 85, 247, 0.25)' }
+                          };
+                          const col = categoryColorMap[rm.category] || { bg: 'rgba(0,0,0,0.05)', color: 'inherit', border: 'var(--border-color)' };
+                          return (
+                            <tr key={rm.id}>
+                              <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{idx + 1}</td>
+                              <td style={{ padding: '0.6rem 0.8rem', fontWeight: 700 }}>
+                                <div>{rm.name}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Code: {rm.id.toUpperCase()}</div>
+                              </td>
+                              <td style={{ padding: '0.6rem 0.8rem' }}>
+                                <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '10px', background: col.bg, color: col.color, border: `1px solid ${col.border}`, fontWeight: 600 }}>
+                                  {rm.category}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                                {rm.qty.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-secondary)' }}>{rm.unit}</td>
+                              <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                ₹ {rm.unitCost}
+                              </td>
+                              <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 700, color: 'var(--primary-color)' }}>
+                                ₹ {rm.totalCost.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '0.6rem 0.8rem', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <Sparkles size={11} style={{ color: '#6366f1', flexShrink: 0 }} />
+                                  <span>{rm.reason}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                    <tfoot style={{ background: 'var(--bg-card)', borderTop: '2px solid var(--border-color)', fontWeight: 700 }}>
+                      <tr>
+                        <td colSpan={3} style={{ padding: '0.7rem 0.8rem' }}>Total Raw Materials Estimated Cost:</td>
+                        <td colSpan={3} style={{ padding: '0.7rem 0.8rem', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '0.76rem' }}>
+                          Includes ~5% Kitchen Prep & Moisture Buffer
+                        </td>
+                        <td style={{ padding: '0.7rem 0.8rem', textAlign: 'right', color: 'var(--primary-color)', fontSize: '1rem', fontWeight: 800 }}>
+                          ₹ {aiItemBreakdown.summary.totalRawMaterialCost.toLocaleString('en-IN')}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: VENDOR CONSUMABLES & LOGISTICS TABLE */}
+            {aiActiveBreakdownTab === 'vendorItems' && (
+              <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <table className="table table-hover" style={{ margin: 0, fontSize: '0.82rem' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1, borderBottom: '2px solid var(--border-color)' }}>
+                    <tr>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>#</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Vendor Item</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Category</th>
+                      <th style={{ padding: '0.65rem 0.8rem', textAlign: 'right' }}>Calculated Qty</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Unit</th>
+                      <th style={{ padding: '0.65rem 0.8rem', textAlign: 'right' }}>Estimated Cost (₹)</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Operational Scaling Rule</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiItemBreakdown.vendorItems.map((item, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{idx + 1}</td>
+                        <td style={{ padding: '0.6rem 0.8rem', fontWeight: 700 }}>{item.name}</td>
+                        <td style={{ padding: '0.6rem 0.8rem' }}>
+                          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', color: '#1d4ed8', border: '1px solid rgba(59, 130, 246, 0.25)', fontWeight: 600 }}>
+                            {item.category}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 800, fontSize: '0.9rem' }}>
+                          {item.qty.toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-secondary)' }}>{item.unit}</td>
+                        <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 700, color: 'var(--primary-color)' }}>
+                          ₹ {item.estimatedCost.toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '0.6rem 0.8rem', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Truck size={11} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                            <span>{item.reason}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot style={{ background: 'var(--bg-card)', borderTop: '2px solid var(--border-color)', fontWeight: 700 }}>
+                    <tr>
+                      <td colSpan={5} style={{ padding: '0.7rem 0.8rem' }}>Total Vendor Consumables Estimate:</td>
+                      <td style={{ padding: '0.7rem 0.8rem', textAlign: 'right', color: 'var(--primary-color)', fontSize: '1rem', fontWeight: 800 }}>
+                        ₹ {aiItemBreakdown.summary.totalVendorItemCost.toLocaleString('en-IN')}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+
+            {/* TAB 3: COOKING VESSELS & EQUIPMENT REQUIREMENTS */}
+            {aiActiveBreakdownTab === 'vessels' && (
+              <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <table className="table table-hover" style={{ margin: 0, fontSize: '0.82rem' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1, borderBottom: '2px solid var(--border-color)' }}>
+                    <tr>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>#</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Vessel / Equipment Name</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Gear Category</th>
+                      <th style={{ padding: '0.65rem 0.8rem', textAlign: 'right' }}>Required Units</th>
+                      <th style={{ padding: '0.65rem 0.8rem' }}>Kitchen Allocation Rule</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiItemBreakdown.vesselRequirements.map((vessel, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{idx + 1}</td>
+                        <td style={{ padding: '0.6rem 0.8rem', fontWeight: 700 }}>{vessel.name}</td>
+                        <td style={{ padding: '0.6rem 0.8rem' }}>
+                          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.1)', color: '#7e22ce', border: '1px solid rgba(168, 85, 247, 0.25)', fontWeight: 600 }}>
+                            {vessel.category}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary-color)' }}>
+                          {vessel.qty} Units
+                        </td>
+                        <td style={{ padding: '0.6rem 0.8rem', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Box size={11} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+                            <span>{vessel.reason}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* TAB 4: COST & MARGIN ANALYTICS */}
+            {aiActiveBreakdownTab === 'summary' && (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                    <div style={{ fontSize: '0.76rem', color: '#047857', fontWeight: 700, textTransform: 'uppercase' }}>Raw Grocery & Dairy</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#047857', margin: '0.2rem 0' }}>
+                      ₹ {aiItemBreakdown.summary.totalRawMaterialCost.toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      Across {aiItemBreakdown.rawMaterials.length} unique raw materials
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                    <div style={{ fontSize: '0.76rem', color: '#1d4ed8', fontWeight: 700, textTransform: 'uppercase' }}>Vendor Consumables</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1d4ed8', margin: '0.2rem 0' }}>
+                      ₹ {aiItemBreakdown.summary.totalVendorItemCost.toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      Water, plantain leaves, disposables, gas
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.25)' }}>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--primary-color)', fontWeight: 700, textTransform: 'uppercase' }}>Combined Provisioning</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)', margin: '0.2rem 0' }}>
+                      ₹ {aiItemBreakdown.summary.grandTotal.toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      Total procurement outlay needed
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.25)' }}>
+                    <div style={{ fontSize: '0.76rem', color: '#7e22ce', fontWeight: 700, textTransform: 'uppercase' }}>Material Cost / Pax</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7e22ce', margin: '0.2rem 0' }}>
+                      ₹ {aiItemBreakdown.summary.costPerPax}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      Normalized per guest cost
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ padding: '1rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <strong>How Sri Mayyia Caterers AI Category Intelligence calculates:</strong>
+                  <p style={{ margin: '0.3rem 0 0 0' }}>
+                    Because catering dish recipes vary by kitchen chef, the engine uses multi-variable category heuristics trained on historical banquets. For example, selecting 4 rice dishes applies 46g of raw Basmati per pax (1:2.5 cooked yield) with oil and spices. Each South Indian gravy adds lentils, tomatoes, and vegetables; while North Indian gravies add cottage cheese (paneer), fresh butter, and heavy cream.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Action Bar: Commit Item-by-Item Materials to Event */}
+            <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Commit these <strong>{aiItemBreakdown.rawMaterials.length} calculated raw materials</strong> directly into the selected ERP event's material requirements list.
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleApplyMaterialsToEvent}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.84rem', fontWeight: 700, padding: '0.45rem 1.25rem' }}
+              >
+                <Save size={15} /> Commit All Materials to Event ({aiSelectedMenuEventId || targetEventId})
+              </button>
+            </div>
+
+            {aiMaterialsApplySuccess && (
+              <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.9rem', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', borderRadius: '8px', color: '#047857', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Check size={16} />
+                <span>Successfully committed all {aiItemBreakdown.rawMaterials.length} raw materials (Total: ₹ {aiItemBreakdown.summary.totalRawMaterialCost.toLocaleString('en-IN')}) to event {aiSelectedMenuEventId || targetEventId}!</span>
+              </div>
+            )}
 
           </div>
 

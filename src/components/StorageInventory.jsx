@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload, AlertCircle, Cloud } from 'lucide-react';
 import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
@@ -124,6 +124,49 @@ const StorageInventory = () => {
   const [uploadStatus, setUploadStatus] = useState('');
   const photoFileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
+
+  // Storage Categories & Custom "+ Category" Option State
+  const BASE_STORAGE_CATEGORIES = [
+    'Cooking Vessel',
+    'Serving Gear',
+    'Utensils',
+    'Heating & Fuel'
+  ];
+
+  const [customCategories, setCustomCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cater_storage_custom_categories');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [modalCustomCategory, setModalCustomCategory] = useState('');
+
+  const availableCategories = useMemo(() => {
+    const set = new Set(BASE_STORAGE_CATEGORIES);
+    customCategories.forEach(c => { if (c && c.trim()) set.add(c.trim()); });
+    (vessels || []).forEach(v => { if (v && v.category && v.category.trim()) set.add(v.category.trim()); });
+    return Array.from(set);
+  }, [customCategories, vessels]);
+
+  const handleAddCategory = (catName) => {
+    const trimmed = (catName !== undefined ? catName : newCategoryInput).trim();
+    if (!trimmed) return null;
+    if (!customCategories.includes(trimmed) && !BASE_STORAGE_CATEGORIES.includes(trimmed)) {
+      const updated = [...customCategories, trimmed];
+      setCustomCategories(updated);
+      try {
+        localStorage.setItem('cater_storage_custom_categories', JSON.stringify(updated));
+      } catch (e) {}
+    }
+    setNewCategoryInput('');
+    setIsAddCategoryOpen(false);
+    return trimmed;
+  };
+
   const [form, setForm] = useState({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
 
   // Gate Pass Modal & Tracking State
@@ -332,8 +375,14 @@ const StorageInventory = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    let finalCategory = form.category;
+    if (form.category === '__custom__') {
+      finalCategory = handleAddCategory(modalCustomCategory) || 'Cooking Vessel';
+    }
+
     const payload = {
       ...form,
+      category: finalCategory,
       photo: form.photo || '',
       totalQty: Number(form.totalQty),
       availableQty: Number(form.availableQty),
@@ -348,15 +397,19 @@ const StorageInventory = () => {
     }
     setIsModalOpen(false);
     setEditingItem(null);
-    setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
+    setModalCustomCategory('');
+    setForm({ name: '', category: availableCategories[0] || 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
   };
 
   const openEdit = (v) => {
     setEditingItem(v);
+    const isKnown = availableCategories.includes(v.category);
     setForm({
       ...v,
+      category: isKnown ? v.category : (v.category ? '__custom__' : (availableCategories[0] || 'Cooking Vessel')),
       photo: v.photo || ''
     });
+    setModalCustomCategory(isKnown ? '' : (v.category || ''));
     setIsModalOpen(true);
   };
 
@@ -415,18 +468,63 @@ const StorageInventory = () => {
           <input type="text" placeholder="Search vessels & equipment..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
             style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}>
-            <option value="All">All Categories</option>
-            <option value="Cooking Vessel">Cooking Vessel</option>
-            <option value="Serving Gear">Serving Gear</option>
-            <option value="Utensils">Utensils</option>
-            <option value="Heating & Fuel">Heating & Fuel</option>
+            <option value="All">All Categories ({vessels.length})</option>
+            {availableCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
+          <button
+            type="button"
+            className="btn btn-secondary btn-small"
+            onClick={() => setIsAddCategoryOpen(!isAddCategoryOpen)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}
+            title="Add a custom storage category"
+          >
+            <Plus size={14} /><span>+ Category</span>
+          </button>
         </div>
       </div>
+
+      {/* Quick Add Custom Category Dialog */}
+      {isAddCategoryOpen && (
+        <div className="glass-card" style={{ padding: '0.85rem 1.25rem', marginBottom: '1.5rem', background: 'rgba(156, 21, 25, 0.04)', border: '1px solid rgba(156, 21, 25, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: 1, minWidth: '260px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)', whiteSpace: 'nowrap' }}>New Storage Category:</span>
+            <input
+              type="text"
+              autoFocus
+              placeholder="e.g. Dining Crockery, Transport Crates, Melamine Sets, Linens..."
+              value={newCategoryInput}
+              onChange={(e) => setNewCategoryInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); if (e.key === 'Escape') setIsAddCategoryOpen(false); }}
+              style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-small"
+              onClick={() => handleAddCategory()}
+              disabled={!newCategoryInput.trim()}
+              style={{ fontSize: '0.8rem', fontWeight: 600 }}
+            >
+              Add Category
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-small"
+              onClick={() => { setIsAddCategoryOpen(false); setNewCategoryInput(''); }}
+              style={{ fontSize: '0.8rem' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="glass-card">
@@ -520,11 +618,37 @@ const StorageInventory = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                    <option value="Cooking Vessel">Cooking Vessel</option><option value="Serving Gear">Serving Gear</option><option value="Utensils">Utensils</option><option value="Heating & Fuel">Heating & Fuel</option>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Category</label>
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.75rem', color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600 }}
+                      onClick={() => setForm({ ...form, category: '__custom__' })}
+                    >
+                      + Add New
+                    </button>
+                  </div>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  >
+                    {availableCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="__custom__">+ Add Custom Category...</option>
                   </select>
+                  {form.category === '__custom__' && (
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      placeholder="Type new category name..."
+                      value={modalCustomCategory}
+                      onChange={(e) => setModalCustomCategory(e.target.value)}
+                      style={{ marginTop: '0.5rem', width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--primary-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                    />
+                  )}
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Storage Location</label>
