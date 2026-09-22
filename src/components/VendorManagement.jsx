@@ -1,7 +1,8 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, generateSupplierPO, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
-import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer } from 'lucide-react';
+import { initialVendorCategories } from '../utils/mockData';
+import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag } from 'lucide-react';
 
 const VendorManagement = () => {
   const {
@@ -17,12 +18,19 @@ const VendorManagement = () => {
     updateSupplier,
     deleteSupplier,
     updateEvent,
-    refreshEventTotals
+    refreshEventTotals,
+    vendorCategories = []
   } = useContext(AppContext);
+
+  const vendorCategoriesList = (vendorCategories && vendorCategories.length > 0)
+    ? vendorCategories
+    : initialVendorCategories;
 
   const [activeView, setActiveView] = useState('materials'); // 'materials' | 'suppliers' | 'allocation'
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
   const [activeCatFilter, setActiveCatFilter] = useState('All');
+  const [supplierCatFilter, setSupplierCatFilter] = useState('All');
+  const [supplierStatusFilter, setSupplierStatusFilter] = useState('All');
   const [poPreview, setPoPreview] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [processingPoId, setProcessingPoId] = useState(null);
@@ -50,7 +58,13 @@ const VendorManagement = () => {
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [supplierForm, setSupplierForm] = useState({
-    name: '', category: 'Grocery', phone: '', address: ''
+    name: '',
+    category: 'Grocery',
+    subCategory: 'Rice & Grains',
+    phone: '',
+    address: '',
+    status: 'Active',
+    notes: ''
   });
 
   // State for manual material entry form (allocation)
@@ -135,20 +149,55 @@ const VendorManagement = () => {
   };
 
   // === SUPPLIER FUNCTIONS ===
-  const filteredSuppliers = suppliers.filter(s =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.category && s.category.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const selectedCatObj = vendorCategoriesList.find(c => c.name === supplierForm.category);
+  const currentSubCategories = selectedCatObj?.subCategories || [];
+
+  const filteredSuppliers = suppliers.filter(s => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    const sCat = s.category || 'Uncategorized';
+    const sSub = s.subCategory || '';
+    const sStatus = s.status || (s.active !== false ? 'Active' : 'Inactive');
+
+    const matchesSearch = !term ||
+      (s.name && s.name.toLowerCase().includes(term)) ||
+      sCat.toLowerCase().includes(term) ||
+      sSub.toLowerCase().includes(term) ||
+      (s.phone && s.phone.toLowerCase().includes(term)) ||
+      (s.contact && s.contact.toLowerCase().includes(term)) ||
+      (s.address && s.address.toLowerCase().includes(term));
+
+    const matchesCat = supplierCatFilter === 'All' || sCat === supplierCatFilter;
+    const matchesStatus = supplierStatusFilter === 'All' || sStatus === supplierStatusFilter;
+
+    return matchesSearch && matchesCat && matchesStatus;
+  });
 
   const openSupplierForm = (supplier = null) => {
     if (supplier) {
       setEditingSupplier(supplier);
       setSupplierForm({
-        name: supplier.name, category: supplier.category || '', phone: supplier.phone || supplier.contact || '', address: supplier.address || ''
+        name: supplier.name || '',
+        category: supplier.category || 'Grocery',
+        subCategory: supplier.subCategory || '',
+        phone: supplier.phone || supplier.contact || '',
+        address: supplier.address || '',
+        status: supplier.status || (supplier.active !== false ? 'Active' : 'Inactive'),
+        notes: supplier.notes || ''
       });
     } else {
       setEditingSupplier(null);
-      setSupplierForm({ name: '', category: 'Grocery', phone: '', address: '' });
+      const defaultCat = vendorCategoriesList[0]?.name || 'Grocery';
+      const defaultCatObj = vendorCategoriesList.find(c => c.name === defaultCat);
+      const defaultSub = defaultCatObj?.subCategories?.[0] || '';
+      setSupplierForm({
+        name: '',
+        category: defaultCat,
+        subCategory: defaultSub,
+        phone: '',
+        address: '',
+        status: 'Active',
+        notes: ''
+      });
     }
     setIsSupplierModalOpen(true);
   };
@@ -164,7 +213,11 @@ const VendorManagement = () => {
       name: supplierForm.name.trim(),
       phone: (supplierForm.phone || '').trim(),
       address: (supplierForm.address || '').trim(),
-      category: supplierForm.category || 'Grocery'
+      category: supplierForm.category || 'Uncategorized',
+      subCategory: supplierForm.subCategory || '',
+      status: supplierForm.status || 'Active',
+      active: supplierForm.status !== 'Inactive',
+      notes: (supplierForm.notes || '').trim()
     };
     if (editingSupplier) {
       updateSupplier({ ...supPayload, id: editingSupplier.id || editingSupplier._id });
@@ -423,6 +476,48 @@ const VendorManagement = () => {
               </select>
             </div>
           )}
+
+          {activeView === 'suppliers' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
+                <select
+                  value={supplierCatFilter}
+                  onChange={(e) => setSupplierCatFilter(e.target.value)}
+                  style={{ padding: '0.45rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                >
+                  <option value="All">All Categories</option>
+                  {vendorCategoriesList.map(cat => (
+                    <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+                <select
+                  value={supplierStatusFilter}
+                  onChange={(e) => setSupplierStatusFilter(e.target.value)}
+                  style={{ padding: '0.45rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              {isOps && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-small"
+                  onClick={() => openSupplierForm()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.85rem', fontWeight: 600, fontSize: '0.82rem' }}
+                >
+                  <Plus size={15} /> Add Supplier
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -516,39 +611,59 @@ const VendorManagement = () => {
                 <tr>
                   <th>Supplier Name</th>
                   <th>Category</th>
+                  <th>Subcategory</th>
                   <th>Phone / Contact</th>
                   <th>Address</th>
+                  <th>Status</th>
                   {isOps && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {filteredSuppliers.map(s => (
-                  <tr key={s.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {s.id}</div>
-                    </td>
-                    <td><span className="badge badge-info">{s.category}</span></td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{s.phone || s.contact || 'N/A'}</td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.address || '—'}</td>
-                    {isOps && (
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                          <button className="btn btn-secondary btn-small" onClick={() => openSupplierForm(s)} title="Edit Supplier">
-                            <Edit2 size={14} />
-                          </button>
-                          <button className="btn btn-secondary btn-small" onClick={() => deleteSupplier(s.id)} style={{ color: 'var(--color-danger)' }} title="Delete Supplier">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                {filteredSuppliers.map(s => {
+                  const sCategory = s.category || 'Uncategorized';
+                  const sSubCategory = s.subCategory || '—';
+                  const isActive = s.status ? s.status === 'Active' : s.active !== false;
+
+                  return (
+                    <tr key={s.id || s._id}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {s.id || s._id}</div>
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td>
+                        <span className="badge badge-info" style={{ fontWeight: 600 }}>{sCategory}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 500, color: sSubCategory === '—' ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                          {sSubCategory}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{s.phone || s.contact || 'N/A'}</td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.address || '—'}</td>
+                      <td>
+                        <span className={`badge ${isActive ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      {isOps && (
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                            <button className="btn btn-secondary btn-small" onClick={() => openSupplierForm(s)} title="Edit Supplier">
+                              <Edit2 size={14} />
+                            </button>
+                            <button className="btn btn-secondary btn-small" onClick={() => deleteSupplier(s.id || s._id)} style={{ color: 'var(--color-danger)' }} title="Delete Supplier">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
                 {filteredSuppliers.length === 0 && (
                   <tr>
-                    <td colSpan={isOps ? "5" : "4"} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No suppliers found.
+                    <td colSpan={isOps ? "7" : "6"} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                      No suppliers found matching the selected filters.
                     </td>
                   </tr>
                 )}
@@ -838,42 +953,113 @@ const VendorManagement = () => {
       {/* Supplier Form Modal */}
       {isSupplierModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card modal-card" style={{ maxWidth: '550px', width: '90%' }}>
+          <div className="glass-card modal-card" style={{ maxWidth: '560px', width: '90%' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>
-              {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+              {editingSupplier ? 'Edit Supplier Profile' : 'Add New Supplier'}
             </h2>
             <form onSubmit={handleSupplierSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Supplier Name</label>
-                <input type="text" required placeholder="e.g. Krishnakumar & Sons" value={supplierForm.name} onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Supplier Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kaveri Coconut Farms"
+                  value={supplierForm.name}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                />
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
-                  <select value={supplierForm.category} onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                    <option value="Grocery">Grocery</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Veg/Fruit">Veg/Fruit</option>
-                    <option value="Fuel">Fuel</option>
-                    <option value="Spices & Condiments">Spices & Condiments</option>
-                    <option value="Ghee & Oils">Ghee & Oils</option>
-                    <option value="Dry Fruits">Dry Fruits</option>
-                    <option value="General">General</option>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category (Parent)</label>
+                  <select
+                    value={supplierForm.category}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      const foundCat = vendorCategoriesList.find(c => c.name === newCat);
+                      const firstSub = foundCat?.subCategories?.[0] || '';
+                      setSupplierForm({ ...supplierForm, category: newCat, subCategory: firstSub });
+                    }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  >
+                    {vendorCategoriesList.map(cat => (
+                      <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
+
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Phone / Contact</label>
-                  <input type="text" placeholder="9876543210" value={supplierForm.phone} onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Subcategory</label>
+                  {currentSubCategories.length > 0 ? (
+                    <select
+                      value={supplierForm.subCategory}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, subCategory: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                    >
+                      {currentSubCategories.map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="e.g. Regular, Tender, etc."
+                      value={supplierForm.subCategory}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, subCategory: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                    />
+                  )}
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Phone / Contact</label>
+                  <input
+                    type="text"
+                    placeholder="+91 98765 43210"
+                    value={supplierForm.phone}
+                    onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Supplier Status</label>
+                  <select
+                    value={supplierForm.status || 'Active'}
+                    onChange={(e) => setSupplierForm({ ...supplierForm, status: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Address</label>
-                <input type="text" placeholder="Market Road, City" value={supplierForm.address} onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
+                <input
+                  type="text"
+                  placeholder="Market Road, City"
+                  value={supplierForm.address}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                />
               </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Notes / Specialization</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Regular coconut supplies, delivers before 5:00 AM"
+                  value={supplierForm.notes || ''}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, notes: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', resize: 'vertical' }}
+                />
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsSupplierModalOpen(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editingSupplier ? 'Update Supplier' : 'Save Supplier'}</button>

@@ -1,6 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check } from 'lucide-react';
+import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload } from 'lucide-react';
 import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
 const StorageInventory = () => {
@@ -9,7 +9,10 @@ const StorageInventory = () => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [form, setForm] = useState({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000 });
+  const [photoPreviewItem, setPhotoPreviewItem] = useState(null);
+  const photoFileInputRef = useRef(null);
+  const modalFileInputRef = useRef(null);
+  const [form, setForm] = useState({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
 
   // Gate Pass Modal & Tracking State
   const [isGatePassModalOpen, setIsGatePassModalOpen] = useState(false);
@@ -138,15 +141,69 @@ const StorageInventory = () => {
     return matchesSearch && matchesCat;
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const payload = { ...form, totalQty: Number(form.totalQty), availableQty: Number(form.availableQty), inUseQty: Number(form.inUseQty), damagedQty: Number(form.damagedQty), valuePerUnit: Number(form.valuePerUnit) };
-    if (editingItem) { updateVessel({ ...payload, id: editingItem.id }); } else { addVessel(payload); }
-    setIsModalOpen(false); setEditingItem(null);
-    setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000 });
+  const handlePhotoUpload = (e, targetItem = null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Supported formats: JPG, PNG, and WEBP only.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Photo file size must not exceed 2MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      if (targetItem) {
+        updateVessel({ ...targetItem, photo: dataUrl });
+        setPhotoPreviewItem(prev => prev ? { ...prev, photo: dataUrl } : null);
+      } else {
+        setForm(prev => ({ ...prev, photo: dataUrl }));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const openEdit = (v) => { setEditingItem(v); setForm(v); setIsModalOpen(true); };
+  const handleRemovePhoto = (targetItem = null) => {
+    if (targetItem) {
+      updateVessel({ ...targetItem, photo: '' });
+      setPhotoPreviewItem(prev => prev ? { ...prev, photo: '' } : null);
+    } else {
+      setForm(prev => ({ ...prev, photo: '' }));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      photo: form.photo || '',
+      totalQty: Number(form.totalQty),
+      availableQty: Number(form.availableQty),
+      inUseQty: Number(form.inUseQty),
+      damagedQty: Number(form.damagedQty),
+      valuePerUnit: Number(form.valuePerUnit)
+    };
+    if (editingItem) {
+      updateVessel({ ...payload, id: editingItem.id });
+    } else {
+      addVessel(payload);
+    }
+    setIsModalOpen(false);
+    setEditingItem(null);
+    setForm({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
+  };
+
+  const openEdit = (v) => {
+    setEditingItem(v);
+    setForm({
+      ...v,
+      photo: v.photo || ''
+    });
+    setIsModalOpen(true);
+  };
 
   return (
     <div>
@@ -222,6 +279,7 @@ const StorageInventory = () => {
           <table className="custom-table">
             <thead>
               <tr>
+                <th style={{ width: '50px', textAlign: 'center' }}>Photo</th>
                 <th>Vessel / Item Name</th>
                 <th>Category</th>
                 <th>Total Qty</th>
@@ -236,6 +294,25 @@ const StorageInventory = () => {
             <tbody>
               {filtered.map(v => (
                 <tr key={v.id}>
+                  <td style={{ width: '50px', textAlign: 'center' }}>
+                    {v.photo ? (
+                      <img
+                        src={v.photo}
+                        alt={v.name}
+                        onClick={() => setPhotoPreviewItem(v)}
+                        style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', cursor: 'pointer', border: '1px solid var(--border-color)', display: 'block', margin: '0 auto' }}
+                        title="Click to view / manage photo"
+                      />
+                    ) : (
+                      <div
+                        onClick={() => openEdit(v)}
+                        style={{ width: '38px', height: '38px', borderRadius: '6px', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', margin: '0 auto', cursor: 'pointer' }}
+                        title="Click to add photo"
+                      >
+                        <Camera size={16} />
+                      </div>
+                    )}
+                  </td>
                   <td><div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.name}</div><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {v.id}</div></td>
                   <td><span className="badge badge-info">{v.category}</span></td>
                   <td style={{ fontWeight: 700 }}>{v.totalQty}</td>
@@ -252,7 +329,7 @@ const StorageInventory = () => {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (<tr><td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No vessels or equipment found.</td></tr>)}
+              {filtered.length === 0 && (<tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No vessels or equipment found.</td></tr>)}
             </tbody>
           </table>
         </div>
@@ -310,6 +387,53 @@ const StorageInventory = () => {
                 <input type="number" min="0" required placeholder="e.g. 5000" value={form.valuePerUnit} onChange={(e) => setForm({ ...form, valuePerUnit: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>
+
+              {/* Photo Upload Section */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  Item Photo (JPG, PNG, WEBP — Max 2MB)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  {form.photo ? (
+                    <div style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                      <img src={form.photo} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, photo: '' }))}
+                        style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        title="Remove Photo"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ width: '70px', height: '70px', borderRadius: '8px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                      <Camera size={24} />
+                    </div>
+                  )}
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <input
+                      ref={modalFileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={e => handlePhotoUpload(e)}
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                    {form.photo && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => setForm(f => ({ ...f, photo: '' }))}
+                        style={{ width: 'fit-content', fontSize: '0.75rem', padding: '0.2rem 0.5rem', color: 'var(--color-danger)' }}
+                      >
+                        <Trash2 size={12} /> Remove Photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editingItem ? 'Update Vessel' : 'Save Vessel'}</button>
@@ -448,6 +572,84 @@ const StorageInventory = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
               >
                 <Download size={16} /> {isDownloading ? 'Generating PDF...' : 'Download Gate Pass PDF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Item Photo Preview & Management Modal */}
+      {photoPreviewItem && (
+        <div className="modal-overlay" onClick={() => setPhotoPreviewItem(null)}>
+          <div
+            className="glass-card modal-card"
+            style={{ maxWidth: '520px', width: '92%', padding: '1.5rem', textAlign: 'center' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.6rem' }}>
+              <div style={{ textAlign: 'left' }}>
+                <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{photoPreviewItem.name}</h2>
+                <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{photoPreviewItem.category}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPhotoPreviewItem(null)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ margin: '1rem 0', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', maxHeight: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)' }}>
+              {photoPreviewItem.photo ? (
+                <img
+                  src={photoPreviewItem.photo}
+                  alt={photoPreviewItem.name}
+                  style={{ width: '100%', maxHeight: '380px', objectFit: 'contain' }}
+                />
+              ) : (
+                <div style={{ padding: '3rem', color: 'var(--text-secondary)' }}>
+                  <Package size={48} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
+                  <div>No photo attached to this item yet.</div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <input
+                ref={photoFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={e => handlePhotoUpload(e, photoPreviewItem)}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => photoFileInputRef.current?.click()}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+              >
+                <Upload size={14} /> Replace Photo
+              </button>
+
+              {photoPreviewItem.photo && (
+                <button
+                  type="button"
+                  className="btn btn-danger btn-small"
+                  onClick={() => handleRemovePhoto(photoPreviewItem)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}
+                >
+                  <Trash2 size={14} /> Remove Photo
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setPhotoPreviewItem(null)}
+                style={{ fontSize: '0.82rem', padding: '0.4rem 1rem' }}
+              >
+                Done
               </button>
             </div>
           </div>

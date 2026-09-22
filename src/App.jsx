@@ -13,11 +13,13 @@ import QuotationBilling from './components/QuotationBilling';
 import Reports from './components/Reports';
 import Login from './components/Login';
 import HistoricalLearning from './components/HistoricalLearning';
+import Venues from './components/Venues';
 
 import {
   LayoutDashboard,
   CalendarDays,
   UtensilsCrossed,
+  Building2,
   Store,
   Boxes,
   Package,
@@ -66,6 +68,7 @@ const AppContent = () => {
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'bookings', name: 'Event Booking', icon: CalendarDays },
     { id: 'menu', name: 'Menu Planning', icon: UtensilsCrossed },
+    { id: 'venues', name: 'Venues', icon: Building2 },
     { id: 'historical', name: 'Historical Learning', icon: Brain },
     { id: 'vendors', name: 'Vendor Management', icon: Store },
     { id: 'provisions', name: 'Provision Inventory', icon: Boxes },
@@ -81,6 +84,7 @@ const AppContent = () => {
     dashboard: MODULES.DASHBOARD,
     bookings: MODULES.EVENT_BOOKING,
     menu: MODULES.MENU_PLANNING,
+    venues: MODULES.VENUES,
     historical: MODULES.HISTORICAL_LEARNING,
     vendors: MODULES.VENDOR_MANAGEMENT,
     provisions: MODULES.INHOUSE_INVENTORY,
@@ -119,6 +123,7 @@ const AppContent = () => {
       case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
       case 'bookings': return <EventBooking />;
       case 'menu': return <MenuPlanning />;
+      case 'venues': return <Venues />;
       case 'historical': return <HistoricalLearning />;
       case 'vendors': return <VendorManagement />;
       case 'provisions': return <ProvisionInventory />;

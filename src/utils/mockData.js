@@ -1,8 +1,8 @@
 export const initialVenues = [
-  { id: 'v1', name: 'Royal Grand Ballroom', capacity: 500, price: 150000, address: 'S.G. Highway, Ahmedabad' },
-  { id: 'v2', name: 'Lakeside Pavilion', capacity: 300, price: 120000, address: 'Kankaria Lake, Ahmedabad' },
-  { id: 'v3', name: 'Garden Terrace & Lawn', capacity: 800, price: 200000, address: 'Bodakdev, Ahmedabad' },
-  { id: 'v4', name: 'Elite Banquet Hall', capacity: 150, price: 75000, address: 'C.G. Road, Ahmedabad' }
+  { id: 'v1', name: 'Royal Grand Ballroom', capacity: 500, price: 150000, address: 'S.G. Highway, Ahmedabad', venueCode: 'VN-RGB-01', contactPerson: 'Mr. Arvind Saxena', contactNumber: '+91 98250 11223', email: 'royalballroom@venues.com', type: 'Grand Ballroom', notes: 'Pillar-less banquet with centralized AC', active: true, assignedSalesPerson: '' },
+  { id: 'v2', name: 'Lakeside Pavilion', capacity: 300, price: 120000, address: 'Kankaria Lake, Ahmedabad', venueCode: 'VN-LKP-02', contactPerson: 'Sanjay Rawal', contactNumber: '+91 98250 33445', email: 'lakeside@venues.com', type: 'Open Air Pavilion', notes: 'Lake view stage setup with lawn', active: true, assignedSalesPerson: 'sales' },
+  { id: 'v3', name: 'Garden Terrace & Lawn', capacity: 800, price: 200000, address: 'Bodakdev, Ahmedabad', venueCode: 'VN-GTL-03', contactPerson: 'Meera Trivedi', contactNumber: '+91 98250 55667', email: 'gardenterrace@venues.com', type: 'Lawn & Terrace', notes: 'Suitable for mega receptions and buffets', active: true, assignedSalesPerson: 'admin' },
+  { id: 'v4', name: 'Elite Banquet Hall', capacity: 150, price: 75000, address: 'C.G. Road, Ahmedabad', venueCode: 'VN-EBH-04', contactPerson: 'Karan Shah', contactNumber: '+91 98250 77889', email: 'elitehall@venues.com', type: 'Compact Hall', notes: 'Ideal for Micro Events & intimate gatherings', active: true, assignedSalesPerson: '' }
 ];
 
 export const initialRawMaterials = [
@@ -29,7 +29,7 @@ export const initialRawMaterials = [
   { id: 'rm21', name: 'Charcoal / Wood', category: 'Fuel', unit: 'bag', costPerUnit: 450 }
 ];
 
-import masterMenuData from '../data/catering_master_menu.json';
+import masterMenuData from '../data/catering_master_menu.json' with { type: 'json' };
 
 export const masterMenuCategories = [
   'Beverages & Welcome Drinks',
@@ -69,10 +69,12 @@ export const initialDishes = Array.isArray(masterMenuData)
     );
 
 export const initialSuppliers = [
-  { id: 's1', name: 'Krishna Grocery Wholesalers', category: 'Grocery', contact: 'Ramesh Patel', phone: '+91 98765 43210' },
-  { id: 's2', name: 'Amul Dairy Distributors', category: 'Dairy', contact: 'Suresh Shah', phone: '+91 98250 12345' },
-  { id: 's3', name: 'Green Market Fresh Produce', category: 'Veg/Fruit', contact: 'Vijay Khetan', phone: '+91 99099 87654' },
-  { id: 's4', name: 'HP Commercial Gas Corp', category: 'Fuel', contact: 'Dinesh Mehta', phone: '+91 97243 55566' }
+  { id: 's1', name: 'Krishna Grocery Wholesalers', category: 'Grocery', subCategory: 'Rice & Grains', contact: 'Ramesh Patel', phone: '+91 98765 43210', address: 'APMC Market Yard, Bangalore', email: 'krishna.grocery@gmail.com', status: 'Active', notes: 'Primary basmati rice and dal supplier', active: true },
+  { id: 's2', name: 'Amul Dairy Distributors', category: 'Dairy', subCategory: 'Paneer & Butter', contact: 'Suresh Shah', phone: '+91 98250 12345', address: 'Dairy Circle, Bangalore', email: 'amul.dist@gmail.com', status: 'Active', notes: 'Fresh paneer and Amul butter daily batch', active: true },
+  { id: 's3', name: 'Green Market Fresh Produce', category: 'Vegetables', subCategory: 'Country Vegetables', contact: 'Vijay Khetan', phone: '+91 99099 87654', address: 'K.R. Market, Bangalore', email: 'greenmarket@gmail.com', status: 'Active', notes: 'Fresh vegetable delivery at 4:30 AM', active: true },
+  { id: 's4', name: 'HP Commercial Gas Corp', category: 'Cylinders', subCategory: '19kg Commercial LPG', contact: 'Dinesh Mehta', phone: '+91 97243 55566', address: 'Industrial Area, Bangalore', email: 'hpgas.corp@gmail.com', status: 'Active', notes: 'Commercial 19kg refill logistics', active: true },
+  { id: 's5', name: 'Kaveri Tender Coconut Farms', category: 'Coconut', subCategory: 'Tender Coconut', contact: 'Muthuswamy', phone: '+91 98450 67890', address: 'Maddur, Karnataka', email: 'kaveri.coconuts@gmail.com', status: 'Active', notes: 'Fresh sweet tender coconuts on site', active: true },
+  { id: 's6', name: 'Sri Balaji Thambula Mart', category: 'Thambula', subCategory: 'Cloth Thambula', contact: 'Narayana Murthy', phone: '+91 98451 12344', address: 'Chickpet, Bangalore', email: 'balaji.thambula@gmail.com', status: 'Active', notes: 'Cloth and jute return gift bags', active: true }
 ];
 
 export const initialLaborRates = [
@@ -89,22 +91,22 @@ export const initialAgencies = [
 ];
 
 export const initialVessels = [
-  { id: 'ves_1', name: 'Aluminium Degchi (100 Litre)', category: 'Cooking Vessel', totalQty: 15, availableQty: 12, inUseQty: 3, damagedQty: 0, location: 'Kitchen Store A', valuePerUnit: 8500 },
-  { id: 'ves_2', name: 'Brass Biryani Handi (50L)', category: 'Cooking Vessel', totalQty: 10, availableQty: 8, inUseQty: 2, damagedQty: 0, location: 'Kitchen Store A', valuePerUnit: 12000 },
-  { id: 'ves_3', name: 'Stainless Steel Kadai (Big)', category: 'Cooking Vessel', totalQty: 18, availableQty: 15, inUseQty: 3, damagedQty: 0, location: 'Kitchen Store B', valuePerUnit: 4500 },
-  { id: 'ves_4', name: 'Chafing Dishes Roll-Top Set', category: 'Serving Gear', totalQty: 45, availableQty: 35, inUseQty: 10, damagedQty: 0, location: 'Banquet Store', valuePerUnit: 3200 },
-  { id: 'ves_5', name: 'Thermal Hot Transport Boxes (80L)', category: 'Serving Gear', totalQty: 25, availableQty: 20, inUseQty: 5, damagedQty: 0, location: 'Logistics Bay', valuePerUnit: 6500 },
-  { id: 'ves_6', name: 'Royal Melamine Dinner Plates (Set of 100)', category: 'Utensils', totalQty: 25, availableQty: 22, inUseQty: 3, damagedQty: 0, location: 'Crockery Rack', valuePerUnit: 4800 },
-  { id: 'ves_7', name: 'Commercial 3-Burner Gas Stove', category: 'Heating & Fuel', totalQty: 8, availableQty: 6, inUseQty: 2, damagedQty: 0, location: 'Kitchen Store B', valuePerUnit: 14500 }
+  { id: 'ves_1', name: 'Aluminium Degchi (100 Litre)', category: 'Cooking Vessel', totalQty: 15, availableQty: 12, inUseQty: 3, damagedQty: 0, location: 'Kitchen Store A', valuePerUnit: 8500, photo: '', itemCode: 'VES-DEG-100', minStock: 5 },
+  { id: 'ves_2', name: 'Brass Biryani Handi (50L)', category: 'Cooking Vessel', totalQty: 10, availableQty: 8, inUseQty: 2, damagedQty: 0, location: 'Kitchen Store A', valuePerUnit: 12000, photo: '', itemCode: 'VES-HND-050', minStock: 3 },
+  { id: 'ves_3', name: 'Stainless Steel Kadai (Big)', category: 'Cooking Vessel', totalQty: 18, availableQty: 15, inUseQty: 3, damagedQty: 0, location: 'Kitchen Store B', valuePerUnit: 4500, photo: '', itemCode: 'VES-KAD-001', minStock: 5 },
+  { id: 'ves_4', name: 'Chafing Dishes Roll-Top Set', category: 'Serving Gear', totalQty: 45, availableQty: 35, inUseQty: 10, damagedQty: 0, location: 'Banquet Store', valuePerUnit: 3200, photo: '', itemCode: 'VES-CHF-002', minStock: 10 },
+  { id: 'ves_5', name: 'Thermal Hot Transport Boxes (80L)', category: 'Serving Gear', totalQty: 25, availableQty: 20, inUseQty: 5, damagedQty: 0, location: 'Logistics Bay', valuePerUnit: 6500, photo: '', itemCode: 'VES-THR-080', minStock: 8 },
+  { id: 'ves_6', name: 'Royal Melamine Dinner Plates (Set of 100)', category: 'Utensils', totalQty: 25, availableQty: 22, inUseQty: 3, damagedQty: 0, location: 'Crockery Rack', valuePerUnit: 4800, photo: '', itemCode: 'VES-PLT-100', minStock: 10 },
+  { id: 'ves_7', name: 'Commercial 3-Burner Gas Stove', category: 'Heating & Fuel', totalQty: 8, availableQty: 6, inUseQty: 2, damagedQty: 0, location: 'Kitchen Store B', valuePerUnit: 14500, photo: '', itemCode: 'VES-STV-003', minStock: 2 }
 ];
 
 export const initialProvisions = [
-  { id: 'prv_1', name: 'Royal Aged Basmati Rice', category: 'Grocery', unit: 'kg', stockQty: 650, reorderLevel: 150, costPerUnit: 110, supplierId: 's1' },
-  { id: 'prv_2', name: 'Premium Whole Wheat Atta', category: 'Grocery', unit: 'kg', stockQty: 400, reorderLevel: 100, costPerUnit: 45, supplierId: 's1' },
-  { id: 'prv_3', name: 'Pure Cow Desi Ghee', category: 'Ghee & Oils', unit: 'kg', stockQty: 120, reorderLevel: 30, costPerUnit: 650, supplierId: 's2' },
-  { id: 'prv_4', name: 'Refined Groundnut Oil', category: 'Ghee & Oils', unit: 'ltr', stockQty: 350, reorderLevel: 75, costPerUnit: 145, supplierId: 's1' },
-  { id: 'prv_5', name: 'Shahi Garam Masala Blend', category: 'Spices & Condiments', unit: 'kg', stockQty: 25, reorderLevel: 8, costPerUnit: 420, supplierId: 's1' },
-  { id: 'prv_6', name: 'Almonds & Cashew Nuts Mix', category: 'Dry Fruits', unit: 'kg', stockQty: 50, reorderLevel: 15, costPerUnit: 850, supplierId: 's1' }
+  { id: 'prv_1', name: 'Royal Aged Basmati Rice', category: 'Grocery', unit: 'kg', stockQty: 650, reorderLevel: 150, costPerUnit: 110, supplierId: 's1', photo: '', itemCode: 'PRV-RIC-001' },
+  { id: 'prv_2', name: 'Premium Whole Wheat Atta', category: 'Grocery', unit: 'kg', stockQty: 400, reorderLevel: 100, costPerUnit: 45, supplierId: 's1', photo: '', itemCode: 'PRV-ATT-002' },
+  { id: 'prv_3', name: 'Pure Cow Desi Ghee', category: 'Ghee & Oils', unit: 'kg', stockQty: 120, reorderLevel: 30, costPerUnit: 650, supplierId: 's2', photo: '', itemCode: 'PRV-GHE-003' },
+  { id: 'prv_4', name: 'Refined Groundnut Oil', category: 'Ghee & Oils', unit: 'ltr', stockQty: 350, reorderLevel: 75, costPerUnit: 145, supplierId: 's1', photo: '', itemCode: 'PRV-OIL-004' },
+  { id: 'prv_5', name: 'Shahi Garam Masala Blend', category: 'Spices & Condiments', unit: 'kg', stockQty: 25, reorderLevel: 8, costPerUnit: 420, supplierId: 's1', photo: '', itemCode: 'PRV-SPM-005' },
+  { id: 'prv_6', name: 'Almonds & Cashew Nuts Mix', category: 'Dry Fruits', unit: 'kg', stockQty: 50, reorderLevel: 15, costPerUnit: 850, supplierId: 's1', photo: '', itemCode: 'PRV-DRF-006' }
 ];
 
 export const initialVegetables = [
@@ -117,12 +119,73 @@ export const initialVegetables = [
 ];
 
 export const initialLabourWorkers = [
-  { id: 'lw_1', name: 'Master Chef Rameshwar Sharma', role: 'Head Chef', phone: '+91 98765 12001', dailyRate: 3500, agencyId: 'Direct Hire', type: 'Direct', status: 'Active' },
-  { id: 'lw_2', name: 'Sanjay Verma', role: 'Assistant Chef', phone: '+91 98765 12002', dailyRate: 2200, agencyId: 'Direct Hire', type: 'Direct', status: 'Active' },
-  { id: 'lw_3', name: 'Rajesh Kumar', role: 'Captain/Supervisor', phone: '+91 98111 22233', dailyRate: 1400, agencyId: 'a1', type: 'Agency', status: 'Active' },
-  { id: 'lw_4', name: 'Vikram Singh', role: 'Waiter / Service Staff', phone: '+91 98111 22234', dailyRate: 900, agencyId: 'a1', type: 'Agency', status: 'Active' },
-  { id: 'lw_5', name: 'Amit Patel', role: 'Kitchen Helper', phone: '+91 98980 44456', dailyRate: 750, agencyId: 'a2', type: 'Agency', status: 'Active' },
-  { id: 'lw_6', name: 'Dinesh Solanki', role: 'Utility Cleaner', phone: '+91 98980 44457', dailyRate: 650, agencyId: 'a2', type: 'Agency', status: 'Active' }
+  { id: 'lw_1', name: 'Master Chef Rameshwar Sharma', role: 'Head Chef', category: 'Head Cook', phone: '+91 98765 12001', dailyRate: 3500, agencyId: 'Direct Hire', type: 'Direct', status: 'Active', advancePayment: 5000, advances: [{ id: 'adv-001', amount: 5000, date: '2026-08-01', notes: 'Festival advance' }] },
+  { id: 'lw_2', name: 'Sanjay Verma', role: 'Assistant Chef', category: 'Assistant Cook', phone: '+91 98765 12002', dailyRate: 2200, agencyId: 'Direct Hire', type: 'Direct', status: 'Active', advancePayment: 2000, advances: [{ id: 'adv-002', amount: 2000, date: '2026-08-05', notes: 'Emergency medical advance' }] },
+  { id: 'lw_3', name: 'Rajesh Kumar', role: 'Captain/Supervisor', category: 'Management', phone: '+91 98111 22233', dailyRate: 1400, agencyId: 'a1', type: 'Agency', status: 'Active', advancePayment: 0, advances: [] },
+  { id: 'lw_4', name: 'Vikram Singh', role: 'Waiter / Service Staff', category: 'Cutting and Supply', phone: '+91 98111 22234', dailyRate: 900, agencyId: 'a1', type: 'Agency', status: 'Active', advancePayment: 0, advances: [] },
+  { id: 'lw_5', name: 'Amit Patel', role: 'Kitchen Helper', category: 'Loaders', phone: '+91 98980 44456', dailyRate: 750, agencyId: 'a2', type: 'Agency', status: 'Active', advancePayment: 1000, advances: [{ id: 'adv-003', amount: 1000, date: '2026-08-10', notes: 'Travel advance' }] },
+  { id: 'lw_6', name: 'Dinesh Solanki', role: 'Utility Cleaner', category: 'Cleaners', phone: '+91 98980 44457', dailyRate: 650, agencyId: 'a2', type: 'Agency', status: 'Active', advancePayment: 0, advances: [] },
+  { id: 'lw_7', name: 'Govindasamy', role: 'Sweet Specialist', category: 'Sweet Master', phone: '+91 98450 99881', dailyRate: 3000, agencyId: 'Direct Hire', type: 'Direct', status: 'Active', advancePayment: 3000, advances: [{ id: 'adv-004', amount: 3000, date: '2026-08-12', notes: 'Halwa season advance' }] },
+  { id: 'lw_8', name: 'Manjula & Team', role: 'Service Associate', category: 'Ladies Supply', phone: '+91 98450 44332', dailyRate: 1100, agencyId: 'Direct Hire', type: 'Direct', status: 'Active', advancePayment: 0, advances: [] },
+  { id: 'lw_9', name: 'Chettiar Master', role: 'Coffee Dispenser', category: 'Coffee Duty', phone: '+91 98450 22110', dailyRate: 1500, agencyId: 'Direct Hire', type: 'Direct', status: 'Active', advancePayment: 0, advances: [] }
+];
+
+export const initialMenuCategories = [
+  { id: 'mc_1', name: 'Breakfast', description: 'Morning breakfast specials and tiffin', displayOrder: 1, active: true },
+  { id: 'mc_2', name: 'Lunch', description: 'Grand afternoon traditional meals & banquets', displayOrder: 2, active: true },
+  { id: 'mc_3', name: 'Dinner', description: 'Evening dinner feasts & high reception spreads', displayOrder: 3, active: true },
+  { id: 'mc_4', name: 'Snacks', description: 'High-tea snacks, savories & chaats', displayOrder: 4, active: true }
+];
+
+export const initialVendorCategories = [
+  { id: 'vc_1', name: 'Plant and Leaf', parentCategory: '', subCategories: ['Banana Leaf', 'Betel Leaf', 'Lotus Leaf'], active: true },
+  { id: 'vc_2', name: 'Pan', parentCategory: '', subCategories: ['Sweet Paan', 'Fire Paan', 'Traditional Meetha Paan'], active: true },
+  { id: 'vc_3', name: 'Water Bottle', parentCategory: '', subCategories: ['250ml Bottles', '500ml Bottles', '1 Litre Bottles'], active: true },
+  { id: 'vc_4', name: 'Water Can', parentCategory: '', subCategories: ['20L Water Cans', 'Cooler Dispensers'], active: true },
+  { id: 'vc_5', name: 'Coconut', parentCategory: '', subCategories: ['Tender Coconut', 'Regular Coconut'], active: true },
+  { id: 'vc_6', name: 'Gold Thali', parentCategory: '', subCategories: ['Brass Thali', 'Silver-Plated Thali', 'Gold-Coated Service Plate'], active: true },
+  { id: 'vc_7', name: 'Thambula', parentCategory: '', subCategories: ['Paper Thambula', 'Cloth Thambula', 'Jute Thambula'], active: true },
+  { id: 'vc_8', name: 'Pots', parentCategory: '', subCategories: ['Clay Cooking Pots', 'Terracotta Serving Bowls', 'Matka Water Pots'], active: true },
+  { id: 'vc_9', name: 'Uniform', parentCategory: '', subCategories: ['Chef Coats & Aprons', 'Captain Blazers', 'Service Staff Traditional Uniform'], active: true },
+  { id: 'vc_10', name: 'Tea and Coffee Counter', parentCategory: '', subCategories: ['Brass Filter Coffee Station', 'Masala Chai Urn', 'Espresso Machine Setup'], active: true },
+  { id: 'vc_11', name: 'Vessels', parentCategory: '', subCategories: ['Heavy Degchi & Handi', 'Chafing Dishes', 'Serving Trays & Ladles'], active: true },
+  { id: 'vc_12', name: 'Dairy', parentCategory: '', subCategories: ['Fresh Milk & Curd', 'Paneer & Butter', 'Fresh Cream & Khoya'], active: true },
+  { id: 'vc_13', name: 'Ice Cream', parentCategory: '', subCategories: ['Artisanal Scoops', 'Kulfi Counter', 'Soft Serve Station'], active: true },
+  { id: 'vc_14', name: 'Chats', parentCategory: '', subCategories: ['Pani Puri Stall', 'Dahi Puri & Papdi', 'Aloo Tikki Live Counter'], active: true },
+  { id: 'vc_15', name: 'Fruits', parentCategory: '', subCategories: ['Local Seasonal Fruits', 'Exotic Carved Fruits', 'Cut Fruit Salads'], active: true },
+  { id: 'vc_16', name: 'Idli', parentCategory: '', subCategories: ['Button Idli Stalls', 'Thatte Idli Station', 'Rava Idli Counter'], active: true },
+  { id: 'vc_17', name: 'Dosa', parentCategory: '', subCategories: ['Live Dosa Station', 'Benne Masala Dosa', 'Rava & Millet Dosa'], active: true },
+  { id: 'vc_18', name: 'Mocktails', parentCategory: '', subCategories: ['Live Mocktail Bar', 'Tropical Smoothies', 'Fresh Fruit Juices'], active: true },
+  { id: 'vc_19', name: 'Printers', parentCategory: '', subCategories: ['Menu Cards', 'Signboards & Labels', 'Event Token Passes'], active: true },
+  { id: 'vc_20', name: 'Plastic Items', parentCategory: '', subCategories: ['Biodegradable Spoons', 'Buffet Rolls', 'Garbage Bags'], active: true },
+  { id: 'vc_21', name: 'Cylinders', parentCategory: '', subCategories: ['19kg Commercial LPG', '47.5kg Industrial Cylinder'], active: true },
+  { id: 'vc_22', name: 'Sweets', parentCategory: '', subCategories: ['Traditional South Indian Ghee Sweets', 'Bengali Milk Sweets', 'Dry Fruit Delicacies'], active: true },
+  { id: 'vc_23', name: 'Peni', parentCategory: '', subCategories: ['Chiroti Peni', 'Badam Milk Peni', 'Saffron Peni'], active: true },
+  { id: 'vc_24', name: 'Kunafa', parentCategory: '', subCategories: ['Classic Cheese Kunafa', 'Nutella Kunafa', 'Creamy Lotus Kunafa'], active: true },
+  { id: 'vc_25', name: 'Charcoal', parentCategory: '', subCategories: ['Hardwood Tandoor Charcoal', 'Briquette Charcoal'], active: true },
+  { id: 'vc_26', name: 'Ghee', parentCategory: '', subCategories: ['Pure Cow Desi Ghee', 'A2 Vedic Bilona Ghee', 'Buffalo Ghee'], active: true },
+  { id: 'vc_27', name: 'Photographers', parentCategory: '', subCategories: ['Candid Event Photography', 'Traditional Photo Studio', 'Drone Videography'], active: true },
+  { id: 'vc_28', name: 'Videographers', parentCategory: '', subCategories: ['Cinematic Film Team', 'Live Streaming Setup', 'LED Wall Feed'], active: true },
+  { id: 'vc_29', name: 'Cake', parentCategory: '', subCategories: ['Multi-tier Wedding Cake', 'Designer Theme Cakes', 'Cupcakes & Pastries'], active: true },
+  { id: 'vc_30', name: 'Grocery', parentCategory: '', subCategories: ['Rice & Grains', 'Pulses & Lentils', 'Oils & Condiments'], active: true },
+  { id: 'vc_31', name: 'Spices', parentCategory: '', subCategories: ['Whole Spices', 'Ground Blends', 'Saffron & Cardamom'], active: true },
+  { id: 'vc_32', name: 'Vegetables', parentCategory: '', subCategories: ['Country Vegetables', 'English Exotic Vegetables', 'Greens & Herbs'], active: true },
+  { id: 'vc_33', name: 'Transport & Logistics', parentCategory: '', subCategories: ['Tempo / Chhota Hathi', '14ft Logistics Truck', 'Refrigerated Van'], active: true },
+  { id: 'vc_34', name: 'Cleaning & Housekeeping', parentCategory: '', subCategories: ['Dishwashing Chemicals', 'Floor Sanitisers', 'Handwash Consumables'], active: true }
+];
+
+export const initialLabourCategories = [
+  { id: 'lc_1', name: 'Head Cook', active: true },
+  { id: 'lc_2', name: 'Assistant Cook', active: true },
+  { id: 'lc_3', name: 'Sweet Master', active: true },
+  { id: 'lc_4', name: 'Sweet Assistant', active: true },
+  { id: 'lc_5', name: 'Management', active: true },
+  { id: 'lc_6', name: 'Grinders', active: true },
+  { id: 'lc_7', name: 'Cutting and Supply', active: true },
+  { id: 'lc_8', name: 'Loaders', active: true },
+  { id: 'lc_9', name: 'Cleaners', active: true },
+  { id: 'lc_10', name: 'Ladies Supply', active: true },
+  { id: 'lc_11', name: 'Coffee Duty', active: true }
 ];
 
 export const initialLabourAttendance = [

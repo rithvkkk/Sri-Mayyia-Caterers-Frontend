@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff } from 'lucide-react';
+import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
@@ -13,11 +14,25 @@ const AuthSetup = () => {
     suppliers, addSupplier, updateSupplier, deleteSupplier,
     agencies, addAgency, updateAgency, deleteAgency,
     companyProfile, setCompanyProfile,
-    rbacMatrix, updateRolePermission
+    rbacMatrix, updateRolePermission,
+    menuCategories = [], addMenuCategory, updateMenuCategory, deleteMenuCategory,
+    vendorCategories = [], addVendorCategory, updateVendorCategory, deleteVendorCategory,
+    labourCategories = [], addLabourCategory, updateLabourCategory, deleteLabourCategory
   } = useContext(AppContext);
 
-  // Tabs: profile, venues, materials, dishes, suppliers, agencies
+  // Tabs: profile, venues, materials, dishes, suppliers, agencies, users, rbac, categories
   const [activeTab, setActiveTab] = useState('profile');
+  const [activeMasterSubTab, setActiveMasterSubTab] = useState('vendor'); // 'vendor' | 'labour' | 'menu'
+
+  // Master Categories Form States
+  const [newMenuCat, setNewMenuCat] = useState({ name: '', code: '' });
+  const [newVendorCat, setNewVendorCat] = useState({ name: '', subCategories: '' });
+  const [newLabourCat, setNewLabourCat] = useState({ name: '' });
+
+  // Effective lists
+  const effectiveVendorCategories = (vendorCategories && vendorCategories.length > 0) ? vendorCategories : initialVendorCategories;
+  const effectiveLabourCategories = (labourCategories && labourCategories.length > 0) ? labourCategories : initialLabourCategories;
+  const effectiveMenuCategories = (menuCategories && menuCategories.length > 0) ? menuCategories : initialMenuCategories;
 
   // Edit / Add States
   const [editingId, setEditingId] = useState(null);
@@ -145,6 +160,7 @@ const AuthSetup = () => {
         <button className={`tab-btn ${activeTab === 'agencies' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('agencies'); }}>Agencies</button>
         <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('users'); }}>User Accounts</button>
         <button className={`tab-btn ${activeTab === 'rbac' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('rbac'); }}>RBAC Permission Matrix</button>
+        <button className={`tab-btn ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => { cancelEdit(); setActiveTab('categories'); }}>Categories & Masters</button>
       </div>
 
       {/* Tab: Company Profile */}
@@ -814,6 +830,340 @@ const AuthSetup = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Tab: Categories & Masters */}
+      {activeTab === 'categories' && (
+        <div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className={`btn ${activeMasterSubTab === 'vendor' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveMasterSubTab('vendor')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+            >
+              <Tag size={16} /> Vendor Categories & Subcategories ({effectiveVendorCategories.length})
+            </button>
+            <button
+              type="button"
+              className={`btn ${activeMasterSubTab === 'labour' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveMasterSubTab('labour')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+            >
+              <Users size={16} /> Labour Categories ({effectiveLabourCategories.length})
+            </button>
+            <button
+              type="button"
+              className={`btn ${activeMasterSubTab === 'menu' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveMasterSubTab('menu')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+            >
+              <Layers size={16} /> Menu Meal Categories ({effectiveMenuCategories.length})
+            </button>
+          </div>
+
+          {/* Sub-tab 1: Vendor Categories */}
+          {activeMasterSubTab === 'vendor' && (
+            <div className="glass-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Vendor Hierarchical Categories</h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    Manage supplier master categories and cascading subcategories (e.g. Coconut → Tender/Regular, Thambula → Paper/Cloth/Jute)
+                  </p>
+                </div>
+              </div>
+
+              {/* Add category form */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 700 }}>Add Vendor Category</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '0.75rem', alignItems: 'flex-end' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Category Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Coconut"
+                      value={newVendorCat.name}
+                      onChange={e => setNewVendorCat({ ...newVendorCat, name: e.target.value })}
+                      style={{ padding: '0.45rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Subcategories (comma separated)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Tender Coconut, Regular Coconut"
+                      value={newVendorCat.subCategories}
+                      onChange={e => setNewVendorCat({ ...newVendorCat, subCategories: e.target.value })}
+                      style={{ padding: '0.45rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (!newVendorCat.name.trim()) {
+                        alert('Please enter a category name');
+                        return;
+                      }
+                      const subs = newVendorCat.subCategories.split(',').map(s => s.trim()).filter(Boolean);
+                      addVendorCategory({
+                        name: newVendorCat.name.trim(),
+                        parentCategory: '',
+                        subCategories: subs,
+                        active: true
+                      });
+                      setNewVendorCat({ name: '', subCategories: '' });
+                    }}
+                    style={{ padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 600 }}
+                  >
+                    <Plus size={15} /> Add Category
+                  </button>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '60px' }}>#</th>
+                      <th style={{ width: '220px' }}>Parent Category</th>
+                      <th>Subcategories</th>
+                      <th style={{ width: '90px' }}>Status</th>
+                      <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectiveVendorCategories.map((vc, idx) => (
+                      <tr key={vc.id || idx}>
+                        <td>{idx + 1}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{vc.name}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                            {(vc.subCategories || []).map((sub, sIdx) => (
+                              <span key={sIdx} className="badge badge-secondary" style={{ fontSize: '0.74rem' }}>
+                                {sub}
+                              </span>
+                            ))}
+                            {(!vc.subCategories || vc.subCategories.length === 0) && (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>General / Standard</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${vc.active !== false ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
+                            {vc.active !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => deleteVendorCategory(vc.id)}
+                            style={{ color: 'var(--color-danger)' }}
+                            title="Delete Category"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-tab 2: Labour Categories */}
+          {activeMasterSubTab === 'labour' && (
+            <div className="glass-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Labour Workforce Categories</h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    11 Core Skill Categories for event kitchen, service, and logistics crew
+                  </p>
+                </div>
+              </div>
+
+              {/* Add category form */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 700 }}>Add Labour Category</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr auto', gap: '0.75rem', alignItems: 'flex-end', maxWidth: '500px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Category Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Sweet Assistant"
+                      value={newLabourCat.name}
+                      onChange={e => setNewLabourCat({ ...newLabourCat, name: e.target.value })}
+                      style={{ padding: '0.45rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (!newLabourCat.name.trim()) {
+                        alert('Please enter a category name');
+                        return;
+                      }
+                      addLabourCategory({
+                        name: newLabourCat.name.trim(),
+                        active: true
+                      });
+                      setNewLabourCat({ name: '' });
+                    }}
+                    style={{ padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 600 }}
+                  >
+                    <Plus size={15} /> Add Category
+                  </button>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '60px' }}>#</th>
+                      <th>Labour Category Name</th>
+                      <th style={{ width: '120px' }}>Status</th>
+                      <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectiveLabourCategories.map((lc, idx) => (
+                      <tr key={lc.id || idx}>
+                        <td>{idx + 1}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{lc.name}</td>
+                        <td>
+                          <span className={`badge ${lc.active !== false ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
+                            {lc.active !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => deleteLabourCategory(lc.id)}
+                            style={{ color: 'var(--color-danger)' }}
+                            title="Delete Category"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-tab 3: Menu Categories */}
+          {activeMasterSubTab === 'menu' && (
+            <div className="glass-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Menu Meal Categories</h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    Service time slots and meal classifications (Breakfast, Lunch, Dinner, Snacks, Hi-Tea)
+                  </p>
+                </div>
+              </div>
+
+              {/* Add category form */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 700 }}>Add Menu Meal Category</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem', alignItems: 'flex-end', maxWidth: '600px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Category Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Hi-Tea"
+                      value={newMenuCat.name}
+                      onChange={e => setNewMenuCat({ ...newMenuCat, name: e.target.value })}
+                      style={{ padding: '0.45rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Code / Identifier</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. hitea"
+                      value={newMenuCat.code}
+                      onChange={e => setNewMenuCat({ ...newMenuCat, code: e.target.value })}
+                      style={{ padding: '0.45rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (!newMenuCat.name.trim()) {
+                        alert('Please enter a category name');
+                        return;
+                      }
+                      addMenuCategory({
+                        name: newMenuCat.name.trim(),
+                        code: (newMenuCat.code || newMenuCat.name).toLowerCase().replace(/\s+/g, '_'),
+                        active: true
+                      });
+                      setNewMenuCat({ name: '', code: '' });
+                    }}
+                    style={{ padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 600 }}
+                  >
+                    <Plus size={15} /> Add Category
+                  </button>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '60px' }}>#</th>
+                      <th>Meal Category Name</th>
+                      <th>Code</th>
+                      <th style={{ width: '120px' }}>Status</th>
+                      <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectiveMenuCategories.map((mc, idx) => (
+                      <tr key={mc.id || idx}>
+                        <td>{idx + 1}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{mc.name}</td>
+                        <td><code>{mc.code || mc.name.toLowerCase()}</code></td>
+                        <td>
+                          <span className={`badge ${mc.active !== false ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
+                            {mc.active !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => deleteMenuCategory(mc.id)}
+                            style={{ color: 'var(--color-danger)' }}
+                            title="Delete Category"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -36,10 +36,23 @@ const QuotationBilling = () => {
   // Transport Modals
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [vehicleForm, setVehicleForm] = useState({
+    calculationMode: 'odometer', // 'odometer' | 'flat'
     type: 'Mini Truck (Tata 407)',
     vehicleNumber: '',
     trips: 1,
-    costPerTrip: 2500
+    costPerTrip: 2500,
+    date: new Date().toISOString().split('T')[0],
+    startLocation: 'Main Base / Central Kitchen',
+    destination: 'Event Execution Venue',
+    startingKm: 12000,
+    endingKm: 12065,
+    fuelType: 'Diesel',
+    fuelPricePerLitre: 95,
+    fuelLitresUsed: 8,
+    tollExpense: 120,
+    parkingExpense: 100,
+    driverAllowance: 500,
+    otherExpenses: 0
   });
 
   const [showPorterModal, setShowPorterModal] = useState(false);
@@ -126,15 +139,62 @@ const QuotationBilling = () => {
   const handleAddVehicle = (e) => {
     e.preventDefault();
     if (!isFinance || !currentEvent) return;
+
+    let totalCost = 0;
     const trips = parseInt(vehicleForm.trips, 10) || 1;
     const costPerTrip = parseFloat(vehicleForm.costPerTrip) || 0;
-    const newVehicle = {
-      type: vehicleForm.type,
-      vehicleNumber: vehicleForm.vehicleNumber || 'Unassigned',
-      trips,
-      costPerTrip,
-      totalCost: trips * costPerTrip
-    };
+    const startingKm = parseFloat(vehicleForm.startingKm) || 0;
+    const endingKm = parseFloat(vehicleForm.endingKm) || 0;
+    let newVehicle = null;
+
+    if (vehicleForm.calculationMode === 'odometer') {
+      if (endingKm < startingKm) {
+        alert('Ending KM must be greater than or equal to Starting KM.');
+        return;
+      }
+      const totalKm = endingKm - startingKm;
+      const litresUsed = parseFloat(vehicleForm.fuelLitresUsed) || 0;
+      const fuelPrice = parseFloat(vehicleForm.fuelPricePerLitre) || 95;
+      const fuelAmount = litresUsed * fuelPrice;
+      const toll = parseFloat(vehicleForm.tollExpense) || 0;
+      const parking = parseFloat(vehicleForm.parkingExpense) || 0;
+      const driver = parseFloat(vehicleForm.driverAllowance) || 0;
+      const other = parseFloat(vehicleForm.otherExpenses) || 0;
+      totalCost = fuelAmount + toll + parking + driver + other;
+
+      newVehicle = {
+        type: vehicleForm.type,
+        vehicleNumber: vehicleForm.vehicleNumber || 'Unassigned',
+        calculationMode: 'odometer',
+        date: vehicleForm.date || new Date().toISOString().split('T')[0],
+        startLocation: vehicleForm.startLocation || 'Base',
+        destination: vehicleForm.destination || 'Venue',
+        startingKm,
+        endingKm,
+        totalKm,
+        fuelType: vehicleForm.fuelType || 'Diesel',
+        fuelPricePerLitre: fuelPrice,
+        fuelLitresUsed: litresUsed,
+        fuelAmount,
+        tollExpense: toll,
+        parkingExpense: parking,
+        driverAllowance: driver,
+        otherExpenses: other,
+        trips: 1,
+        costPerTrip: totalCost,
+        totalCost
+      };
+    } else {
+      totalCost = trips * costPerTrip;
+      newVehicle = {
+        type: vehicleForm.type,
+        vehicleNumber: vehicleForm.vehicleNumber || 'Unassigned',
+        calculationMode: 'flat',
+        trips,
+        costPerTrip,
+        totalCost
+      };
+    }
 
     const currentVehicles = currentEvent.transport?.vehicles || [];
     const updatedVehicles = [...currentVehicles, newVehicle];
@@ -156,7 +216,25 @@ const QuotationBilling = () => {
     updateEvent(updatedEvent);
     setTimeout(() => refreshEventTotals(selectedEventId), 50);
     setShowVehicleModal(false);
-    setVehicleForm({ type: 'Mini Truck (Tata 407)', vehicleNumber: '', trips: 1, costPerTrip: 2500 });
+    setVehicleForm({
+      calculationMode: 'odometer',
+      type: 'Mini Truck (Tata 407)',
+      vehicleNumber: '',
+      trips: 1,
+      costPerTrip: 2500,
+      date: new Date().toISOString().split('T')[0],
+      startLocation: 'Main Base / Central Kitchen',
+      destination: 'Event Execution Venue',
+      startingKm: 12000,
+      endingKm: 12065,
+      fuelType: 'Diesel',
+      fuelPricePerLitre: 95,
+      fuelLitresUsed: 8,
+      tollExpense: 120,
+      parkingExpense: 100,
+      driverAllowance: 500,
+      otherExpenses: 0
+    });
   };
 
   const handleRemoveVehicle = (index) => {
@@ -808,16 +886,36 @@ const QuotationBilling = () => {
                 {transportVehicles.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {transportVehicles.map((veh, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.65)', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'rgba(255, 255, 255, 0.75)', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.82rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <div>
-                          <div style={{ fontWeight: 600 }}>{veh.type} ({veh.vehicleNumber})</div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{veh.trips} Trip(s) @ {formatCurrency(veh.costPerTrip)}/trip</div>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {veh.type} <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>({veh.vehicleNumber || 'Unassigned'})</span>
+                          </div>
+                          {veh.endingKm !== undefined && veh.startingKm !== undefined && veh.endingKm >= veh.startingKm ? (
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                              <span className="badge badge-info" style={{ fontSize: '0.68rem', padding: '0.1rem 0.35rem' }}>
+                                {veh.startingKm} → {veh.endingKm} KM ({veh.totalKm ?? (veh.endingKm - veh.startingKm)} KM)
+                              </span>
+                              <span>
+                                Fuel: {veh.fuelLitresUsed || 0}L @ ₹{veh.fuelPricePerLitre || 95} = {formatCurrency(veh.fuelAmount || 0)}
+                              </span>
+                              {(veh.tollExpense > 0 || veh.parkingExpense > 0 || veh.driverAllowance > 0 || veh.otherExpenses > 0) && (
+                                <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                                  + Toll/Park/Driver: {formatCurrency((veh.tollExpense || 0) + (veh.parkingExpense || 0) + (veh.driverAllowance || 0) + (veh.otherExpenses || 0))}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                              {veh.trips} Trip(s) @ {formatCurrency(veh.costPerTrip)}/trip
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{formatCurrency(veh.totalCost)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.92rem' }}>{formatCurrency(veh.totalCost)}</span>
                           {isFinance && (
-                            <button className="btn btn-danger btn-small" onClick={() => handleRemoveVehicle(idx)} style={{ padding: '0.2rem 0.35rem' }}>
-                              <Trash2 size={11} />
+                            <button className="btn btn-danger btn-small" onClick={() => handleRemoveVehicle(idx)} style={{ padding: '0.2rem 0.4rem' }}>
+                              <Trash2 size={12} />
                             </button>
                           )}
                         </div>
@@ -1223,68 +1321,277 @@ const QuotationBilling = () => {
               <span>Add Vehicle Transport Trip</span>
             </h2>
 
-            <form onSubmit={handleAddVehicle} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Vehicle Type</label>
-                <select
-                  value={vehicleForm.type}
-                  onChange={e => setVehicleForm({ ...vehicleForm, type: e.target.value })}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                >
-                  <option value="Mini Truck (Tata 407)">Mini Truck (Tata 407)</option>
-                  <option value="Commercial Tempo (Bolero Maxi)">Commercial Tempo (Bolero Maxi)</option>
-                  <option value="Large Logistics Truck (Eicher 17ft)">Large Logistics Truck (Eicher 17ft)</option>
-                  <option value="Refrigerated / Cold Storage Van">Refrigerated / Cold Storage Van</option>
-                  <option value="Staff Transport Bus/Van">Staff Transport Bus/Van</option>
-                </select>
-              </div>
+            {/* Mode Selector */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', background: 'rgba(0,0,0,0.04)', padding: '0.25rem', borderRadius: '8px' }}>
+              <button
+                type="button"
+                className={`btn btn-small ${vehicleForm.calculationMode === 'odometer' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setVehicleForm({ ...vehicleForm, calculationMode: 'odometer' })}
+                style={{ flex: 1, fontSize: '0.78rem', padding: '0.35rem' }}
+              >
+                Logistics KM & Fuel Trip
+              </button>
+              <button
+                type="button"
+                className={`btn btn-small ${vehicleForm.calculationMode === 'flat' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setVehicleForm({ ...vehicleForm, calculationMode: 'flat' })}
+                style={{ flex: 1, fontSize: '0.78rem', padding: '0.35rem' }}
+              >
+                Flat Rate Per Trip
+              </button>
+            </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Vehicle Reg. / Vendor</label>
-                <input
-                  type="text"
-                  placeholder="e.g. TN-09-CD-5678 (Fast Logistics)"
-                  value={vehicleForm.vehicleNumber}
-                  onChange={e => setVehicleForm({ ...vehicleForm, vehicleNumber: e.target.value })}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <form onSubmit={handleAddVehicle} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Number of Trips</label>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.3rem' }}>Vehicle Type</label>
+                  <select
+                    value={vehicleForm.type}
+                    onChange={e => setVehicleForm({ ...vehicleForm, type: e.target.value })}
+                    style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                  >
+                    <option value="Mini Truck (Tata 407)">Mini Truck (Tata 407)</option>
+                    <option value="Commercial Tempo (Bolero Maxi)">Commercial Tempo (Bolero Maxi)</option>
+                    <option value="Large Logistics Truck (Eicher 17ft)">Large Logistics Truck (Eicher 17ft)</option>
+                    <option value="Refrigerated / Cold Storage Van">Refrigerated / Cold Storage Van</option>
+                    <option value="Staff Transport Bus/Van">Staff Transport Bus/Van</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.3rem' }}>Vehicle Reg. / Vendor</label>
                   <input
-                    type="number"
-                    min="1"
+                    type="text"
                     required
-                    value={vehicleForm.trips}
-                    onChange={e => setVehicleForm({ ...vehicleForm, trips: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                    placeholder="e.g. KA-01-MJ-9921"
+                    value={vehicleForm.vehicleNumber}
+                    onChange={e => setVehicleForm({ ...vehicleForm, vehicleNumber: e.target.value })}
+                    style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
                   />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Cost Per Trip (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={vehicleForm.costPerTrip}
-                    onChange={e => setVehicleForm({ ...vehicleForm, costPerTrip: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                  />
-                </div>
               </div>
 
-              <div style={{ padding: '0.75rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calculated Vehicle Expense:</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
-                  {formatCurrency((parseInt(vehicleForm.trips, 10) || 1) * (parseFloat(vehicleForm.costPerTrip) || 0))}
-                </span>
-              </div>
+              {vehicleForm.calculationMode === 'odometer' ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>Start Location</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.startLocation}
+                        onChange={e => setVehicleForm({ ...vehicleForm, startLocation: e.target.value })}
+                        style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>Destination</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.destination}
+                        onChange={e => setVehicleForm({ ...vehicleForm, destination: e.target.value })}
+                        style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Odometer Section */}
+                  <div style={{ background: 'rgba(156, 21, 25, 0.05)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', alignItems: 'flex-end' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Starting KM</label>
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={vehicleForm.startingKm}
+                          onChange={e => setVehicleForm({ ...vehicleForm, startingKm: e.target.value })}
+                          style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Ending KM</label>
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={vehicleForm.endingKm}
+                          onChange={e => setVehicleForm({ ...vehicleForm, endingKm: e.target.value })}
+                          style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem', color: 'var(--color-primary)' }}>Total KM</label>
+                        <div style={{ padding: '0.45rem', background: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border-color)', fontWeight: 700, textAlign: 'center', fontSize: '0.9rem' }}>
+                          {Math.max(0, (parseFloat(vehicleForm.endingKm) || 0) - (parseFloat(vehicleForm.startingKm) || 0))} KM
+                        </div>
+                      </div>
+                    </div>
+                    {parseFloat(vehicleForm.endingKm) < parseFloat(vehicleForm.startingKm) && (
+                      <div style={{ color: 'var(--color-danger)', fontSize: '0.72rem', marginTop: '0.4rem', fontWeight: 600 }}>
+                        ⚠️ Ending KM cannot be less than Starting KM.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fuel Section */}
+                  <div style={{ background: 'rgba(245, 158, 11, 0.06)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Fuel Type</label>
+                        <select
+                          value={vehicleForm.fuelType}
+                          onChange={e => {
+                            const fType = e.target.value;
+                            setVehicleForm({
+                              ...vehicleForm,
+                              fuelType: fType,
+                              fuelPricePerLitre: fType === 'Diesel' ? 95 : 102
+                            });
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                        >
+                          <option value="Diesel">Diesel</option>
+                          <option value="Petrol">Petrol</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Litres Used</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          required
+                          value={vehicleForm.fuelLitresUsed}
+                          onChange={e => setVehicleForm({ ...vehicleForm, fuelLitresUsed: e.target.value })}
+                          style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Price/Litre (₹)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          required
+                          value={vehicleForm.fuelPricePerLitre}
+                          onChange={e => setVehicleForm({ ...vehicleForm, fuelPricePerLitre: e.target.value })}
+                          style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem', fontSize: '0.78rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Calculated Fuel Amount:</span>
+                      <strong style={{ color: 'var(--color-primary)' }}>
+                        {formatCurrency((parseFloat(vehicleForm.fuelLitresUsed) || 0) * (parseFloat(vehicleForm.fuelPricePerLitre) || 0))}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Additional Expenses */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.2rem' }}>Toll (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={vehicleForm.tollExpense}
+                        onChange={e => setVehicleForm({ ...vehicleForm, tollExpense: e.target.value })}
+                        style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.2rem' }}>Parking (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={vehicleForm.parkingExpense}
+                        onChange={e => setVehicleForm({ ...vehicleForm, parkingExpense: e.target.value })}
+                        style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.2rem' }}>Driver Batta</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={vehicleForm.driverAllowance}
+                        onChange={e => setVehicleForm({ ...vehicleForm, driverAllowance: e.target.value })}
+                        style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.2rem' }}>Other Exp.</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={vehicleForm.otherExpenses}
+                        onChange={e => setVehicleForm({ ...vehicleForm, otherExpenses: e.target.value })}
+                        style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Total Trip Summary */}
+                  <div style={{ padding: '0.75rem', background: 'rgba(156, 21, 25, 0.08)', borderRadius: '8px', borderLeft: '4px solid var(--color-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Total Trip Amount (Fuel + Toll + Parking + Driver + Other):
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                      {formatCurrency(
+                        ((parseFloat(vehicleForm.fuelLitresUsed) || 0) * (parseFloat(vehicleForm.fuelPricePerLitre) || 0)) +
+                        (parseFloat(vehicleForm.tollExpense) || 0) +
+                        (parseFloat(vehicleForm.parkingExpense) || 0) +
+                        (parseFloat(vehicleForm.driverAllowance) || 0) +
+                        (parseFloat(vehicleForm.otherExpenses) || 0)
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Number of Trips</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={vehicleForm.trips}
+                        onChange={e => setVehicleForm({ ...vehicleForm, trips: e.target.value })}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Cost Per Trip (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        required
+                        value={vehicleForm.costPerTrip}
+                        onChange={e => setVehicleForm({ ...vehicleForm, costPerTrip: e.target.value })}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '0.75rem', background: 'rgba(156, 21, 25, 0.06)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calculated Vehicle Expense:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                      {formatCurrency((parseInt(vehicleForm.trips, 10) || 1) * (parseFloat(vehicleForm.costPerTrip) || 0))}
+                    </span>
+                  </div>
+                </>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowVehicleModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Add Vehicle Expense</button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={vehicleForm.calculationMode === 'odometer' && parseFloat(vehicleForm.endingKm) < parseFloat(vehicleForm.startingKm)}
+                >
+                  Save Vehicle Trip
+                </button>
               </div>
             </form>
           </div>

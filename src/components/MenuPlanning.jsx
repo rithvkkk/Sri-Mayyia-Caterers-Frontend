@@ -22,9 +22,9 @@ const FOOD_CATEGORIES = [
 const EVENT_ARCHETYPES = [
   {
     id: 'tier1_home',
-    title: 'Tier 1: Micro Home Event',
-    paxRange: '25–75 Pax',
-    desc: 'Intimate family gathering, Pooja, or Gruhapravesha breakfast/high-tea.',
+    title: 'Tier 1: Micro Event',
+    paxRange: '50–100 Pax',
+    desc: 'Intimate family gathering, Pooja, or Gruhapravesha breakfast/high-tea (50 to 100 Pax).',
     badge: 'Micro-Scale Intimate',
     badgeColor: '#10b981',
     items: [
@@ -134,6 +134,7 @@ const MenuPlanning = () => {
     events,
     updateEvent,
     dishes,
+    menuCategories,
     companyProfile,
     refreshEventTotals
   } = useContext(AppContext);
@@ -155,6 +156,7 @@ const MenuPlanning = () => {
   const [parentEventSearch, setParentEventSearch] = useState('');
 
   // Category and Dish Search Filters
+  const [selectedMealCategory, setSelectedMealCategory] = useState('All');
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
   const [dishSearchTerm, setDishSearchTerm] = useState('');
 
@@ -371,6 +373,46 @@ const MenuPlanning = () => {
     }
     return null;
   };
+
+  const matchesMealCategory = (dish, mealCat) => {
+    if (!mealCat || mealCat === 'All') return true;
+    if (dish.mealCategory && dish.mealCategory.toLowerCase() === mealCat.toLowerCase()) return true;
+    const name = (dish.name || '').toLowerCase();
+    const sub = (dish.subCategory || '').toLowerCase();
+    const cat = (dish.category || '').toLowerCase();
+
+    if (mealCat === 'Breakfast') {
+      return name.includes('idli') || name.includes('dosa') || name.includes('vada') || name.includes('upma') ||
+        name.includes('pongal') || name.includes('bath') || name.includes('sheera') || name.includes('coffee') ||
+        name.includes('tea') || name.includes('poori') || name.includes('kesari') || name.includes('tiffin') ||
+        sub.includes('breakfast') || sub.includes('tiffin');
+    }
+    if (mealCat === 'Lunch') {
+      return name.includes('rice') || name.includes('sambar') || name.includes('rasam') || name.includes('palya') ||
+        name.includes('kootu') || name.includes('majjige') || name.includes('huli') || name.includes('curd') ||
+        name.includes('payasa') || name.includes('holige') || name.includes('thali') || name.includes('chitranna') ||
+        name.includes('bisi bele') || cat.includes('south indian') || sub.includes('traditional');
+    }
+    if (mealCat === 'Dinner') {
+      return name.includes('roti') || name.includes('naan') || name.includes('kulcha') || name.includes('biryani') ||
+        name.includes('paneer') || name.includes('dal') || name.includes('pulao') || name.includes('paratha') ||
+        name.includes('kurma') || name.includes('gravy') || cat.includes('north indian') || cat.includes('global');
+    }
+    if (mealCat === 'Snacks') {
+      return name.includes('chaat') || name.includes('samosa') || name.includes('cutlet') || name.includes('pakoda') ||
+        name.includes('bajji') || name.includes('bonda') || name.includes('kachori') || name.includes('puff') ||
+        name.includes('mocktail') || name.includes('juice') || name.includes('shake') || name.includes('ice cream') ||
+        cat.includes('appetizer') || cat.includes('beverage') || cat.includes('dessert');
+    }
+    return true;
+  };
+
+  const availableMealCategories = useMemo(() => {
+    const defaultMeals = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+    if (!Array.isArray(menuCategories) || menuCategories.length === 0) return defaultMeals;
+    const custom = menuCategories.map(c => c.name).filter(Boolean);
+    return Array.from(new Set([...defaultMeals, ...custom]));
+  }, [menuCategories]);
 
   // Available unique categories
   const dynamicCategories = Array.from(new Set([
@@ -738,6 +780,34 @@ const MenuPlanning = () => {
                 </div>
               </div>
 
+              {/* Meal Category Filter Pills (Breakfast, Lunch, Dinner, Snacks) */}
+              <div style={{ marginBottom: '1rem', padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
+                  Meal Type Filter:
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMealCategory('All')}
+                    className={`btn btn-small ${selectedMealCategory === 'All' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.65rem', borderRadius: '16px' }}
+                  >
+                    All Meals
+                  </button>
+                  {availableMealCategories.map(meal => (
+                    <button
+                      key={meal}
+                      type="button"
+                      onClick={() => setSelectedMealCategory(meal)}
+                      className={`btn btn-small ${selectedMealCategory === meal ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.65rem', borderRadius: '16px' }}
+                    >
+                      {meal}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 8 Food Category Filter Pills */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
@@ -750,7 +820,7 @@ const MenuPlanning = () => {
                     All Categories ({dishes.length})
                   </button>
                   {dynamicCategories.map(cat => {
-                    const catDishes = dishes.filter(d => d.category === cat);
+                    const catDishes = dishes.filter(d => d.category === cat && matchesMealCategory(d, selectedMealCategory));
                     const catCount = catDishes.length;
                     const catSelectedCount = selectedSub.menuItems.filter(id => catDishes.some(d => d.id === id)).length;
                     if (catCount === 0) return null;
@@ -778,8 +848,9 @@ const MenuPlanning = () => {
               {displayedCategories.map(cat => {
                 const catDishes = dishes.filter(d => {
                   const matchesCat = d.category === cat;
+                  const matchesMeal = matchesMealCategory(d, selectedMealCategory);
                   const matchesSearch = !dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase()) || (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.toLowerCase()));
-                  return matchesCat && matchesSearch;
+                  return matchesCat && matchesMeal && matchesSearch;
                 });
 
                 if (catDishes.length === 0) return null;
@@ -851,7 +922,7 @@ const MenuPlanning = () => {
                                   onClick={() => toggleDish(dish.id)}
                                 >
                                   <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: isSelected ? '#fff' : 'var(--text-primary)', lineHeight: '1.25' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? '#000000' : 'var(--text-primary)', lineHeight: '1.25' }}>
                                       {dish.name}
                                     </div>
                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>

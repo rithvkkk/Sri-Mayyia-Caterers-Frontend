@@ -35,6 +35,9 @@ const EventBooking = () => {
   const [dateSort, setDateSort] = useState('asc'); // 'asc' (earliest/upcoming), 'desc' (furthest/latest), 'none'
   const [statusSort, setStatusSort] = useState('none'); // 'none', 'inquiry-first', 'confirmed-first', 'completed-first'
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'Inquiry', 'Confirmed', 'Completed'
+  const [selectedMonth, setSelectedMonth] = useState('all'); // 'all', '0'...'11'
+  const [selectedYear, setSelectedYear] = useState('all'); // 'all', '2026', '2027'...
+  const [groupByMonth, setGroupByMonth] = useState(true);
 
   // Form states for creation
   const [clientName, setClientName] = useState('');
@@ -64,14 +67,45 @@ const EventBooking = () => {
   const isSalesExec = currentRole === 'Sales Executive' || currentRole === 'Sales';
   const isEditable = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager' || isSalesExec;
 
+  // Available years dynamically computed
+  const availableYears = React.useMemo(() => {
+    const years = new Set();
+    events.forEach(e => {
+      const allD = [e.date, ...(e.dates || [])].filter(Boolean);
+      allD.forEach(d => {
+        const yr = new Date(d).getFullYear();
+        if (!isNaN(yr)) years.add(yr);
+      });
+    });
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [events]);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
   // Filter visible events for Sales Executives so they only see sales assigned/created by them
   const baseVisibleEvents = isSalesExec
     ? events.filter(e => !e.createdBy || e.createdBy === currentUser || e.createdByName === currentUser || e.salesExecutive === currentUser || (currentUser && e.createdBy && e.createdBy.toLowerCase() === currentUser.toLowerCase()))
     : events;
 
-  // Apply Search, Status Filtering, and Multi-criteria Sorting
+  // Apply Search, Month/Year Filtering, Status Filtering, and Multi-criteria Sorting
   const processedEvents = [...baseVisibleEvents]
-    // 1. Search Query Filter
+    // 1. Year Filter
+    .filter(e => {
+      if (selectedYear === 'all') return true;
+      const allD = [e.date, ...(e.dates || [])].filter(Boolean);
+      return allD.some(d => new Date(d).getFullYear().toString() === selectedYear.toString());
+    })
+    // 2. Month Filter
+    .filter(e => {
+      if (selectedMonth === 'all') return true;
+      const allD = [e.date, ...(e.dates || [])].filter(Boolean);
+      return allD.some(d => new Date(d).getMonth().toString() === selectedMonth.toString());
+    })
+    // 3. Search Query Filter
     .filter(e => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
@@ -82,12 +116,12 @@ const EventBooking = () => {
         (e.eventType || '').toLowerCase().includes(q)
       );
     })
-    // 2. Status Pill Filter
+    // 4. Status Pill Filter
     .filter(e => {
       if (statusFilter === 'all') return true;
       return e.status === statusFilter;
     })
-    // 3. Sorting (Date + Status)
+    // 5. Sorting (Date + Status)
     .sort((a, b) => {
       // Primary Sort: Status Priority if active
       if (statusSort === 'inquiry-first') {
@@ -115,6 +149,30 @@ const EventBooking = () => {
       }
       return 0;
     });
+
+  // Group events by Month-Year chronologically
+  const groupedEvents = React.useMemo(() => {
+    if (!groupByMonth) return null;
+    const groups = {};
+    processedEvents.forEach(e => {
+      const dStr = e.date || (e.dates && e.dates[0]) || '1970-01-01';
+      const d = new Date(dStr);
+      const groupKey = isNaN(d.getTime()) ? 'Unscheduled' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const groupLabel = isNaN(d.getTime()) ? 'Unscheduled / Other Dates' : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      if (!groups[groupKey]) {
+        groups[groupKey] = { key: groupKey, label: groupLabel, events: [] };
+      }
+      groups[groupKey].events.push(e);
+    });
+
+    const keys = Object.keys(groups).sort((a, b) => {
+      if (a === 'Unscheduled') return 1;
+      if (b === 'Unscheduled') return -1;
+      return dateSort === 'desc' ? b.localeCompare(a) : a.localeCompare(b);
+    });
+
+    return keys.map(k => groups[k]);
+  }, [processedEvents, groupByMonth, dateSort]);
 
   const selectedEvent = processedEvents.find(e => e.id === selectedEventId) || processedEvents[0] || events[0];
 
@@ -152,6 +210,18 @@ const EventBooking = () => {
     setSaving(true);
     const cleanedDates = (editDraft.dates || []).filter(Boolean);
     const finalDate = editDraft.date || cleanedDates[0] || selectedEvent.date;
+
+    const isMicro = (editDraft.eventType || '').trim().toLowerCase() === 'micro event';
+    if (isMicro) {
+      const totalGuests = (selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
+        ? selectedEvent.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
+        : (parseInt(selectedEvent.guestCount, 10) || 0);
+      if (totalGuests < 50 || totalGuests > 100) {
+        alert(`Micro Event must have between 50 and 100 Pax (guests). Current: ${totalGuests} Pax.`);
+        setSaving(false);
+        return;
+      }
+    }
 
     const updated = {
       ...selectedEvent,
@@ -215,6 +285,15 @@ const EventBooking = () => {
     if (!clientName.trim() || !primaryDate) {
       alert('Client Name and at least one Event Date are required!');
       return;
+    }
+
+    const isMicro = (eventType || '').trim().toLowerCase() === 'micro event';
+    if (isMicro) {
+      const totalGuests = subFunctionsList.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0);
+      if (totalGuests < 50 || totalGuests > 100) {
+        alert(`Micro Event must have between 50 and 100 Pax (guests). Current: ${totalGuests} Pax.`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -345,6 +424,90 @@ const EventBooking = () => {
     .filter(e => e.status === 'Inquiry')
     .reduce((count, e) => count + (e.reminders || []).filter(r => !r.completed).length, 0);
 
+  const renderEventCard = (e) => {
+    const venue = venues.find(v => v.id === e.venueId);
+    const isSelected = selectedEvent?.id === e.id;
+    const totalGuests = (e.subFunctions || []).reduce((sum, sf) => sum + (parseInt(sf.guestCount, 10) || 0), 0);
+    const eventDatesList = e.dates && e.dates.length > 0 ? e.dates : [e.date];
+    const pendingReminders = (e.reminders || []).filter(r => !r.completed);
+
+    return (
+      <div
+        key={e.id}
+        className="event-card"
+        style={{
+          border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
+          background: isSelected ? 'rgba(156, 21, 25, 0.04)' : 'var(--bg-card)',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          padding: '1rem',
+          borderRadius: '10px'
+        }}
+        onClick={() => setSelectedEventId(e.id)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-primary)' }}>{e.id}</span>
+            {pendingReminders.length > 0 && (
+              <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                <Bell size={10} /> {pendingReminders.length} reminder{pendingReminders.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <span className={`badge ${
+            e.status === 'Completed' ? 'badge-success' : 
+            e.status === 'Confirmed' ? 'badge-info' : 'badge-warning'
+          }`}>{e.status}</span>
+        </div>
+
+        <div>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+            {e.customer?.name} - <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{e.eventType}</span>
+          </h3>
+
+          {/* Multi-Date Badges */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+            {eventDatesList.map((dt, idx) => (
+              <span
+                key={idx}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.75rem',
+                  background: 'rgba(156, 21, 25, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  color: '#000000',
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: '4px'
+                }}
+              >
+                <Calendar size={11} />
+                <span>{dt}</span>
+              </span>
+            ))}
+            {eventDatesList.length > 1 && (
+              <span className="badge badge-purple" style={{ fontSize: '0.68rem', padding: '0.15rem 0.35rem' }}>
+                {eventDatesList.length} Days Multi-Date
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <MapPin size={13} />
+              <span>{venue ? venue.name : 'TBD Venue'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Users size={13} />
+              <span>{totalGuests} Total Pax</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       {/* Header Banner */}
@@ -398,8 +561,42 @@ const EventBooking = () => {
           ))}
         </div>
 
-        {/* Sort Controls */}
+        {/* Month, Year & Sort Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Month Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Calendar size={14} style={{ color: 'var(--text-secondary)' }} />
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Month:</span>
+            <select
+              className="form-select"
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '130px', background: 'var(--bg-card)' }}
+            >
+              <option value="all">All Months</option>
+              {monthNames.map((m, i) => (
+                <option key={i} value={i}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Year:</span>
+            <select
+              className="form-select"
+              value={selectedYear}
+              onChange={e => setSelectedYear(e.target.value)}
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '105px', background: 'var(--bg-card)' }}
+            >
+              <option value="all">All Years</option>
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort Date */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <CalendarDays size={14} style={{ color: 'var(--text-secondary)' }} />
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sort Date:</span>
@@ -407,7 +604,7 @@ const EventBooking = () => {
               className="form-select"
               value={dateSort}
               onChange={e => setDateSort(e.target.value)}
-              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '150px', background: 'var(--bg-card)' }}
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '140px', background: 'var(--bg-card)' }}
             >
               <option value="asc">Earliest / Upcoming</option>
               <option value="desc">Furthest / Newest</option>
@@ -415,6 +612,7 @@ const EventBooking = () => {
             </select>
           </div>
 
+          {/* Sort Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <ArrowUpDown size={14} style={{ color: 'var(--text-secondary)' }} />
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sort Status:</span>
@@ -422,7 +620,7 @@ const EventBooking = () => {
               className="form-select"
               value={statusSort}
               onChange={e => setStatusSort(e.target.value)}
-              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '150px', background: 'var(--bg-card)' }}
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '140px', background: 'var(--bg-card)' }}
             >
               <option value="none">Standard Sequence</option>
               <option value="inquiry-first">Inquiry First (Follow-ups)</option>
@@ -430,6 +628,17 @@ const EventBooking = () => {
               <option value="completed-first">Completed First</option>
             </select>
           </div>
+
+          {/* Group View Toggle */}
+          <button
+            type="button"
+            className={`btn btn-small ${groupByMonth ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setGroupByMonth(g => !g)}
+            style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+          >
+            <Calendar size={13} />
+            <span>{groupByMonth ? 'Grouped by Month' : 'Flat List'}</span>
+          </button>
         </div>
 
       </div>
@@ -470,89 +679,34 @@ const EventBooking = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '720px', overflowY: 'auto' }}>
-            {processedEvents.map(e => {
-              const venue = venues.find(v => v.id === e.venueId);
-              const isSelected = selectedEvent?.id === e.id;
-              const totalGuests = (e.subFunctions || []).reduce((sum, sf) => sum + (parseInt(sf.guestCount, 10) || 0), 0);
-              const eventDatesList = e.dates && e.dates.length > 0 ? e.dates : [e.date];
-              const pendingReminders = (e.reminders || []).filter(r => !r.completed);
-
-              return (
-                <div
-                  key={e.id}
-                  className="event-card"
-                  style={{
-                    border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                    background: isSelected ? 'rgba(156, 21, 25, 0.04)' : 'var(--bg-card)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    padding: '1rem',
-                    borderRadius: '10px'
-                  }}
-                  onClick={() => setSelectedEventId(e.id)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-primary)' }}>{e.id}</span>
-                      {pendingReminders.length > 0 && (
-                        <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          <Bell size={10} /> {pendingReminders.length} reminder{pendingReminders.length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`badge ${
-                      e.status === 'Completed' ? 'badge-success' : 
-                      e.status === 'Confirmed' ? 'badge-info' : 'badge-warning'
-                    }`}>{e.status}</span>
+            {groupByMonth && groupedEvents ? (
+              groupedEvents.map(group => (
+                <div key={group.key} style={{ marginBottom: '1rem' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.45rem 0.85rem',
+                    background: 'rgba(156, 21, 25, 0.08)',
+                    borderRadius: '8px',
+                    borderLeft: '4px solid var(--color-primary)',
+                    marginBottom: '0.65rem'
+                  }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-primary)' }}>
+                      📅 {group.label}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {group.events.length} Event{group.events.length > 1 ? 's' : ''}
+                    </span>
                   </div>
-
-                  <div>
-                    <h3 style={{ fontSize: '0.98rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                      {e.customer?.name} - <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{e.eventType}</span>
-                    </h3>
-
-                    {/* Multi-Date Badges */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                      {eventDatesList.map((dt, idx) => (
-                        <span
-                          key={idx}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.75rem',
-                            background: 'rgba(156, 21, 25, 0.06)',
-                            border: '1px solid rgba(255, 255, 255, 0.4)',
-                            color: '#000000',
-                            padding: '0.15rem 0.45rem',
-                            borderRadius: '4px'
-                          }}
-                        >
-                          <Calendar size={11} />
-                          <span>{dt}</span>
-                        </span>
-                      ))}
-                      {eventDatesList.length > 1 && (
-                        <span className="badge badge-purple" style={{ fontSize: '0.68rem', padding: '0.15rem 0.35rem' }}>
-                          {eventDatesList.length} Days Multi-Date
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <MapPin size={13} />
-                        <span>{venue ? venue.name : 'TBD Venue'}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Users size={13} />
-                        <span>{totalGuests} Total Pax</span>
-                      </div>
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {group.events.map(e => renderEventCard(e))}
                   </div>
                 </div>
-              );
-            })}
+              ))
+            ) : (
+              processedEvents.map(e => renderEventCard(e))
+            )}
 
             {processedEvents.length === 0 && (
               <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
@@ -660,7 +814,7 @@ const EventBooking = () => {
                       <label className="form-label">Occasion Type</label>
                       <input list="edit-event-type-opts" className="form-input" value={editDraft.eventType} onChange={e => setEditDraft(d => ({ ...d, eventType: e.target.value }))} />
                       <datalist id="edit-event-type-opts">
-                        {['Wedding Reception','Engagement Ceremony','Corporate Dinner','Birthday Party','Anniversary Celebration','Baby Shower','Farewell Party','Conference Lunch'].map(t => <option key={t} value={t} />)}
+                        {['Micro Event','Wedding Reception','Engagement Ceremony','Corporate Dinner','Birthday Party','Anniversary Celebration','Baby Shower','Farewell Party','Conference Lunch'].map(t => <option key={t} value={t} />)}
                       </datalist>
                     </div>
 
@@ -1046,6 +1200,7 @@ const EventBooking = () => {
                     onChange={e => setEventType(e.target.value)}
                   />
                   <datalist id="event-type-options">
+                    <option value="Micro Event" />
                     <option value="Wedding Reception" />
                     <option value="Engagement Ceremony" />
                     <option value="Corporate Dinner" />

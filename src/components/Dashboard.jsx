@@ -10,6 +10,9 @@ const Dashboard = ({ setActiveTab }) => {
   const bookingsCardRef = React.useRef(null);
   const [displayMonth, setDisplayMonth] = React.useState(new Date().getMonth());
   const [displayYear, setDisplayYear] = React.useState(new Date().getFullYear());
+  const [dashMonthFilter, setDashMonthFilter] = React.useState('all');
+  const [dashYearFilter, setDashYearFilter] = React.useState('all');
+  const [dashGroupByMonth, setDashGroupByMonth] = React.useState(true);
 
   const handleDayClick = (cd) => {
     if (!cd.dateStr) return;
@@ -78,9 +81,60 @@ const Dashboard = ({ setActiveTab }) => {
     calendarDays.push({ day: d, dateStr, events: dayEvents });
   }
 
+  const availableYears = React.useMemo(() => {
+    const years = new Set();
+    events.forEach(e => {
+      const allD = [e.date, ...(e.dates || [])].filter(Boolean);
+      allD.forEach(d => {
+        const yr = new Date(d).getFullYear();
+        if (!isNaN(yr)) years.add(yr);
+      });
+    });
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [events]);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
   const filteredEvents = selectedDateFilter
     ? events.filter(e => (e.dates && e.dates.includes(selectedDateFilter)) || e.date === selectedDateFilter)
-    : events;
+    : events.filter(e => {
+        if (dashYearFilter !== 'all') {
+          const allD = [e.date, ...(e.dates || [])].filter(Boolean);
+          const hasYr = allD.some(d => new Date(d).getFullYear().toString() === dashYearFilter.toString());
+          if (!hasYr) return false;
+        }
+        if (dashMonthFilter !== 'all') {
+          const allD = [e.date, ...(e.dates || [])].filter(Boolean);
+          const hasMo = allD.some(d => new Date(d).getMonth().toString() === dashMonthFilter.toString());
+          if (!hasMo) return false;
+        }
+        return true;
+      }).sort((a, b) => {
+        const dateA = new Date(a.date || (a.dates && a.dates[0]) || '1970-01-01').getTime();
+        const dateB = new Date(b.date || (b.dates && b.dates[0]) || '1970-01-01').getTime();
+        return dateA - dateB;
+      });
+
+  const groupedDashboardEvents = React.useMemo(() => {
+    if (!dashGroupByMonth || selectedDateFilter) return null;
+    const groups = {};
+    filteredEvents.forEach(e => {
+      const dStr = e.date || (e.dates && e.dates[0]) || '1970-01-01';
+      const d = new Date(dStr);
+      const groupKey = isNaN(d.getTime()) ? 'Unscheduled' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const groupLabel = isNaN(d.getTime()) ? 'Unscheduled / Other' : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      if (!groups[groupKey]) {
+        groups[groupKey] = { key: groupKey, label: groupLabel, events: [] };
+      }
+      groups[groupKey].events.push(e);
+    });
+    const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+    return keys.map(k => groups[k]);
+  }, [filteredEvents, dashGroupByMonth, selectedDateFilter]);
 
   // Pending inquiry reminders across events
   const pendingReminders = events.flatMap(e =>
@@ -315,7 +369,7 @@ const Dashboard = ({ setActiveTab }) => {
           </div>
 
           <div ref={bookingsCardRef} className="glass-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
                 <CheckCircle size={20} className="accent-text" />
                 <span>
@@ -327,15 +381,58 @@ const Dashboard = ({ setActiveTab }) => {
                   )}
                 </span>
               </h2>
-              {selectedDateFilter && (
-                <button 
-                  className="btn btn-secondary btn-small" 
-                  onClick={() => setSelectedDateFilter(null)}
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                >
-                  Show All Events
-                </button>
-              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {!selectedDateFilter && (
+                  <>
+                    {/* Month Filter */}
+                    <select
+                      className="form-select"
+                      value={dashMonthFilter}
+                      onChange={e => setDashMonthFilter(e.target.value)}
+                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '120px', background: 'var(--bg-card)' }}
+                    >
+                      <option value="all">All Months</option>
+                      {monthNames.map((m, i) => (
+                        <option key={i} value={i}>{m}</option>
+                      ))}
+                    </select>
+
+                    {/* Year Filter */}
+                    <select
+                      className="form-select"
+                      value={dashYearFilter}
+                      onChange={e => setDashYearFilter(e.target.value)}
+                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '100px', background: 'var(--bg-card)' }}
+                    >
+                      <option value="all">All Years</option>
+                      {availableYears.map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+
+                    {/* Group Toggle */}
+                    <button
+                      type="button"
+                      className={`btn btn-small ${dashGroupByMonth ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setDashGroupByMonth(g => !g)}
+                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.78rem' }}
+                    >
+                      {dashGroupByMonth ? 'Grouped' : 'Flat'}
+                    </button>
+                  </>
+                )}
+
+                {selectedDateFilter && (
+                  <button 
+                    className="btn btn-secondary btn-small" 
+                    onClick={() => setSelectedDateFilter(null)}
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                  >
+                    Show All Events
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="table-container">
@@ -351,30 +448,62 @@ const Dashboard = ({ setActiveTab }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEvents.map(e => (
-                    <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('bookings')}>
-                      <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{e.id}</td>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>{e.customer?.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{e.customer?.phone}</div>
-                      </td>
-                      <td>{e.eventType}</td>
-                      <td>{getVenueName(e.venueId)}</td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{e.date}</div>
-                        {e.dates && e.dates.length > 1 && (
-                          <div style={{ fontSize: '0.72rem', color: '#000000' }}>
-                            {e.dates.length} Days Multi-Date
-                          </div>
-                        )}
-                      </td>
-                      <td>{renderStatusBadge(e.status)}</td>
-                    </tr>
-                  ))}
+                  {groupedDashboardEvents ? (
+                    groupedDashboardEvents.map(grp => (
+                      <React.Fragment key={grp.key}>
+                        <tr style={{ background: 'rgba(156, 21, 25, 0.08)' }}>
+                          <td colSpan="6" style={{ fontWeight: 700, color: 'var(--color-primary)', padding: '0.55rem 0.8rem', fontSize: '0.88rem' }}>
+                            📅 {grp.label} ({grp.events.length} Bookings)
+                          </td>
+                        </tr>
+                        {grp.events.map(e => (
+                          <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('bookings')}>
+                            <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{e.id}</td>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{e.customer?.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{e.customer?.phone}</div>
+                            </td>
+                            <td>{e.eventType}</td>
+                            <td>{getVenueName(e.venueId)}</td>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{e.date}</div>
+                              {e.dates && e.dates.length > 1 && (
+                                <div style={{ fontSize: '0.72rem', color: '#000000' }}>
+                                  {e.dates.length} Days Multi-Date
+                                </div>
+                              )}
+                            </td>
+                            <td>{renderStatusBadge(e.status)}</td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    filteredEvents.map(e => (
+                      <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('bookings')}>
+                        <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{e.id}</td>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{e.customer?.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{e.customer?.phone}</div>
+                        </td>
+                        <td>{e.eventType}</td>
+                        <td>{getVenueName(e.venueId)}</td>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{e.date}</div>
+                          {e.dates && e.dates.length > 1 && (
+                            <div style={{ fontSize: '0.72rem', color: '#000000' }}>
+                              {e.dates.length} Days Multi-Date
+                            </div>
+                          )}
+                        </td>
+                        <td>{renderStatusBadge(e.status)}</td>
+                      </tr>
+                    ))
+                  )}
                   {filteredEvents.length === 0 && (
                     <tr>
                       <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        No events scheduled on this date.
+                        No events scheduled matching this filter.
                       </td>
                     </tr>
                   )}

@@ -11,7 +11,10 @@ import {
   initialProvisions,
   initialVegetables,
   initialLabourWorkers,
-  initialLabourAttendance
+  initialLabourAttendance,
+  initialMenuCategories,
+  initialVendorCategories,
+  initialLabourCategories
 } from '../utils/mockData';
 import { DEFAULT_RBAC_MATRIX, checkPermission, MODULES, ACCESS_LEVELS } from '../utils/rbacMatrix';
 
@@ -253,12 +256,18 @@ export const AppProvider = ({ children }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [laborRates, setLaborRates] = useState([]);
   const [agencies, setAgencies] = useState([]);
-  const [events, setEvents] = useState(() => getSafeLocal('cater_events', []));
+  const [events, setEvents] = useState(() => {
+    const list = getSafeLocal('cater_events', []);
+    return list.map(e => e.eventType === 'Micro Home Event' ? { ...e, eventType: 'Micro Event' } : e);
+  });
   const [vessels, setVessels] = useState([]);
   const [provisions, setProvisions] = useState([]);
   const [vegetables, setVegetables] = useState([]);
   const [labourWorkers, setLabourWorkers] = useState([]);
   const [labourAttendance, setLabourAttendance] = useState(() => getSafeLocal('cater_labour_attendance', initialLabourAttendance));
+  const [menuCategories, setMenuCategories] = useState(() => getSafeLocal('cater_menu_categories', initialMenuCategories));
+  const [vendorCategories, setVendorCategories] = useState(() => getSafeLocal('cater_vendor_categories', initialVendorCategories));
+  const [labourCategories, setLabourCategories] = useState(() => getSafeLocal('cater_labour_categories', initialLabourCategories));
 
   const [companyProfile, setCompanyProfile] = useState({
     name: 'Sri Mayyia Caterers',
@@ -291,7 +300,7 @@ export const AppProvider = ({ children }) => {
         return await apiCall(path);
       };
 
-      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList, laList] = await Promise.all([
+      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList, laList, mcList, vcList, lcList] = await Promise.all([
         fetchEndpoint('/venues'),
         fetchEndpoint('/raw-materials'),
         fetchEndpoint('/dishes'),
@@ -305,7 +314,10 @@ export const AppProvider = ({ children }) => {
         fetchEndpoint('/provisions'),
         fetchEndpoint('/vegetables'),
         fetchEndpoint('/labour-workers'),
-        fetchEndpoint('/labour-attendance')
+        fetchEndpoint('/labour-attendance'),
+        fetchEndpoint('/menu-categories'),
+        fetchEndpoint('/vendor-categories'),
+        fetchEndpoint('/labour-categories')
       ]);
 
       const isServerReachable = statusRes?.status === 'online' || Array.isArray(vList) || Array.isArray(dList);
@@ -355,6 +367,9 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(vegList)) setVegetables(vegList);
       if (Array.isArray(lwList)) setLabourWorkers(lwList);
       if (Array.isArray(laList)) setLabourAttendance(laList);
+      if (Array.isArray(mcList) && mcList.length > 0) setMenuCategories(mcList);
+      if (Array.isArray(vcList) && vcList.length > 0) setVendorCategories(vcList);
+      if (Array.isArray(lcList) && lcList.length > 0) setLabourCategories(lcList);
 
       setSyncStatus('connected');
       setLastSyncedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -432,6 +447,18 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cater_events', JSON.stringify(events));
   }, [events]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_menu_categories', JSON.stringify(menuCategories));
+  }, [menuCategories]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_vendor_categories', JSON.stringify(vendorCategories));
+  }, [vendorCategories]);
+
+  useEffect(() => {
+    localStorage.setItem('cater_labour_categories', JSON.stringify(labourCategories));
+  }, [labourCategories]);
 
   useEffect(() => {
     localStorage.setItem('cater_company_profile', JSON.stringify(companyProfile));
@@ -660,6 +687,101 @@ export const AppProvider = ({ children }) => {
     await apiCall(`/labour-workers/${id}`, { method: 'DELETE' });
   };
 
+  const recordLabourAdvance = async (workerId, advanceData) => {
+    const amount = Number(advanceData.amount) || 0;
+    if (amount <= 0) return { success: false, error: 'Advance amount must be positive' };
+    const date = advanceData.date || new Date().toISOString().split('T')[0];
+    const notes = advanceData.notes || '';
+    const advEntry = {
+      id: 'adv_' + Date.now(),
+      amount,
+      date,
+      notes,
+      createdAt: new Date().toISOString()
+    };
+
+    setLabourWorkers(prev => prev.map(w => {
+      if (w.id !== workerId) return w;
+      const advances = Array.isArray(w.advances) ? [...w.advances, advEntry] : [advEntry];
+      const advancePayment = (Number(w.advancePayment) || 0) + amount;
+      return { ...w, advances, advancePayment };
+    }));
+
+    try {
+      const res = await apiCall(`/labour-workers/${workerId}/advance`, {
+        method: 'POST',
+        body: JSON.stringify({ amount, date, notes })
+      });
+      if (res && res.id) {
+        setLabourWorkers(prev => prev.map(w => w.id === workerId ? res : w));
+      }
+      return { success: true };
+    } catch (err) {
+      console.warn('Advance sync warning:', err);
+      return { success: true };
+    }
+  };
+
+  // Menu Category Actions
+  const addMenuCategory = async (cat) => {
+    const payload = { ...cat, id: cat.id || ('mc_' + Date.now()) };
+    setMenuCategories(prev => [...prev, payload]);
+    const res = await apiCall('/menu-categories', { method: 'POST', body: JSON.stringify(payload) });
+    if (res) setMenuCategories(prev => prev.map(c => c.id === payload.id ? res : c));
+    return payload;
+  };
+
+  const updateMenuCategory = async (updated) => {
+    setMenuCategories(prev => prev.map(c => c.id === updated.id ? updated : c));
+    const res = await apiCall(`/menu-categories/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (res) setMenuCategories(prev => prev.map(c => c.id === updated.id ? res : c));
+  };
+
+  const deleteMenuCategory = async (id) => {
+    setMenuCategories(prev => prev.filter(c => c.id !== id));
+    await apiCall(`/menu-categories/${id}`, { method: 'DELETE' });
+  };
+
+  // Vendor Category Actions
+  const addVendorCategory = async (cat) => {
+    const payload = { ...cat, id: cat.id || ('vc_' + Date.now()) };
+    setVendorCategories(prev => [...prev, payload]);
+    const res = await apiCall('/vendor-categories', { method: 'POST', body: JSON.stringify(payload) });
+    if (res) setVendorCategories(prev => prev.map(c => c.id === payload.id ? res : c));
+    return payload;
+  };
+
+  const updateVendorCategory = async (updated) => {
+    setVendorCategories(prev => prev.map(c => c.id === updated.id ? updated : c));
+    const res = await apiCall(`/vendor-categories/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (res) setVendorCategories(prev => prev.map(c => c.id === updated.id ? res : c));
+  };
+
+  const deleteVendorCategory = async (id) => {
+    setVendorCategories(prev => prev.filter(c => c.id !== id));
+    await apiCall(`/vendor-categories/${id}`, { method: 'DELETE' });
+  };
+
+  // Labour Category Actions
+  const addLabourCategory = async (cat) => {
+    const payload = { ...cat, id: cat.id || ('lc_' + Date.now()) };
+    setLabourCategories(prev => [...prev, payload]);
+    const res = await apiCall('/labour-categories', { method: 'POST', body: JSON.stringify(payload) });
+    if (res) setLabourCategories(prev => prev.map(c => c.id === payload.id ? res : c));
+    return payload;
+  };
+
+  const updateLabourCategory = async (updated) => {
+    setLabourCategories(prev => prev.map(c => c.id === updated.id ? updated : c));
+    const res = await apiCall(`/labour-categories/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    if (res) setLabourCategories(prev => prev.map(c => c.id === updated.id ? res : c));
+  };
+
+  const deleteLabourCategory = async (id) => {
+    setLabourCategories(prev => prev.filter(c => c.id !== id));
+    await apiCall(`/labour-categories/${id}`, { method: 'DELETE' });
+  };
+
   // Labour Attendance Actions
   const addLabourAttendance = async (log) => {
     const payload = { ...log, id: log.id || ('att_' + Date.now()) };
@@ -729,6 +851,22 @@ export const AppProvider = ({ children }) => {
       ? eventDetails.dates 
       : [primaryDate];
 
+    let resolvedEventType = eventDetails.eventType || 'Wedding Reception';
+    if (resolvedEventType === 'Micro Home Event') resolvedEventType = 'Micro Event';
+
+    if (resolvedEventType === 'Micro Event') {
+      const subFuncs = eventDetails.subFunctions || [];
+      if (subFuncs.length > 0) {
+        const invalidPax = subFuncs.some(sf => {
+          const count = parseInt(sf.guestCount, 10);
+          return isNaN(count) || count < 50 || count > 100;
+        });
+        if (invalidPax) {
+          throw new Error('Micro Event must have between 50 and 100 Pax (guests).');
+        }
+      }
+    }
+
     const newEvent = {
       id: newId,
       customer: {
@@ -736,7 +874,7 @@ export const AppProvider = ({ children }) => {
         phone: (eventDetails.customer?.phone || '').trim(),
         email: (eventDetails.customer?.email || '').trim()
       },
-      eventType: eventDetails.eventType || 'Wedding Reception',
+      eventType: resolvedEventType,
       createdBy: currentUser || currentRole || 'admin',
       createdByName: currentUser || currentRole || 'admin',
       salesExecutive: currentUser || currentRole || 'admin',
@@ -816,6 +954,21 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateEvent = async (updatedEvent) => {
+    if (updatedEvent.eventType === 'Micro Home Event') {
+      updatedEvent.eventType = 'Micro Event';
+    }
+    if (updatedEvent.eventType === 'Micro Event') {
+      const subFuncs = updatedEvent.subFunctions || [];
+      if (subFuncs.length > 0) {
+        const invalidPax = subFuncs.some(sf => {
+          const count = parseInt(sf.guestCount, 10);
+          return isNaN(count) || count < 50 || count > 100;
+        });
+        if (invalidPax) {
+          throw new Error('Micro Event must have between 50 and 100 Pax (guests).');
+        }
+      }
+    }
     recalculateEventFinances(updatedEvent);
     // Optimistic update
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
@@ -999,9 +1152,15 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cater_dishes', JSON.stringify(initialDishes));
     localStorage.setItem('cater_events', JSON.stringify(initialEvents));
     localStorage.setItem('cater_labour_attendance', JSON.stringify(initialLabourAttendance));
+    localStorage.setItem('cater_menu_categories', JSON.stringify(initialMenuCategories));
+    localStorage.setItem('cater_vendor_categories', JSON.stringify(initialVendorCategories));
+    localStorage.setItem('cater_labour_categories', JSON.stringify(initialLabourCategories));
     setDishes(initialDishes);
     setEvents(initialEvents);
     setLabourAttendance(initialLabourAttendance);
+    setMenuCategories(initialMenuCategories);
+    setVendorCategories(initialVendorCategories);
+    setLabourCategories(initialLabourCategories);
     try {
       await apiCall('/seed', { method: 'POST' });
       await apiCall('/api/seed', { method: 'POST' });
@@ -1060,11 +1219,24 @@ export const AppProvider = ({ children }) => {
       addLabourWorker,
       updateLabourWorker,
       deleteLabourWorker,
+      recordLabourAdvance,
       labourAttendance,
       addLabourAttendance,
       updateLabourAttendance,
       deleteLabourAttendance,
       batchAddLabourAttendance,
+      menuCategories,
+      addMenuCategory,
+      updateMenuCategory,
+      deleteMenuCategory,
+      vendorCategories,
+      addVendorCategory,
+      updateVendorCategory,
+      deleteVendorCategory,
+      labourCategories,
+      addLabourCategory,
+      updateLabourCategory,
+      deleteLabourCategory,
       syncStatus,
       lastSyncedAt,
       triggerManualSync: () => loadData(false),

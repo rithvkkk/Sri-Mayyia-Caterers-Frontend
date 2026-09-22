@@ -47,8 +47,24 @@ const AgencyLabor = () => {
     deleteLabourAttendance,
     batchAddLabourAttendance,
     refreshEventTotals,
+    recordLabourAdvance,
+    labourCategories = [],
     companyProfile
   } = useContext(AppContext);
+
+  const LABOUR_CATEGORIES = [
+    'Head Cook',
+    'Assistant Cook',
+    'Sweet Master',
+    'Sweet Assistant',
+    'Management',
+    'Grinders',
+    'Cutting and Supply',
+    'Loaders',
+    'Cleaners',
+    'Ladies Supply',
+    'Coffee Duty'
+  ];
 
   const [activeSubTab, setActiveSubTab] = useState('directory'); // 'directory' | 'attendance' | 'roster' | 'payouts' | 'agencies'
   
@@ -62,6 +78,16 @@ const AgencyLabor = () => {
   // Search & Filter
   const [searchWorkerTerm, setSearchWorkerTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+
+  // Advance Payment Modal State
+  const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
+  const [selectedWorkerForAdvance, setSelectedWorkerForAdvance] = useState(null);
+  const [advanceForm, setAdvanceForm] = useState({
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
 
   // Attendance Filters & Form
   const [attendanceDateFilter, setAttendanceDateFilter] = useState('');
@@ -85,8 +111,10 @@ const AgencyLabor = () => {
   const [workerForm, setWorkerForm] = useState({
     name: '',
     role: 'Waiter / Service Staff',
+    category: 'Head Cook',
     phone: '',
     dailyRate: 900,
+    advancePayment: 0,
     type: 'Direct',
     agencyId: 'Direct Hire',
     status: 'Active'
@@ -266,7 +294,8 @@ const AgencyLabor = () => {
     e.preventDefault();
     const payload = {
       ...workerForm,
-      dailyRate: Number(workerForm.dailyRate)
+      dailyRate: Number(workerForm.dailyRate),
+      advancePayment: Number(workerForm.advancePayment || 0)
     };
 
     if (editingWorker) {
@@ -280,12 +309,35 @@ const AgencyLabor = () => {
     setWorkerForm({
       name: '',
       role: 'Waiter / Service Staff',
+      category: 'Head Cook',
       phone: '',
       dailyRate: 900,
+      advancePayment: 0,
       type: 'Direct',
       agencyId: 'Direct Hire',
       status: 'Active'
     });
+  };
+
+  // Record Advance Payment Submit
+  const handleRecordAdvance = async (e) => {
+    e.preventDefault();
+    if (!selectedWorkerForAdvance) return;
+    const amt = parseFloat(advanceForm.amount) || 0;
+    if (amt <= 0) {
+      alert('Please enter a valid advance amount greater than zero.');
+      return;
+    }
+    if (recordLabourAdvance) {
+      await recordLabourAdvance(selectedWorkerForAdvance.id, {
+        amount: amt,
+        date: advanceForm.date || new Date().toISOString().split('T')[0],
+        notes: advanceForm.notes || ''
+      });
+    }
+    setIsAdvanceModalOpen(false);
+    setSelectedWorkerForAdvance(null);
+    setAdvanceForm({ amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
   };
 
   // Attendance Form Submit
@@ -419,9 +471,15 @@ const AgencyLabor = () => {
 
   // Filtered Workers
   const filteredWorkers = labourWorkers.filter(w => {
-    const matchesSearch = w.name.toLowerCase().includes(searchWorkerTerm.toLowerCase()) || w.phone.includes(searchWorkerTerm);
+    const q = searchWorkerTerm.toLowerCase();
+    const matchesSearch = !searchWorkerTerm ||
+      w.name.toLowerCase().includes(q) ||
+      w.phone.includes(searchWorkerTerm) ||
+      (w.category || '').toLowerCase().includes(q) ||
+      (w.role || '').toLowerCase().includes(q);
     const matchesRole = roleFilter === 'All' || w.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesCategory = categoryFilter === 'All' || w.category === categoryFilter;
+    return matchesSearch && matchesRole && matchesCategory;
   });
 
   // Filtered Attendance Logs
@@ -621,21 +679,37 @@ const AgencyLabor = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Role:</span>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
-              >
-                <option value="All">All Roles</option>
-                <option value="Head Chef">Head Chef</option>
-                <option value="Assistant Chef">Assistant Chef</option>
-                <option value="Captain/Supervisor">Captain/Supervisor</option>
-                <option value="Waiter / Service Staff">Waiter / Service Staff</option>
-                <option value="Kitchen Helper">Kitchen Helper</option>
-                <option value="Utility Cleaner">Utility Cleaner</option>
-              </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                >
+                  <option value="All">All Categories</option>
+                  {LABOUR_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Role:</span>
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                >
+                  <option value="All">All Roles</option>
+                  <option value="Head Chef">Head Chef</option>
+                  <option value="Assistant Chef">Assistant Chef</option>
+                  <option value="Captain/Supervisor">Captain/Supervisor</option>
+                  <option value="Waiter / Service Staff">Waiter / Service Staff</option>
+                  <option value="Kitchen Helper">Kitchen Helper</option>
+                  <option value="Utility Cleaner">Utility Cleaner</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -645,10 +719,12 @@ const AgencyLabor = () => {
                 <thead>
                   <tr>
                     <th>Worker Name</th>
+                    <th>Labour Category</th>
                     <th>Role / Designation</th>
                     <th>Contact Phone</th>
                     <th>Employment Type</th>
                     <th>Daily Shift Rate</th>
+                    <th>Advance Paid</th>
                     <th>Status</th>
                     {hasWriteAccess && <th style={{ textAlign: 'right' }}>Actions</th>}
                   </tr>
@@ -659,6 +735,11 @@ const AgencyLabor = () => {
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{w.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {w.id}</div>
+                      </td>
+                      <td>
+                        <span className="badge badge-purple" style={{ fontWeight: 600, fontSize: '0.74rem' }}>
+                          {w.category || 'General Staff'}
+                        </span>
                       </td>
                       <td>
                         <span className="badge badge-info" style={{ fontWeight: 600 }}>{w.role}</span>
@@ -680,6 +761,16 @@ const AgencyLabor = () => {
                         {formatCurrency(w.dailyRate)} / shift
                       </td>
                       <td>
+                        <div style={{ fontWeight: 700, color: (w.advancePayment || 0) > 0 ? 'var(--color-danger)' : 'var(--text-secondary)' }}>
+                          {formatCurrency(w.advancePayment || 0)}
+                        </div>
+                        {(w.advances && w.advances.length > 0) && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                            {w.advances.length} advance{w.advances.length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </td>
+                      <td>
                         {w.status === 'Active' ? (
                           <span className="badge badge-success">Active</span>
                         ) : (
@@ -688,7 +779,19 @@ const AgencyLabor = () => {
                       </td>
                       {hasWriteAccess && (
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                            <button
+                              className="btn btn-secondary btn-small"
+                              onClick={() => {
+                                setSelectedWorkerForAdvance(w);
+                                setAdvanceForm({ amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+                                setIsAdvanceModalOpen(true);
+                              }}
+                              title="Record Advance Payment"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.45rem', fontSize: '0.74rem', color: 'var(--color-primary)' }}
+                            >
+                              <IndianRupee size={12} /> Advance
+                            </button>
                             <button className="btn btn-secondary btn-small" onClick={() => { setEditingWorker(w); setWorkerForm(w); setIsWorkerModalOpen(true); }} title="Edit Worker">
                               <Edit2 size={14} />
                             </button>
@@ -702,7 +805,7 @@ const AgencyLabor = () => {
                   ))}
                   {filteredWorkers.length === 0 && (
                     <tr>
-                      <td colSpan={hasWriteAccess ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                      <td colSpan={hasWriteAccess ? 9 : 8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
                         No labour staff members found matching criteria.
                       </td>
                     </tr>
@@ -1273,6 +1376,19 @@ const AgencyLabor = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Labour Category</label>
+                  <select
+                    value={workerForm.category || 'Head Cook'}
+                    onChange={e => setWorkerForm({ ...workerForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  >
+                    {LABOUR_CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Role / Skill</label>
                   <select
                     value={workerForm.role}
@@ -1287,7 +1403,9 @@ const AgencyLabor = () => {
                     <option value="Utility Cleaner">Utility Cleaner</option>
                   </select>
                 </div>
+              </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Phone Number</label>
                   <input
@@ -1299,9 +1417,7 @@ const AgencyLabor = () => {
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                   />
                 </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Employment Type</label>
                   <select
@@ -1313,7 +1429,9 @@ const AgencyLabor = () => {
                     <option value="Agency">Agency Contract</option>
                   </select>
                 </div>
+              </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Daily Rate (₹/shift)</label>
                   <input
@@ -1322,6 +1440,17 @@ const AgencyLabor = () => {
                     required
                     value={workerForm.dailyRate}
                     onChange={e => setWorkerForm({ ...workerForm, dailyRate: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Initial Advance Paid (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={workerForm.advancePayment || 0}
+                    onChange={e => setWorkerForm({ ...workerForm, advancePayment: e.target.value })}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                   />
                 </div>
@@ -1753,6 +1882,105 @@ const AgencyLabor = () => {
                 </span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: RECORD ADVANCE PAYMENT */}
+      {isAdvanceModalOpen && selectedWorkerForAdvance && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-card" style={{ maxWidth: '460px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <IndianRupee size={20} className="accent-text" />
+                <span>Record Advance Payment</span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAdvanceModalOpen(false);
+                  setSelectedWorkerForAdvance(null);
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <LucideX size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordAdvance} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Worker Name</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={`${selectedWorkerForAdvance.name} (${selectedWorkerForAdvance.category || selectedWorkerForAdvance.role || 'Staff'})`}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.03)', color: 'var(--text-primary)', cursor: 'not-allowed' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Current Advance Paid</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={formatCurrency(selectedWorkerForAdvance.advancePayment || 0)}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.03)', color: 'var(--text-secondary)', cursor: 'not-allowed', fontWeight: 600 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Advance Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={advanceForm.date}
+                    onChange={e => setAdvanceForm({ ...advanceForm, date: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Advance Amount to Pay (₹) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                  placeholder="e.g. 2000"
+                  value={advanceForm.amount}
+                  onChange={e => setAdvanceForm({ ...advanceForm, amount: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 600 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Notes / Reason</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Festival advance, emergency medical aid, etc."
+                  value={advanceForm.notes}
+                  onChange={e => setAdvanceForm({ ...advanceForm, notes: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setIsAdvanceModalOpen(false);
+                    setSelectedWorkerForAdvance(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}>
+                  <CheckCircle2 size={16} /> Record Advance
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
