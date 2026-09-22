@@ -992,41 +992,60 @@ const MenuPlanning = () => {
               </button>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div
-                style={{
-                  padding: '1.25rem',
-                  borderRadius: '12px',
-                  border: '2px solid #C00000',
-                  background: 'rgba(192, 0, 0, 0.04)',
-                  boxShadow: '0 4px 14px rgba(192, 0, 0, 0.12)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#C00000', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    ★ Official Sri Mayyia Proposal & Menu Booklet
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#16a34a', fontSize: '0.75rem', fontWeight: 700 }}>
-                    <Check size={16} /> Ready Client Format
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+              {[
+                {
+                  id: 'official',
+                  title: 'Official Proposal & Menu Booklet',
+                  badge: '★ Ceremonial Presentation',
+                  description: 'Complete presentation booklet with high-res banquet cover, company credentials & achievements since 1953, centered ceremonial menus, service terms, and palace heritage back cover.',
+                  color: '#C00000'
+                },
+                {
+                  id: 'executive',
+                  title: 'Executive Function Menu Sheet',
+                  badge: '★ Event Order Sheet (New)',
+                  description: 'Clean, modern minimalist event order sheet with official logo header, centered date & venue, sequential numbered session menus, Pax headcount, notes, and parcel list.',
+                  color: '#17375E'
+                }
+              ].map(tpl => {
+                const isSelected = selectedTemplate === tpl.id;
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => setSelectedTemplate(tpl.id)}
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${tpl.color}` : '1px solid rgba(0,0,0,0.12)',
+                      background: isSelected ? (tpl.id === 'official' ? 'rgba(192, 0, 0, 0.05)' : 'rgba(23, 55, 94, 0.05)') : 'rgba(255, 255, 255, 0.8)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? `0 4px 14px ${tpl.id === 'official' ? 'rgba(192,0,0,0.15)' : 'rgba(23,55,94,0.15)'}` : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: tpl.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {tpl.badge}
+                      </span>
+                      {isSelected && <Check size={16} style={{ color: tpl.color }} />}
+                    </div>
+                    <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#000000', marginBottom: '0.3rem' }}>
+                      {tpl.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                      {tpl.description}
+                    </div>
                   </div>
-                </div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#17375E', marginBottom: '0.35rem' }}>
-                  Official Client Presentation Proposal
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
-                  Complete presentation booklet formatted with high-resolution banquet cover, company credentials & achievements since 1953, centered ceremonial menus, service terms, and palace heritage back cover.
-                </div>
-                <div style={{ fontSize: '0.72rem', fontStyle: 'italic', color: '#C00000', fontWeight: 600 }}>
-                  || Sri Mayyia Caterers — Pioneers in Pure Authentic Vegetarian Catering Since 1953 ||
-                </div>
-              </div>
+                );
+              })}
             </div>
 
             <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => handlePrintMenuPdf('official')}
+                onClick={() => handlePrintMenuPdf(selectedTemplate)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
               >
                 <Printer size={16} /> Print Menu
@@ -1035,11 +1054,11 @@ const MenuPlanning = () => {
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => {
-                  handleDownloadMenuPdf('official', true);
+                  handleDownloadMenuPdf(selectedTemplate, true);
                   setIsMenuPdfModalOpen(false);
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
-                title="Download complete multi-session presentation proposal matching official client document"
+                title="Download complete multi-session presentation proposal or function sheet"
               >
                 <Download size={16} /> All Sessions Booklet ({draftSubFunctions?.length || 1} Sessions)
               </button>
@@ -1047,7 +1066,7 @@ const MenuPlanning = () => {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
-                  handleDownloadMenuPdf('official', false);
+                  handleDownloadMenuPdf(selectedTemplate, false);
                   setIsMenuPdfModalOpen(false);
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}

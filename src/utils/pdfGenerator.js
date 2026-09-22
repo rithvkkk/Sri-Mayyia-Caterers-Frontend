@@ -807,6 +807,297 @@ const formatMenuDateDDMMYYYY = (dateStr) => {
 };
 
 /**
+ * Generates the Executive Function Menu Sheet (Minimalist Clean Style).
+ * Replicates the exact style of the uploaded function prospectus / event menu sheet:
+ * - Page 1: Official Sri Mayyia Caterers Logo + Tagline ("Pioneers in authentic, pure vegetarian catering since 1953") + Gold Accent Bar
+ * - Centered Underlined Event Date & Venue/Client (e.g. "JUNE 16 & 17 2026", "SHRISTI VILLAGE")
+ * - Sequential Numbered Menu Sessions (e.g. "WELCOME DRINKS @ 9 AM  100 PAX", "BREAKFAST :- 50 PAX", "LUNCH :- 250 PAX")
+ * - Section headers in bold red [192, 0, 0] with red underline
+ * - Sub-categories (e.g. FINGER FOOD, CONTINENTAL, CHATS) in bold uppercase
+ * - Numbered dishes list in crisp Times Bold typography
+ * - Notes & Parcel distribution requirements at the end
+ * - Dynamic page breaking when items overflow
+ */
+export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dishesList = []) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.width; // 210 mm
+  const ph = doc.internal.pageSize.height; // 297 mm
+
+  const redColor = [192, 0, 0];    // Ceremonial red #C00000
+  const navyColor = [23, 55, 94];  // Deep royal navy #17375E
+  const blackColor = [20, 20, 20]; // High contrast black
+  const goldColor = [197, 160, 89]; // Sri Mayyia Gold #C5A059
+
+  // Resolve Sub-Functions to render
+  let subList = [];
+  const isAllSessions = subFunction === 'all' || subFunction?.all === true;
+  if (isAllSessions) {
+    subList = Array.isArray(event?.subFunctions) && event.subFunctions.length > 0
+      ? event.subFunctions
+      : (subFunction && typeof subFunction === 'object' ? [subFunction] : [{}]);
+  } else if (subFunction && typeof subFunction === 'object') {
+    subList = [subFunction];
+  } else if (Array.isArray(event?.subFunctions) && event.subFunctions.length > 0) {
+    subList = event.subFunctions;
+  } else {
+    subList = [{}];
+  }
+
+  // Fallback dishes
+  const fallbackDishes = [
+    { name: 'TRADITIONAL WELCOME ELANEER PAYASAM', category: 'WELCOME DRINKS' },
+    { name: 'ROYAL MYSORE PAK (PURE GHEE)', category: 'SWEETS' },
+    { name: 'CRISP LIVE MASALA DOSA WITH CHUTNEYS', category: 'CHATS' },
+    { name: 'AUTHENTIC KARNATAKA BISI BELE BATH', category: 'MAIN COURSE' },
+    { name: 'UDUPI TRADITIONAL MIXED VEG SAMBAR', category: 'MAIN COURSE' },
+    { name: 'MYSURU PEPPER RASAM', category: 'MAIN COURSE' },
+    { name: 'BEANS & CARROT PORIYAL / PALYA', category: 'PALYA' },
+    { name: 'MALABAR AVIAL WITH COCONUT OIL', category: 'PALYA' },
+    { name: 'STEAMED PREMIUM SONA MASOORI RICE', category: 'MAIN COURSE' },
+    { name: 'TEMPLE CURD RICE WITH POMEGRANATE TADKA', category: 'FINISHER' },
+    { name: 'CRISPY APPALAM / PAPAD & MANGO PICKLE', category: 'ACCOMPANIMENTS' },
+    { name: 'WATER BOTTLE', category: 'FINISHER' }
+  ];
+
+  // Helper to build dishes for a sub-function
+  const resolveSubDishes = (sub) => {
+    const rawItemIds = Array.isArray(sub?.menuItems) ? sub.menuItems : [];
+    const menuDishIds = rawItemIds.map(item => (typeof item === 'object' && item !== null ? (item.dishId || item.id) : item));
+
+    let resolved = [];
+    menuDishIds.forEach(id => {
+      const found = dishesList.find(d => String(d.id) === String(id));
+      if (found) resolved.push(found);
+    });
+
+    if (resolved.length === 0 && rawItemIds.length > 0) {
+      rawItemIds.forEach(item => {
+        if (typeof item === 'object' && item !== null && item.name) {
+          resolved.push(item);
+        }
+      });
+    }
+
+    if (resolved.length === 0) {
+      resolved = fallbackDishes;
+    }
+
+    // Check if water bottle is present, if not add at end
+    const hasWater = resolved.some(d => (d.name || '').toUpperCase().includes('WATER BOTTLE'));
+    return hasWater ? resolved : [...resolved, { name: 'WATER BOTTLE', category: 'FINISHER' }];
+  };
+
+  // PAGE 1 HEADER
+  let currentY = 16;
+
+  // 1. Logo
+  if (menuTemplateAssets.companyLogo) {
+    try {
+      doc.addImage(menuTemplateAssets.companyLogo, 'PNG', 24, currentY, 20, 24);
+    } catch (e) {
+      doc.setFont('times', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...redColor);
+      doc.text('SRI MAYYIA CATERERS', 24, currentY + 12);
+    }
+  }
+
+  // 2. Tagline + Gold Bar
+  doc.setFont('times', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...redColor);
+  doc.text('Pioneers in authentic, pure vegetarian catering since 1953', 49, currentY + 14);
+
+  doc.setFillColor(...goldColor);
+  doc.rect(149, currentY + 12, 38, 2.5, 'F');
+
+  currentY += 32;
+
+  // 3. Centered Event Date & Venue/Client (underlined)
+  const rawCoverDate = event?.date || subList[0]?.date || new Date().toISOString().split('T')[0];
+  const dateHeading = formatCoverDate(rawCoverDate).toUpperCase();
+  const venueHeading = (event?.venue || event?.hall || event?.location || event?.customer?.name || event?.eventType || 'GRAND BANQUET').toUpperCase();
+
+  doc.setFont('times', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...navyColor);
+
+  // Date heading with underline
+  doc.text(dateHeading, pw / 2, currentY, { align: 'center' });
+  const dateWidth = doc.getTextWidth(dateHeading);
+  doc.setDrawColor(...navyColor);
+  doc.setLineWidth(0.3);
+  doc.line(pw / 2 - dateWidth / 2, currentY + 1, pw / 2 + dateWidth / 2, currentY + 1);
+
+  currentY += 6;
+
+  // Venue heading with underline
+  doc.text(venueHeading, pw / 2, currentY, { align: 'center' });
+  const venueWidth = doc.getTextWidth(venueHeading);
+  doc.line(pw / 2 - venueWidth / 2, currentY + 1, pw / 2 + venueWidth / 2, currentY + 1);
+
+  currentY += 12;
+
+  // Helper for pagination
+  const checkPageBreak = (neededHeight = 12) => {
+    if (currentY + neededHeight > 280) {
+      doc.addPage();
+      currentY = 22;
+      return true;
+    }
+    return false;
+  };
+
+  // Render Sub-Functions
+  subList.forEach((sub, subIdx) => {
+    checkPageBreak(25);
+
+    // Build session header text (e.g. "WELCOME DRINKS @ 9 AM  100 PAX" or "LUNCH :- 250 PAX")
+    const subName = (sub.name || `SESSION ${subIdx + 1}`).toUpperCase().replace(/^MENU\s+FOR\s+/i, '');
+    const timeStr = sub.time ? ` @ ${sub.time}` : '';
+    const paxCount = sub.guestCount || event?.guestCount || '';
+    const paxStr = paxCount ? `  ${paxCount} PAX` : '';
+    const headerTitle = `${subName}${timeStr} :-${paxStr}`;
+
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...redColor);
+    doc.text(headerTitle, 24, currentY);
+
+    const titleWidth = doc.getTextWidth(headerTitle);
+    doc.setDrawColor(...redColor);
+    doc.setLineWidth(0.35);
+    doc.line(24, currentY + 1.2, 24 + titleWidth, currentY + 1.2);
+
+    currentY += 6.5;
+
+    const dishes = resolveSubDishes(sub);
+
+    let sessionCounter = 1;
+    let currentCategory = '';
+
+    dishes.forEach((d) => {
+      checkPageBreak(8);
+
+      const dCat = (d.category || '').toUpperCase();
+      const isSpecialCat = dCat.includes('CONTINENTAL') || dCat.includes('FINGER') || dCat.includes('CHAAT') || dCat.includes('CHAT') || dCat.includes('STARTER');
+
+      if (isSpecialCat && dCat !== currentCategory) {
+        currentCategory = dCat;
+        checkPageBreak(12);
+        currentY += 2;
+        doc.setFont('times', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...navyColor);
+        doc.text(currentCategory, 24, currentY);
+        currentY += 5.5;
+      }
+
+      // Dish number
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...blackColor);
+      doc.text(`${sessionCounter}.`, 32, currentY, { align: 'right' });
+
+      // Dish Name
+      let dName = (d.name || '').toUpperCase();
+      if (doc.getTextWidth(dName) > 150) {
+        doc.setFontSize(8.5);
+        if (doc.getTextWidth(dName) > 150) {
+          dName = doc.splitTextToSize(dName, 148)[0] + '...';
+        }
+      }
+      doc.text(dName, 36, currentY);
+
+      sessionCounter++;
+      currentY += 5.5;
+    });
+
+    currentY += 5; // Spacing after session
+  });
+
+  // Check for NOTE section
+  const notesList = [];
+  if (event?.notes) {
+    if (Array.isArray(event.notes)) {
+      notesList.push(...event.notes);
+    } else if (typeof event.notes === 'string') {
+      notesList.push(...event.notes.split('\n').filter(n => n.trim().length > 0));
+    }
+  }
+  if (event?.serviceInstructions) {
+    notesList.push(event.serviceInstructions);
+  }
+
+  if (notesList.length > 0) {
+    checkPageBreak(20);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...navyColor);
+    doc.text('NOTE :', 24, currentY);
+    currentY += 5.5;
+
+    notesList.forEach((n, idx) => {
+      checkPageBreak(7);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...blackColor);
+      doc.text(`${idx + 1}.`, 32, currentY, { align: 'right' });
+      doc.text(String(n).toUpperCase(), 36, currentY);
+      currentY += 5.5;
+    });
+    currentY += 4;
+  }
+
+  // Check for PARCEL section
+  const parcelList = [];
+  if (event?.parcelNotes) {
+    if (Array.isArray(event.parcelNotes)) {
+      parcelList.push(...event.parcelNotes);
+    } else if (typeof event.parcelNotes === 'string') {
+      parcelList.push(...event.parcelNotes.split('\n').filter(p => p.trim().length > 0));
+    }
+  }
+
+  if (parcelList.length > 0) {
+    checkPageBreak(20);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...navyColor);
+    doc.text('PARCEL :', 24, currentY);
+    currentY += 5.5;
+
+    parcelList.forEach((p, idx) => {
+      checkPageBreak(7);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...blackColor);
+      doc.text(`${idx + 1}.`, 32, currentY, { align: 'right' });
+      doc.text(String(p).toUpperCase(), 36, currentY);
+      currentY += 5.5;
+    });
+  }
+
+  const safeEventId = (event?.id || 'EVT').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeSubName = isAllSessions
+    ? 'Event_Function_Sheet'
+    : (subList[0]?.name || 'Menu_Sheet').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Sri_Mayyia_FunctionSheet_${safeEventId}_${safeSubName}.pdf`;
+
+  const blob = doc.output('blob');
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(blob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
+
+  return { blobUrl, blob, filename, doc };
+};
+
+/**
  * Generates the Official Sri Mayyia Caterers Proposal & Menu PDF booklet.
  * Exactly matches the ready client presentation booklet format:
  * Page 1: Cover Page with Date & Event
@@ -817,7 +1108,12 @@ const formatMenuDateDDMMYYYY = (dateStr) => {
  * Returns { blobUrl, blob, filename, doc }
  */
 export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'official', dishesList = []) => {
-  // Official Sri Mayyia Caterers Presentation Proposal & Menu Booklet is the sole template
+  // If executive function sheet requested, route to generateExecutiveMenuPdf
+  if (templateId === 'executive' || templateId === 'compact' || templateId === 'function_sheet') {
+    return generateExecutiveMenuPdf(event, subFunction, companyProfile, dishesList);
+  }
+
+  // Official Sri Mayyia Caterers Presentation Proposal & Menu Booklet
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width; // 210
   const ph = doc.internal.pageSize.height; // 297
