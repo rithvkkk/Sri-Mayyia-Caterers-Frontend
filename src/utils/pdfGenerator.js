@@ -792,11 +792,22 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
 
   // PAGE 1: COVER PAGE
   doc.addImage(menuTemplateAssets.page1Cover, 'JPEG', 0, 0, pw, ph);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   doc.setFontSize(13);
-  doc.setTextColor(70, 15, 20);
-  doc.text(formattedDate, 45, 144.5);
-  doc.text(eventTitle, 48, 157.5);
+  doc.setTextColor(140, 25, 20); // Exact Sri Mayyia Ceremonial Crimson Maroon
+
+  // Date: label ends at X=44.7mm, baseline is at Y=145.8mm
+  doc.text(formattedDate, 48.0, 145.8);
+
+  // Event: label ends at X=48.2mm, baseline is at Y=160.2mm
+  let displayEventTitle = eventTitle;
+  if (doc.getTextWidth(displayEventTitle) > 138) {
+    doc.setFontSize(11.5);
+    if (doc.getTextWidth(displayEventTitle) > 138) {
+      displayEventTitle = doc.splitTextToSize(displayEventTitle, 136)[0] + '...';
+    }
+  }
+  doc.text(displayEventTitle, 52.0, 160.2);
 
   // Resolve Menu Items
   const rawItemIds = Array.isArray(subFunction?.menuItems) ? subFunction.menuItems : [];
@@ -850,11 +861,11 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     doc.setTextColor(156, 21, 25);
     doc.text(subTitle, (15.4 + 196.8) / 2, 60.5, { align: 'center' });
 
-    // Pax in header row (Y: 64..72.7)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(40, 40, 40);
-    doc.text(`${paxCount} Guests`, 116, 70);
+    // Pax: in header ends at X=125.4mm, baseline is at Y=70.3mm
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`${paxCount} Guests`, 128.0, 70.3);
 
     const startIdx = pageIdx * ITEMS_PER_PAGE;
     const pageDishes = resolvedDishes.slice(startIdx, startIdx + ITEMS_PER_PAGE);
