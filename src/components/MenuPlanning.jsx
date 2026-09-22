@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { 
   ClipboardCopy, Package, ArrowRight, ShieldAlert, CheckCircle, 
