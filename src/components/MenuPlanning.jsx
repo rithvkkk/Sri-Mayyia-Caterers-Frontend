@@ -992,81 +992,41 @@ const MenuPlanning = () => {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
-              {[
-                {
-                  id: 'official',
-                  title: 'Official Sri Mayyia Proposal & Menu',
-                  subtitle: '5-Page Presentation Booklet with Credentials & Terms',
-                  auspicious: '|| Official Proposal & Menu Booklet ||',
-                  badge: '★ Official 5-Page Booklet',
-                  color: '#9C1519'
-                },
-                {
-                  id: 'baleyele',
-                  title: 'Royal Baleyele Seated Banquet',
-                  subtitle: 'Traditional Udupi/Mysuru Plantain Leaf Feast',
-                  auspicious: '|| Shree Ganeshaya Namah ||',
-                  badge: 'Plantain Leaf Classic',
-                  color: '#9C1519'
-                },
-                {
-                  id: 'wedding',
-                  title: 'Grand Wedding & Sangeet Gala',
-                  subtitle: 'Regal Golden Ornate Ceremonial Banquet',
-                  auspicious: '|| Shree Lakshmi Venkateshwara ||',
-                  badge: 'Royal Wedding',
-                  color: '#D2AC67'
-                },
-                {
-                  id: 'pooja',
-                  title: 'Sacred Pooja & Grihapravesham',
-                  subtitle: 'Sattvic Udupi Prasadam & Pure Feast',
-                  auspicious: '|| Sattvic Prasadam & Udupam ||',
-                  badge: 'Sattvic Pure',
-                  color: '#10b981'
-                },
-                {
-                  id: 'gala',
-                  title: 'Corporate Festive Grand Gala',
-                  subtitle: 'Modern Fusion & Pan-Indian Gastronomy',
-                  auspicious: '|| Festive Gastronomy ||',
-                  badge: 'Modern Gala',
-                  color: '#3b82f6'
-                }
-              ].map(tpl => {
-                const isSelected = selectedTemplate === tpl.id;
-                return (
-                  <div
-                    key={tpl.id}
-                    onClick={() => setSelectedTemplate(tpl.id)}
-                    style={{
-                      padding: '0.9rem',
-                      borderRadius: '12px',
-                      border: isSelected ? `2px solid ${tpl.color}` : '1px solid rgba(0,0,0,0.12)',
-                      background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'rgba(255, 255, 255, 0.7)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      boxShadow: isSelected ? '0 4px 12px rgba(156,21,25,0.15)' : 'none'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: tpl.color }}>{tpl.badge}</span>
-                      {isSelected && <Check size={16} style={{ color: tpl.color }} />}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#000000', marginBottom: '0.2rem' }}>{tpl.title}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>{tpl.subtitle}</div>
-                    <div style={{ fontSize: '0.65rem', fontStyle: 'italic', color: '#666666' }}>{tpl.auspicious}</div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div
+                style={{
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  border: '2px solid #C00000',
+                  background: 'rgba(192, 0, 0, 0.04)',
+                  boxShadow: '0 4px 14px rgba(192, 0, 0, 0.12)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#C00000', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ★ Official Sri Mayyia Proposal & Menu Booklet
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#16a34a', fontSize: '0.75rem', fontWeight: 700 }}>
+                    <Check size={16} /> Ready Client Format
                   </div>
-                );
-              })}
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#17375E', marginBottom: '0.35rem' }}>
+                  Official Client Presentation Proposal
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
+                  Complete presentation booklet formatted with high-resolution banquet cover, company credentials & achievements since 1953, centered ceremonial menus, service terms, and palace heritage back cover.
+                </div>
+                <div style={{ fontSize: '0.72rem', fontStyle: 'italic', color: '#C00000', fontWeight: 600 }}>
+                  || Sri Mayyia Caterers — Pioneers in Pure Authentic Vegetarian Catering Since 1953 ||
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => handlePrintMenuPdf(selectedTemplate)}
+                onClick={() => handlePrintMenuPdf('official')}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
               >
                 <Printer size={16} /> Print Menu
@@ -1075,7 +1035,7 @@ const MenuPlanning = () => {
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => {
-                  handleDownloadMenuPdf(selectedTemplate, true);
+                  handleDownloadMenuPdf('official', true);
                   setIsMenuPdfModalOpen(false);
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
@@ -1087,7 +1047,7 @@ const MenuPlanning = () => {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
-                  handleDownloadMenuPdf(selectedTemplate, false);
+                  handleDownloadMenuPdf('official', false);
                   setIsMenuPdfModalOpen(false);
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}

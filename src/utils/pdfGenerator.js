@@ -817,12 +817,7 @@ const formatMenuDateDDMMYYYY = (dateStr) => {
  * Returns { blobUrl, blob, filename, doc }
  */
 export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'official', dishesList = []) => {
-  // If legacy vector template selected, route to vector renderer
-  if (templateId && templateId !== 'official' && templateId !== 'sri_mayyia_official') {
-    return generateVectorOccasionMenuPdf(event, subFunction, companyProfile, templateId, dishesList);
-  }
-
-  // Official Sri Mayyia Caterers Presentation Proposal & Menu Booklet
+  // Official Sri Mayyia Caterers Presentation Proposal & Menu Booklet is the sole template
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width; // 210
   const ph = doc.internal.pageSize.height; // 297
@@ -953,7 +948,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     const occasionText = sub.occasion || sub.name || event?.eventType || 'Banquet';
     const servingText = sub.servingType || sub.mealType || event?.serviceStyle || 'Buffet';
 
-    // 4. Centered Dishes in Item Column
+    // Centered Dishes in Item Column
     const sections = buildMenuSections(sub);
 
     const renderLines = [];
@@ -977,14 +972,32 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.addPage();
       doc.addImage(menuTemplateAssets.page2MenuBg, 'JPEG', 0, 0, pw, ph);
 
-      // 1. Top Left Metadata (Occasion, Date, Serving)
+      // 1. Top Left Dynamic Values (Occasion, Date, Serving)
+      // Note: 'Occasion:', 'Date:', 'Serving:' labels are already pre-printed in the background template.
+      // We print only the values directly after each static label with ample clearance from the logo.
       doc.setFont('times', 'bold');
-      doc.setFontSize(10.5);
+      doc.setFontSize(12);
       doc.setTextColor(...redColor);
 
-      doc.text(`Occasion: ${occasionText.toUpperCase()}`, 22.0, 24.5);
-      doc.text(`Date: ${dateText}`, 22.0, 34.5);
-      doc.text(`Serving: ${servingText.toUpperCase()}`, 22.0, 44.5);
+      // Occasion value (e.g. SANGEETH, WEDDING) - starts at X=47.5, Y=24.4
+      const occasionVal = (sub.occasion || (sub.name && sub.name.toUpperCase() !== occasionText.toUpperCase() ? occasionText : '') || event?.eventType || '').toUpperCase();
+      if (occasionVal) {
+        let occText = occasionVal;
+        if (doc.getTextWidth(occText) > 90) {
+          occText = doc.splitTextToSize(occText, 90)[0] + '...';
+        }
+        doc.text(occText, 47.5, 24.4);
+      }
+
+      // Date value (e.g. 28.08.2026) - starts at X=35.5, Y=34.8 (ends at ~58mm; logo starts at 158mm)
+      doc.text(dateText, 35.5, 34.8);
+
+      // Serving value (e.g. BUFFET, PLANTAIN LEAF) - starts at X=42.5, Y=47.0
+      let servingVal = servingText.toUpperCase();
+      if (doc.getTextWidth(servingVal) > 95) {
+        servingVal = doc.splitTextToSize(servingVal, 95)[0] + '...';
+      }
+      doc.text(servingVal, 42.5, 47.0);
 
       // 2. Table Merged Bar: "MENU for <NAME>"
       const subCleanName = sub.name ? sub.name.toUpperCase().replace(/^MENU\s+FOR\s+/i, '') : 'BANQUET';
@@ -999,7 +1012,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFont('times', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(...redColor);
-      doc.text(String(paxCount), 127.5, 70.3);
+      doc.text(String(paxCount), 128.0, 70.3);
 
       const availableHeight = 270 - 77; // 193 mm
       const stepY = Math.min(8.0, Math.max(5.8, availableHeight / (chunk.length + 1)));
