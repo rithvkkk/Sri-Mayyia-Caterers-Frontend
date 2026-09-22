@@ -162,7 +162,7 @@ const MenuPlanning = () => {
 
   // Indian Occasion Menu PDF Modal State
   const [isMenuPdfModalOpen, setIsMenuPdfModalOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('baleyele');
+  const [selectedTemplate, setSelectedTemplate] = useState('official');
 
   const isEditable = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager' || isSalesExec;
   const currentEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
@@ -993,6 +993,14 @@ const MenuPlanning = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
               {[
+                {
+                  id: 'official',
+                  title: 'Official Sri Mayyia Proposal & Menu',
+                  subtitle: '5-Page Presentation Booklet with Credentials & Terms',
+                  auspicious: '|| Official Proposal & Menu Booklet ||',
+                  badge: '★ Official 5-Page Booklet',
+                  color: '#9C1519'
+                },
                 {
                   id: 'baleyele',
                   title: 'Royal Baleyele Seated Banquet',

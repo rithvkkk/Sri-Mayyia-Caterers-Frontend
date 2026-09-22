@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { menuTemplateAssets } from '../assets/menuTemplateAssets.js';
 
 // Cross-environment helper for jspdf-autotable in ESM/Vite
 const renderTable = (doc, options) => {
@@ -461,7 +462,73 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
  *  - 'pooja': Sacred Pooja & Sattvic Grihapravesham
  *  - 'gala': Corporate & Festive Grand Banquet
  */
-export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'baleyele', dishesList = []) => {
+/**
+ * Formats date into British / Indian ceremonial style e.g. "18th November 2026"
+ */
+const formatCeremonialDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = d.getDate();
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const suffix = (day === 1 || day === 21 || day === 31) ? 'st' :
+                   (day === 2 || day === 22) ? 'nd' :
+                   (day === 3 || day === 23) ? 'rd' : 'th';
+    return `${day}${suffix} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+/**
+ * Intelligent dish service instruction resolver
+ */
+const getDishInstruction = (dish) => {
+  if (dish.instructions) return dish.instructions;
+  if (dish.specialInstructions) return dish.specialInstructions;
+  if (dish.notes) return dish.notes;
+
+  const cat = (dish.category || '').toLowerCase();
+  const name = (dish.name || '').toLowerCase();
+
+  if (cat.includes('beverage') || cat.includes('drink') || name.includes('juice') || name.includes('sharbat') || name.includes('payasam')) {
+    return 'Served Chilled in Clay Cups';
+  }
+  if (cat.includes('dessert') || cat.includes('sweet') || name.includes('halwa') || name.includes('mysore pak') || name.includes('jamun') || name.includes('jalebi')) {
+    return 'Warm Pure Desi Ghee Service';
+  }
+  if (cat.includes('live') || cat.includes('chaat') || name.includes('dosa') || name.includes('roti') || name.includes('naan')) {
+    return 'Live Counter Sizzling Hot';
+  }
+  if (cat.includes('rice') || cat.includes('biryani') || cat.includes('bath') || cat.includes('pulao')) {
+    return 'Steaming Hot Traditional Service';
+  }
+  if (cat.includes('sambar') || cat.includes('rasam') || cat.includes('dal') || cat.includes('soup')) {
+    return 'Piping Hot with Ghee Tempering';
+  }
+  if (cat.includes('side') || cat.includes('curry') || cat.includes('poriyal') || cat.includes('palya') || cat.includes('avial')) {
+    return 'Fresh Batch Traditional Tempering';
+  }
+  if (name.includes('curd') || name.includes('raita') || name.includes('salad')) {
+    return 'Chilled Temple Style Finishing';
+  }
+  if (cat.includes('appetizer') || cat.includes('starter') || name.includes('vada') || name.includes('bonda') || name.includes('tikka')) {
+    return 'Crisp Golden Service with Chutneys';
+  }
+  if (name.includes('coffee') || name.includes('tea') || name.includes('kaapi')) {
+    return 'Fresh Brass Davara Tumbler Roast';
+  }
+  return 'Traditional Table Service';
+};
+
+/**
+ * Legacy vector-drawn Indian occasion menu PDF generator
+ */
+const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'baleyele', dishesList = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width;
   const ph = doc.internal.pageSize.height;
@@ -521,7 +588,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text(companyProfile.name.toUpperCase(), pw / 2, 27, { align: 'center' });
+  doc.text(companyProfile?.name ? companyProfile.name.toUpperCase() : 'SRI MAYYIA CATERERS', pw / 2, 27, { align: 'center' });
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'italic');
@@ -531,7 +598,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(235, 235, 235);
-  doc.text(`Phone: ${companyProfile.phone} | GSTIN: ${companyProfile.gstin}`, pw / 2, 40, { align: 'center' });
+  doc.text(`Phone: ${companyProfile?.phone || '+91 98450 38235'} | GSTIN: ${companyProfile?.gstin || '29AABCS1429B1Z8'}`, pw / 2, 40, { align: 'center' });
 
   // Metadata Box
   doc.setFillColor(247, 242, 232);
@@ -543,10 +610,10 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   doc.setTextColor(...darkCharcoal);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(`Customer: ${event.customer?.name || 'Valued Guest'}`, 20, 59);
-  doc.text(`Occasion: ${subFunction?.name || event.eventType}`, 20, 66);
+  doc.text(`Customer: ${event?.customer?.name || 'Valued Guest'}`, 20, 59);
+  doc.text(`Occasion: ${subFunction?.name || event?.eventType || 'Banquet'}`, 20, 66);
 
-  doc.text(`Date: ${subFunction?.date || event.date}`, 130, 59);
+  doc.text(`Date: ${subFunction?.date || event?.date || ''}`, 130, 59);
   doc.text(`Pax Headcount: ${subFunction?.guestCount || 100} Guests`, 130, 66);
 
   let y = 80;
@@ -684,13 +751,181 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
   doc.setTextColor(100, 100, 100);
-  doc.text('Authentic Udupi & Mysuru Ceremonial Feast Specialists | Contact: ' + companyProfile.phone, pw / 2, ph - 7, { align: 'center' });
+  doc.text('Authentic Udupi & Mysuru Ceremonial Feast Specialists | Contact: ' + (companyProfile?.phone || '+91 98450 38235'), pw / 2, ph - 7, { align: 'center' });
 
-  const filename = `${event.id}_${(subFunction?.name || 'Menu').replace(/\s+/g, '_')}_${templateId.toUpperCase()}_MENU.pdf`;
+  const safeEventId = (event?.id || 'EVT').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeSubName = (subFunction?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${safeEventId}_${safeSubName}_${templateId.toUpperCase()}_MENU.pdf`;
   const blob = doc.output('blob');
-  const blobUrl = URL.createObjectURL(blob);
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(blob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
 
-  return { blobUrl, blob, filename };
+  return { blobUrl, blob, filename, doc };
+};
+
+/**
+ * Generates the Official Sri Mayyia Caterers Proposal & Menu PDF booklet.
+ * Default template is the high-res 5-page official Sri Mayyia presentation.
+ * Returns { blobUrl, blob, filename, doc }
+ */
+export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'official', dishesList = []) => {
+  // If legacy vector template selected, route to vector renderer
+  if (templateId && templateId !== 'official' && templateId !== 'sri_mayyia_official') {
+    return generateVectorOccasionMenuPdf(event, subFunction, companyProfile, templateId, dishesList);
+  }
+
+  // Official Sri Mayyia Caterers 5-Page Proposal & Menu Template
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.width; // 210
+  const ph = doc.internal.pageSize.height; // 297
+
+  const rawDate = subFunction?.date || event?.date || new Date().toISOString().split('T')[0];
+  const formattedDate = formatCeremonialDate(rawDate);
+  const eventTitle = (event?.eventType || event?.title || 'Grand Wedding & Ceremonial Banquet') +
+    (event?.customer?.name ? ` - ${event.customer.name}` : '');
+
+  // PAGE 1: COVER PAGE
+  doc.addImage(menuTemplateAssets.page1Cover, 'JPEG', 0, 0, pw, ph);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(70, 15, 20);
+  doc.text(formattedDate, 45, 144.5);
+  doc.text(eventTitle, 48, 157.5);
+
+  // Resolve Menu Items
+  const rawItemIds = Array.isArray(subFunction?.menuItems) ? subFunction.menuItems : [];
+  const menuDishIds = rawItemIds.map(item => (typeof item === 'object' && item !== null ? (item.dishId || item.id) : item));
+
+  let resolvedDishes = [];
+  menuDishIds.forEach(id => {
+    const found = dishesList.find(d => String(d.id) === String(id));
+    if (found) resolvedDishes.push(found);
+  });
+
+  if (resolvedDishes.length === 0 && rawItemIds.length > 0) {
+    rawItemIds.forEach(item => {
+      if (typeof item === 'object' && item !== null && item.name) {
+        resolvedDishes.push(item);
+      }
+    });
+  }
+
+  if (resolvedDishes.length === 0) {
+    resolvedDishes = [
+      { name: 'Traditional Welcome Elaneer Payasam', category: 'Beverages & Welcome Drinks', instructions: 'Served Chilled in Clay Cups' },
+      { name: 'Royal Mysore Pak (Pure Desi Ghee)', category: 'Desserts, Sweets & Ice Creams', instructions: 'Warm Ghee Service' },
+      { name: 'Crisp Live Masala Dosa with Chutneys', category: 'Appetizers, Chaats & Street Food', instructions: 'Live Counter Sizzling Hot' },
+      { name: 'Authentic Karnataka Bisi Bele Bath', category: 'South Indian Specialties', instructions: 'Served with Boondi & Ghee' },
+      { name: 'Udupi Traditional Mixed Veg Sambar', category: 'South Indian Specialties', instructions: 'Slow Simmered Toor Dal' },
+      { name: 'Mysuru Pepper Rasam', category: 'South Indian Specialties', instructions: 'Piping Hot with Crushed Pepper' },
+      { name: 'Beans & Carrot Poriyal / Palya', category: 'Sides, Accompaniments & Salads', instructions: 'Fresh Grated Coconut Tempering' },
+      { name: 'Malabar Avial with Coconut Oil', category: 'Sides, Accompaniments & Salads', instructions: 'Coconut & Curd Simmered' },
+      { name: 'Steamed Premium Sona Masoori Rice', category: 'South Indian Specialties', instructions: 'Unlimited Fresh Steaming Serving' },
+      { name: 'Temple Curd Rice with Pomegranate Tadka', category: 'After-Meal / Traditional Finishers', instructions: 'Chilled Temple Style' },
+      { name: 'Crispy Appalam / Papad & Mango Pickle', category: 'Sides, Accompaniments & Salads', instructions: 'Fresh Batch Fried' },
+      { name: 'Traditional South Indian Filter Kaapi', category: 'Beverages & Welcome Drinks', instructions: 'Freshly Brewed Chikmagalur Roast' }
+    ];
+  }
+
+  const subTitle = (subFunction?.name || event?.eventType || 'TRADITIONAL BANQUET FEAST').toUpperCase();
+  const paxCount = subFunction?.guestCount || event?.guestCount || 100;
+
+  const ITEMS_PER_PAGE = 18;
+  const totalPagesForMenu = Math.ceil(resolvedDishes.length / ITEMS_PER_PAGE) || 1;
+
+  // PAGE 2 (+ PAGINATION): MENU ITEMS TABLE
+  for (let pageIdx = 0; pageIdx < totalPagesForMenu; pageIdx++) {
+    doc.addPage();
+    doc.addImage(menuTemplateAssets.page2MenuBg, 'JPEG', 0, 0, pw, ph);
+
+    // Sub-function Title in merged header (Y: 54.5..63.7)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(156, 21, 25);
+    doc.text(subTitle, (15.4 + 196.8) / 2, 60.5, { align: 'center' });
+
+    // Pax in header row (Y: 64..72.7)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(40, 40, 40);
+    doc.text(`${paxCount} Guests`, 116, 70);
+
+    const startIdx = pageIdx * ITEMS_PER_PAGE;
+    const pageDishes = resolvedDishes.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+    const startY = 74;
+    const rowHeight = 9.8;
+
+    pageDishes.forEach((dish, idx) => {
+      const globalIdx = startIdx + idx;
+      const y = startY + idx * rowHeight;
+      const textY = y + 6.3;
+
+      // Row divider line
+      doc.setDrawColor(220, 195, 160);
+      doc.setLineWidth(0.2);
+      doc.line(15.4, y + rowHeight, 196.8, y + rowHeight);
+
+      // SL NO
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(80, 20, 20);
+      doc.text(String(globalIdx + 1), 22.35, textY, { align: 'center' });
+
+      // Dish Name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(30, 30, 30);
+      let displayName = dish.name || 'Ceremonial Dish';
+      if (doc.getTextWidth(displayName) > 124) {
+        displayName = doc.splitTextToSize(displayName, 122)[0] + '...';
+      }
+      doc.text(displayName, 32, textY);
+
+      // Instructions
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(90, 40, 40);
+      let instruction = getDishInstruction(dish);
+      if (doc.getTextWidth(instruction) > 32) {
+        instruction = doc.splitTextToSize(instruction, 31)[0];
+      }
+      doc.text(instruction, 163, textY);
+    });
+  }
+
+  // PAGE 3: ABOUT / CREDENTIALS
+  doc.addPage();
+  doc.addImage(menuTemplateAssets.page3About, 'JPEG', 0, 0, pw, ph);
+
+  // PAGE 4: SERVICE TERMS
+  doc.addPage();
+  doc.addImage(menuTemplateAssets.page4Terms, 'JPEG', 0, 0, pw, ph);
+
+  // PAGE 5: BACK COVER
+  doc.addPage();
+  doc.addImage(menuTemplateAssets.page5Back, 'JPEG', 0, 0, pw, ph);
+
+  const safeSubName = (subFunction?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeEventId = (event?.id || 'EVT').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Sri_Mayyia_Proposal_${safeEventId}_${safeSubName}.pdf`;
+  const blob = doc.output('blob');
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(blob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
+
+  return { blobUrl, blob, filename, doc };
 };
 
 /**
