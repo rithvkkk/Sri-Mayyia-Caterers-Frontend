@@ -249,21 +249,21 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
   
-  // Database states driven ONLY by MongoDB (No Mock Data Fallbacks)
-  const [venues, setVenues] = useState([]);
-  const [rawMaterials, setRawMaterials] = useState([]);
-  const [dishes, setDishes] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [laborRates, setLaborRates] = useState([]);
-  const [agencies, setAgencies] = useState([]);
+  // Database states driven by MongoDB with resilient local caching
+  const [venues, setVenues] = useState(() => getSafeLocal('cater_venues', initialVenues));
+  const [rawMaterials, setRawMaterials] = useState(() => getSafeLocal('cater_raw_materials', initialRawMaterials));
+  const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
+  const [suppliers, setSuppliers] = useState(() => getSafeLocal('cater_suppliers', initialSuppliers));
+  const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
+  const [agencies, setAgencies] = useState(() => getSafeLocal('cater_agencies', initialAgencies));
   const [events, setEvents] = useState(() => {
-    const list = getSafeLocal('cater_events', []);
+    const list = getSafeLocal('cater_events', initialEvents);
     return list.map(e => e.eventType === 'Micro Home Event' ? { ...e, eventType: 'Micro Event' } : e);
   });
-  const [vessels, setVessels] = useState([]);
-  const [provisions, setProvisions] = useState([]);
-  const [vegetables, setVegetables] = useState([]);
-  const [labourWorkers, setLabourWorkers] = useState([]);
+  const [vessels, setVessels] = useState(() => getSafeLocal('cater_vessels', initialVessels));
+  const [provisions, setProvisions] = useState(() => getSafeLocal('cater_provisions', initialProvisions));
+  const [vegetables, setVegetables] = useState(() => getSafeLocal('cater_vegetables', initialVegetables));
+  const [labourWorkers, setLabourWorkers] = useState(() => getSafeLocal('cater_labour_workers', initialLabourWorkers));
   const [labourAttendance, setLabourAttendance] = useState(() => getSafeLocal('cater_labour_attendance', initialLabourAttendance));
   const [menuCategories, setMenuCategories] = useState(() => getSafeLocal('cater_menu_categories', initialMenuCategories));
   const [vendorCategories, setVendorCategories] = useState(() => getSafeLocal('cater_vendor_categories', initialVendorCategories));
@@ -328,7 +328,17 @@ export const AppProvider = ({ children }) => {
       }
 
       if (Array.isArray(vList)) setVenues(vList);
-      if (Array.isArray(rmList)) setRawMaterials(rmList);
+      if (Array.isArray(rmList)) {
+        setRawMaterials(prevRm => {
+          const serverIds = new Set(rmList.map(r => r.id || r._id));
+          const localOnly = prevRm.filter(r => r && (r.id || r._id) && !serverIds.has(r.id || r._id));
+          if (localOnly.length === 0) return rmList;
+          localOnly.forEach(localRm => {
+            apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(localRm) }).catch(() => {});
+          });
+          return [...rmList, ...localOnly];
+        });
+      }
       if (Array.isArray(dList)) setDishes(dList);
       if (Array.isArray(lrList)) setLaborRates(lrList);
       if (Array.isArray(sList)) {
@@ -362,9 +372,39 @@ export const AppProvider = ({ children }) => {
       }
       if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
       if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
-      if (Array.isArray(vesList)) setVessels(vesList);
-      if (Array.isArray(prvList)) setProvisions(prvList);
-      if (Array.isArray(vegList)) setVegetables(vegList);
+      if (Array.isArray(vesList)) {
+        setVessels(prevVes => {
+          const serverIds = new Set(vesList.map(v => v.id || v._id));
+          const localOnly = prevVes.filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id));
+          if (localOnly.length === 0) return vesList;
+          localOnly.forEach(localVes => {
+            apiCall('/vessels', { method: 'POST', body: JSON.stringify(localVes) }).catch(() => {});
+          });
+          return [...vesList, ...localOnly];
+        });
+      }
+      if (Array.isArray(prvList)) {
+        setProvisions(prevPrv => {
+          const serverIds = new Set(prvList.map(p => p.id || p._id));
+          const localOnly = prevPrv.filter(p => p && (p.id || p._id) && !serverIds.has(p.id || p._id));
+          if (localOnly.length === 0) return prvList;
+          localOnly.forEach(localPrv => {
+            apiCall('/provisions', { method: 'POST', body: JSON.stringify(localPrv) }).catch(() => {});
+          });
+          return [...prvList, ...localOnly];
+        });
+      }
+      if (Array.isArray(vegList)) {
+        setVegetables(prevVeg => {
+          const serverIds = new Set(vegList.map(v => v.id || v._id));
+          const localOnly = prevVeg.filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id));
+          if (localOnly.length === 0) return vegList;
+          localOnly.forEach(localVeg => {
+            apiCall('/vegetables', { method: 'POST', body: JSON.stringify(localVeg) }).catch(() => {});
+          });
+          return [...vegList, ...localOnly];
+        });
+      }
       if (Array.isArray(lwList)) setLabourWorkers(lwList);
       if (Array.isArray(laList)) setLabourAttendance(laList);
       if (Array.isArray(mcList) && mcList.length > 0) setMenuCategories(mcList);
@@ -401,51 +441,75 @@ export const AppProvider = ({ children }) => {
 
   // Sync to localStorage (Fallback local cache)
   useEffect(() => {
-    localStorage.setItem('cater_venues', JSON.stringify(venues));
+    if (venues && venues.length > 0) {
+      try { localStorage.setItem('cater_venues', JSON.stringify(venues)); } catch (e) {}
+    }
   }, [venues]);
 
   useEffect(() => {
-    localStorage.setItem('cater_raw_materials', JSON.stringify(rawMaterials));
+    if (rawMaterials && rawMaterials.length > 0) {
+      try { localStorage.setItem('cater_raw_materials', JSON.stringify(rawMaterials)); } catch (e) {}
+    }
   }, [rawMaterials]);
 
   useEffect(() => {
-    localStorage.setItem('cater_dishes', JSON.stringify(dishes));
+    if (dishes && dishes.length > 0) {
+      try { localStorage.setItem('cater_dishes', JSON.stringify(dishes)); } catch (e) {}
+    }
   }, [dishes]);
 
   useEffect(() => {
-    localStorage.setItem('cater_suppliers', JSON.stringify(suppliers));
+    if (suppliers && suppliers.length > 0) {
+      try { localStorage.setItem('cater_suppliers', JSON.stringify(suppliers)); } catch (e) {}
+    }
   }, [suppliers]);
 
   useEffect(() => {
-    localStorage.setItem('cater_labor_rates', JSON.stringify(laborRates));
+    if (laborRates && laborRates.length > 0) {
+      try { localStorage.setItem('cater_labor_rates', JSON.stringify(laborRates)); } catch (e) {}
+    }
   }, [laborRates]);
 
   useEffect(() => {
-    localStorage.setItem('cater_agencies', JSON.stringify(agencies));
+    if (agencies && agencies.length > 0) {
+      try { localStorage.setItem('cater_agencies', JSON.stringify(agencies)); } catch (e) {}
+    }
   }, [agencies]);
 
   useEffect(() => {
-    localStorage.setItem('cater_vessels', JSON.stringify(vessels));
+    if (vessels && vessels.length > 0) {
+      try { localStorage.setItem('cater_vessels', JSON.stringify(vessels)); } catch (e) {}
+    }
   }, [vessels]);
 
   useEffect(() => {
-    localStorage.setItem('cater_provisions', JSON.stringify(provisions));
+    if (provisions && provisions.length > 0) {
+      try { localStorage.setItem('cater_provisions', JSON.stringify(provisions)); } catch (e) {}
+    }
   }, [provisions]);
 
   useEffect(() => {
-    localStorage.setItem('cater_vegetables', JSON.stringify(vegetables));
+    if (vegetables && vegetables.length > 0) {
+      try { localStorage.setItem('cater_vegetables', JSON.stringify(vegetables)); } catch (e) {}
+    }
   }, [vegetables]);
 
   useEffect(() => {
-    localStorage.setItem('cater_labour_workers', JSON.stringify(labourWorkers));
+    if (labourWorkers && labourWorkers.length > 0) {
+      try { localStorage.setItem('cater_labour_workers', JSON.stringify(labourWorkers)); } catch (e) {}
+    }
   }, [labourWorkers]);
 
   useEffect(() => {
-    localStorage.setItem('cater_labour_attendance', JSON.stringify(labourAttendance));
+    if (labourAttendance && labourAttendance.length > 0) {
+      try { localStorage.setItem('cater_labour_attendance', JSON.stringify(labourAttendance)); } catch (e) {}
+    }
   }, [labourAttendance]);
 
   useEffect(() => {
-    localStorage.setItem('cater_events', JSON.stringify(events));
+    if (events && events.length > 0) {
+      try { localStorage.setItem('cater_events', JSON.stringify(events)); } catch (e) {}
+    }
   }, [events]);
 
   useEffect(() => {
@@ -508,21 +572,55 @@ export const AppProvider = ({ children }) => {
   };
 
   const addRawMaterial = async (rm) => {
-    const payload = { ...rm, id: rm.id || ('rm_' + Date.now()) };
-    setRawMaterials(prev => [...prev, payload]);
+    const payload = {
+      ...rm,
+      id: rm.id || rm._id || ('rm_' + Date.now()),
+      costPerUnit: Number(rm.costPerUnit) || 0
+    };
+    setRawMaterials(prev => {
+      const next = [...prev.filter(r => (r.id || r._id) !== payload.id), payload];
+      try { localStorage.setItem('cater_raw_materials', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     const res = await apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(payload) });
-    if (res) setRawMaterials(prev => prev.map(r => r.id === payload.id ? res : r));
+    if (res) {
+      setRawMaterials(prev => {
+        const next = prev.map(r => (r.id === payload.id || r._id === payload.id) ? { ...r, ...res, id: payload.id } : r);
+        try { localStorage.setItem('cater_raw_materials', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
     return payload;
   };
 
   const updateRawMaterial = async (updated) => {
-    setRawMaterials(prev => prev.map(r => r.id === updated.id ? updated : r));
-    const res = await apiCall(`/raw-materials/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (res) setRawMaterials(prev => prev.map(r => r.id === updated.id ? res : r));
+    const targetId = updated.id || updated._id;
+    const cleanUpdated = {
+      ...updated,
+      id: targetId,
+      costPerUnit: Number(updated.costPerUnit) || 0
+    };
+    setRawMaterials(prev => {
+      const next = prev.map(r => ((r.id && r.id === targetId) || (r._id && r._id === targetId)) ? { ...r, ...cleanUpdated } : r);
+      try { localStorage.setItem('cater_raw_materials', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    const res = await apiCall(`/raw-materials/${targetId}`, { method: 'PUT', body: JSON.stringify(cleanUpdated) });
+    if (res) {
+      setRawMaterials(prev => {
+        const next = prev.map(r => ((r.id && r.id === targetId) || (r._id && r._id === targetId)) ? { ...r, ...res, id: targetId } : r);
+        try { localStorage.setItem('cater_raw_materials', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
   };
 
   const deleteRawMaterial = async (id) => {
-    setRawMaterials(prev => prev.filter(r => r.id !== id));
+    setRawMaterials(prev => {
+      const next = prev.filter(r => r.id !== id && r._id !== id);
+      try { localStorage.setItem('cater_raw_materials', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
   };
 
@@ -609,21 +707,63 @@ export const AppProvider = ({ children }) => {
 
   // Vessel Actions
   const addVessel = async (ves) => {
-    const payload = { ...ves, id: ves.id || ('ves_' + Date.now()) };
-    setVessels(prev => [...prev, payload]);
+    const payload = {
+      ...ves,
+      id: ves.id || ves._id || ('ves_' + Date.now()),
+      totalQty: Number(ves.totalQty) || 0,
+      availableQty: Number(ves.availableQty) || 0,
+      inUseQty: Number(ves.inUseQty) || 0,
+      damagedQty: Number(ves.damagedQty) || 0,
+      valuePerUnit: Number(ves.valuePerUnit) || 0
+    };
+    setVessels(prev => {
+      const next = [...prev.filter(v => (v.id || v._id) !== payload.id), payload];
+      try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     const res = await apiCall('/vessels', { method: 'POST', body: JSON.stringify(payload) });
-    if (res) setVessels(prev => prev.map(v => v.id === payload.id ? res : v));
+    if (res) {
+      setVessels(prev => {
+        const next = prev.map(v => (v.id === payload.id || v._id === payload.id) ? { ...v, ...res, id: payload.id } : v);
+        try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
     return payload;
   };
 
   const updateVessel = async (updated) => {
-    setVessels(prev => prev.map(v => v.id === updated.id ? updated : v));
-    const res = await apiCall(`/vessels/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (res) setVessels(prev => prev.map(v => v.id === updated.id ? res : v));
+    const targetId = updated.id || updated._id;
+    const cleanUpdated = {
+      ...updated,
+      id: targetId,
+      totalQty: Number(updated.totalQty) || 0,
+      availableQty: Number(updated.availableQty) || 0,
+      inUseQty: Number(updated.inUseQty) || 0,
+      damagedQty: Number(updated.damagedQty) || 0,
+      valuePerUnit: Number(updated.valuePerUnit) || 0
+    };
+    setVessels(prev => {
+      const next = prev.map(v => ((v.id && v.id === targetId) || (v._id && v._id === targetId)) ? { ...v, ...cleanUpdated } : v);
+      try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    const res = await apiCall(`/vessels/${targetId}`, { method: 'PUT', body: JSON.stringify(cleanUpdated) });
+    if (res) {
+      setVessels(prev => {
+        const next = prev.map(v => ((v.id && v.id === targetId) || (v._id && v._id === targetId)) ? { ...v, ...res, id: targetId } : v);
+        try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
   };
 
   const deleteVessel = async (id) => {
-    setVessels(prev => prev.filter(v => v.id !== id));
+    setVessels(prev => {
+      const next = prev.filter(v => v.id !== id && v._id !== id);
+      try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
     await apiCall(`/vessels/${id}`, { method: 'DELETE' });
   };
 

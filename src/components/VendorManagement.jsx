@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, generateSupplierPO, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import { initialVendorCategories } from '../utils/mockData';
@@ -51,7 +51,7 @@ const VendorManagement = () => {
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [materialForm, setMaterialForm] = useState({
-    name: '', category: 'Grocery', unit: 'kg', costPerUnit: 0
+    name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0
   });
 
   // Supplier form modal
@@ -94,13 +94,45 @@ const VendorManagement = () => {
   };
 
   // === MATERIALS FUNCTIONS ===
+  const allMaterialCategories = useMemo(() => {
+    const base = [
+      'Grocery',
+      'Dairy',
+      'Veg/Fruit',
+      'Vegetables',
+      'Fuel',
+      'Spices & Condiments',
+      'Ghee & Oils',
+      'Dry Fruits',
+      'Provisions',
+      'Bakery',
+      'Sweets & Snacks',
+      'Beverages',
+      'Disposable Items'
+    ];
+    const set = new Set(base);
+    if (Array.isArray(vendorCategoriesList)) {
+      vendorCategoriesList.forEach(vc => {
+        if (vc && vc.name) set.add(vc.name);
+      });
+    }
+    if (Array.isArray(rawMaterials)) {
+      rawMaterials.forEach(rm => {
+        if (rm && rm.category) set.add(rm.category);
+      });
+    }
+    return Array.from(set).sort();
+  }, [vendorCategoriesList, rawMaterials]);
+
+  const materialCategories = useMemo(() => ['All', ...allMaterialCategories], [allMaterialCategories]);
+
   const filteredMaterials = rawMaterials.filter(m => {
-    const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = activeCatFilter === 'All' || m.category === activeCatFilter;
+    if (!m) return false;
+    const term = (searchTerm || '').trim().toLowerCase();
+    const matchesSearch = !term || (m.name || '').toLowerCase().includes(term);
+    const matchesCat = activeCatFilter === 'All' || (m.category || '').toLowerCase() === activeCatFilter.toLowerCase();
     return matchesSearch && matchesCat;
   });
-
-  const materialCategories = ['All', 'Grocery', 'Dairy', 'Veg/Fruit', 'Fuel', 'Spices & Condiments', 'Ghee & Oils', 'Dry Fruits'];
 
   const handlePriceEdit = (materialId, currentPrice) => {
     setEditingPriceId(materialId);
@@ -113,7 +145,8 @@ const VendorManagement = () => {
       alert('Please enter a valid price');
       return;
     }
-    updateRawMaterial({ ...material, costPerUnit: newPrice });
+    const matId = material.id || material._id;
+    updateRawMaterial({ ...material, id: matId, costPerUnit: newPrice });
     setEditingPriceId(null);
     setEditingPriceValue('');
   };
@@ -126,26 +159,43 @@ const VendorManagement = () => {
   const openMaterialForm = (material = null) => {
     if (material) {
       setEditingMaterial(material);
+      const isKnown = allMaterialCategories.includes(material.category);
       setMaterialForm({
-        name: material.name, category: material.category, unit: material.unit, costPerUnit: material.costPerUnit
+        name: material.name || '',
+        category: isKnown ? (material.category || 'Grocery') : '__custom__',
+        customCategory: isKnown ? '' : (material.category || ''),
+        unit: material.unit || 'kg',
+        costPerUnit: material.costPerUnit || 0
       });
     } else {
       setEditingMaterial(null);
-      setMaterialForm({ name: '', category: 'Grocery', unit: 'kg', costPerUnit: 0 });
+      setMaterialForm({ name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0 });
     }
     setIsMaterialModalOpen(true);
   };
 
   const handleMaterialSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...materialForm, costPerUnit: Number(materialForm.costPerUnit) };
+    const finalCategory = materialForm.category === '__custom__'
+      ? (materialForm.customCategory || '').trim() || 'General'
+      : materialForm.category;
+
+    const payload = {
+      name: (materialForm.name || '').trim(),
+      category: finalCategory,
+      unit: (materialForm.unit || '').trim(),
+      costPerUnit: Number(materialForm.costPerUnit) || 0
+    };
+
     if (editingMaterial) {
-      updateRawMaterial({ ...payload, id: editingMaterial.id });
+      const targetId = editingMaterial.id || editingMaterial._id;
+      updateRawMaterial({ ...editingMaterial, ...payload, id: targetId });
     } else {
       addRawMaterial(payload);
     }
     setIsMaterialModalOpen(false);
     setEditingMaterial(null);
+    setMaterialForm({ name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0 });
   };
 
   // === SUPPLIER FUNCTIONS ===
@@ -536,59 +586,62 @@ const VendorManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMaterials.map(m => (
-                  <tr key={m.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {m.id}</div>
-                    </td>
-                    <td><span className="badge badge-info">{m.category}</span></td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{m.unit}</td>
-                    <td>
-                      {editingPriceId === m.id ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={editingPriceValue}
-                            onChange={(e) => setEditingPriceValue(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handlePriceSave(m); if (e.key === 'Escape') handlePriceCancel(); }}
-                            autoFocus
-                            style={{ width: '80px', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--color-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
-                          />
-                          <button onClick={() => handlePriceSave(m)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-success)', display: 'flex' }}>
-                            <Check size={16} />
-                          </button>
-                          <button onClick={handlePriceCancel} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', display: 'flex' }}>
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          style={{ fontWeight: 600, cursor: isOps ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                          onClick={() => isOps && handlePriceEdit(m.id, m.costPerUnit)}
-                          title={isOps ? 'Click to edit price' : ''}
-                        >
-                          {formatCurrency(m.costPerUnit)} / {m.unit}
-                          {isOps && <Edit2 size={12} style={{ opacity: 0.4 }} />}
-                        </div>
-                      )}
-                    </td>
-                    {isOps && (
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                          <button className="btn btn-secondary btn-small" onClick={() => openMaterialForm(m)} title="Edit Material">
-                            <Edit2 size={14} />
-                          </button>
-                          <button className="btn btn-secondary btn-small" onClick={() => deleteRawMaterial(m.id)} style={{ color: 'var(--color-danger)' }} title="Delete Material">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                {filteredMaterials.map(m => {
+                  const matId = m.id || m._id;
+                  return (
+                    <tr key={matId}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {matId}</div>
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td><span className="badge badge-info">{m.category}</span></td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{m.unit}</td>
+                      <td>
+                        {editingPriceId === matId ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editingPriceValue}
+                              onChange={(e) => setEditingPriceValue(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handlePriceSave(m); if (e.key === 'Escape') handlePriceCancel(); }}
+                              autoFocus
+                              style={{ width: '80px', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--color-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                            />
+                            <button onClick={() => handlePriceSave(m)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-success)', display: 'flex' }}>
+                              <Check size={16} />
+                            </button>
+                            <button onClick={handlePriceCancel} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', display: 'flex' }}>
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            style={{ fontWeight: 600, cursor: isOps ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                            onClick={() => isOps && handlePriceEdit(matId, m.costPerUnit)}
+                            title={isOps ? 'Click to edit price' : ''}
+                          >
+                            {formatCurrency(m.costPerUnit)} / {m.unit}
+                            {isOps && <Edit2 size={12} style={{ opacity: 0.4 }} />}
+                          </div>
+                        )}
+                      </td>
+                      {isOps && (
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                            <button className="btn btn-secondary btn-small" onClick={() => openMaterialForm(m)} title="Edit Material">
+                              <Edit2 size={14} />
+                            </button>
+                            <button className="btn btn-secondary btn-small" onClick={() => deleteRawMaterial(matId)} style={{ color: 'var(--color-danger)' }} title="Delete Material">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
                 {filteredMaterials.length === 0 && (
                   <tr>
                     <td colSpan={isOps ? "5" : "4"} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
@@ -919,15 +972,15 @@ const VendorManagement = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
-                  <select value={materialForm.category} onChange={(e) => setMaterialForm({ ...materialForm, category: e.target.value })}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                    <option value="Grocery">Grocery</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Veg/Fruit">Veg/Fruit</option>
-                    <option value="Fuel">Fuel</option>
-                    <option value="Spices & Condiments">Spices & Condiments</option>
-                    <option value="Ghee & Oils">Ghee & Oils</option>
-                    <option value="Dry Fruits">Dry Fruits</option>
+                  <select
+                    value={materialForm.category}
+                    onChange={(e) => setMaterialForm({ ...materialForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  >
+                    {allMaterialCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="__custom__">+ Add Custom Category...</option>
                   </select>
                 </div>
                 <div>
@@ -936,13 +989,28 @@ const VendorManagement = () => {
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
                 </div>
               </div>
+
+              {materialForm.category === '__custom__' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Custom Category Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Organic Produce"
+                    value={materialForm.customCategory}
+                    onChange={(e) => setMaterialForm({ ...materialForm, customCategory: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              )}
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Cost / Unit ({companyProfile?.currency || '₹'})</label>
                 <input type="number" min="0" step="0.01" required value={materialForm.costPerUnit} onChange={(e) => setMaterialForm({ ...materialForm, costPerUnit: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsMaterialModalOpen(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setIsMaterialModalOpen(false); setEditingMaterial(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editingMaterial ? 'Update Material' : 'Save Material'}</button>
               </div>
             </form>

@@ -1,7 +1,58 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload } from 'lucide-react';
+import { Package, Utensils, Plus, Search, Edit2, Trash2, MapPin, Sparkles, FileText, Download, Printer, X, Truck, ShieldCheck, Check, Camera, Image, Upload, AlertCircle } from 'lucide-react';
 import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
+
+/**
+ * Compresses an image file client-side via HTML5 canvas.
+ * Scales down high-res photos to <= 1200px and exports optimized JPEG (quality 0.85).
+ * Shrinks 2-10MB phone camera shots to 40-100KB, preventing localStorage quota breaches and 413s.
+ */
+const compressImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) => {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('No file provided'));
+    const reader = new FileReader();
+    reader.onerror = (err) => reject(err);
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onerror = () => reject(new Error('Failed to parse image for compression'));
+      img.onload = () => {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target.result);
+          return;
+        }
+
+        // Fill background with white for transparent images when converting to JPEG
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Convert to web-friendly JPEG data URL
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
 
 const StorageInventory = () => {
   const { vessels, addVessel, updateVessel, deleteVessel, companyProfile, events = [], rawMaterials = [] } = useContext(AppContext);
@@ -10,6 +61,8 @@ const StorageInventory = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [photoPreviewItem, setPhotoPreviewItem] = useState(null);
+  const [imgError, setImgError] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const photoFileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
   const [form, setForm] = useState({ name: '', category: 'Cooking Vessel', totalQty: 10, availableQty: 10, inUseQty: 0, damagedQty: 0, location: 'Main Store A', valuePerUnit: 1000, photo: '' });
@@ -141,35 +194,56 @@ const StorageInventory = () => {
     return matchesSearch && matchesCat;
   });
 
-  const handlePhotoUpload = (e, targetItem = null) => {
+  const currentPreviewItem = useMemo(() => {
+    if (!photoPreviewItem) return null;
+    const targetId = photoPreviewItem.id || photoPreviewItem._id;
+    return vessels.find(v => (v.id && v.id === targetId) || (v._id && v._id === targetId)) || photoPreviewItem;
+  }, [photoPreviewItem, vessels]);
+
+  const handlePhotoUpload = async (e, targetItem = null) => {
     const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
     if (!file) return;
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const isImageFile = allowedMimes.includes(file.type.toLowerCase()) || /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!isImageFile) {
       alert('Supported formats: JPG, PNG, and WEBP only.');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Photo file size must not exceed 2MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Photo file size must not exceed 10MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
+
+    try {
+      setIsCompressing(true);
+      const dataUrl = await compressImage(file);
+      setIsCompressing(false);
+
       if (targetItem) {
-        updateVessel({ ...targetItem, photo: dataUrl });
-        setPhotoPreviewItem(prev => prev ? { ...prev, photo: dataUrl } : null);
+        const targetId = targetItem.id || targetItem._id;
+        const updated = { ...targetItem, id: targetId, photo: dataUrl };
+        updateVessel(updated);
+        setPhotoPreviewItem(updated);
+        setImgError(false);
       } else {
         setForm(prev => ({ ...prev, photo: dataUrl }));
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setIsCompressing(false);
+      console.error('Photo upload compression error:', err);
+      alert('Failed to process image. Please try another photo.');
+    }
   };
 
   const handleRemovePhoto = (targetItem = null) => {
     if (targetItem) {
-      updateVessel({ ...targetItem, photo: '' });
-      setPhotoPreviewItem(prev => prev ? { ...prev, photo: '' } : null);
+      const targetId = targetItem.id || targetItem._id;
+      const updated = { ...targetItem, id: targetId, photo: '' };
+      updateVessel(updated);
+      setPhotoPreviewItem(updated);
+      setImgError(false);
     } else {
       setForm(prev => ({ ...prev, photo: '' }));
     }
@@ -187,7 +261,7 @@ const StorageInventory = () => {
       valuePerUnit: Number(form.valuePerUnit)
     };
     if (editingItem) {
-      updateVessel({ ...payload, id: editingItem.id });
+      updateVessel({ ...payload, id: editingItem.id || editingItem._id });
     } else {
       addVessel(payload);
     }
@@ -293,25 +367,41 @@ const StorageInventory = () => {
             </thead>
             <tbody>
               {filtered.map(v => (
-                <tr key={v.id}>
+                <tr key={v.id || v._id}>
                   <td style={{ width: '50px', textAlign: 'center' }}>
                     {v.photo ? (
                       <img
                         src={v.photo}
                         alt={v.name}
-                        onClick={() => setPhotoPreviewItem(v)}
+                        onClick={() => { setImgError(false); setPhotoPreviewItem(v); }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fb = e.currentTarget.nextElementSibling;
+                          if (fb) fb.style.display = 'flex';
+                        }}
                         style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', cursor: 'pointer', border: '1px solid var(--border-color)', display: 'block', margin: '0 auto' }}
                         title="Click to view / manage photo"
                       />
-                    ) : (
-                      <div
-                        onClick={() => openEdit(v)}
-                        style={{ width: '38px', height: '38px', borderRadius: '6px', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', margin: '0 auto', cursor: 'pointer' }}
-                        title="Click to add photo"
-                      >
-                        <Camera size={16} />
-                      </div>
-                    )}
+                    ) : null}
+                    <div
+                      onClick={() => { setImgError(false); setPhotoPreviewItem(v); }}
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '6px',
+                        background: 'rgba(0,0,0,0.04)',
+                        display: v.photo ? 'none' : 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text-secondary)',
+                        border: '1px solid var(--border-color)',
+                        margin: '0 auto',
+                        cursor: 'pointer'
+                      }}
+                      title={v.photo ? "Photo error - click to manage" : "Click to add photo"}
+                    >
+                      <Camera size={16} />
+                    </div>
                   </td>
                   <td><div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.name}</div><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {v.id}</div></td>
                   <td><span className="badge badge-info">{v.category}</span></td>
@@ -391,7 +481,7 @@ const StorageInventory = () => {
               {/* Photo Upload Section */}
               <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  Item Photo (JPG, PNG, WEBP — Max 2MB)
+                  Item Photo (JPG, PNG, WEBP — Max 10MB)
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   {form.photo ? (
@@ -408,7 +498,11 @@ const StorageInventory = () => {
                     </div>
                   ) : (
                     <div style={{ width: '70px', height: '70px', borderRadius: '8px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                      <Camera size={24} />
+                      {isCompressing ? (
+                        <div style={{ width: '20px', height: '20px', border: '2px solid rgba(0,0,0,0.2)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                      ) : (
+                        <Camera size={24} />
+                      )}
                     </div>
                   )}
 
@@ -418,9 +512,13 @@ const StorageInventory = () => {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={e => handlePhotoUpload(e)}
+                      disabled={isCompressing}
                       style={{ fontSize: '0.82rem' }}
                     />
-                    {form.photo && (
+                    {isCompressing && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }}>Optimizing image...</span>
+                    )}
+                    {form.photo && !isCompressing && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-small"
@@ -580,7 +678,7 @@ const StorageInventory = () => {
 
       {/* Modal 3: Item Photo Preview & Management Modal */}
       {photoPreviewItem && (
-        <div className="modal-overlay" onClick={() => setPhotoPreviewItem(null)}>
+        <div className="modal-overlay" onClick={() => { setPhotoPreviewItem(null); setImgError(false); }}>
           <div
             className="glass-card modal-card"
             style={{ maxWidth: '520px', width: '92%', padding: '1.5rem', textAlign: 'center' }}
@@ -588,25 +686,48 @@ const StorageInventory = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.6rem' }}>
               <div style={{ textAlign: 'left' }}>
-                <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{photoPreviewItem.name}</h2>
-                <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{photoPreviewItem.category}</span>
+                <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{currentPreviewItem?.name}</h2>
+                <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{currentPreviewItem?.category}</span>
               </div>
               <button
                 type="button"
-                onClick={() => setPhotoPreviewItem(null)}
+                onClick={() => { setPhotoPreviewItem(null); setImgError(false); }}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ margin: '1rem 0', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', maxHeight: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)' }}>
-              {photoPreviewItem.photo ? (
+            <div style={{ margin: '1rem 0', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', minHeight: '220px', maxHeight: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)', position: 'relative' }}>
+              {isCompressing ? (
+                <div style={{ padding: '3rem 1.5rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ width: '32px', height: '32px', border: '3px solid rgba(0,0,0,0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.75rem auto' }}></div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Optimizing & uploading photo...</div>
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Compressing for fast loading</div>
+                </div>
+              ) : currentPreviewItem?.photo && !imgError ? (
                 <img
-                  src={photoPreviewItem.photo}
-                  alt={photoPreviewItem.name}
-                  style={{ width: '100%', maxHeight: '380px', objectFit: 'contain' }}
+                  src={currentPreviewItem.photo}
+                  alt={currentPreviewItem.name}
+                  onError={() => setImgError(true)}
+                  style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', display: 'block' }}
                 />
+              ) : imgError ? (
+                <div style={{ padding: '2rem 1.5rem', color: 'var(--text-secondary)' }}>
+                  <AlertCircle size={44} style={{ color: 'var(--color-danger, #ef4444)', margin: '0 auto 0.6rem auto', display: 'block' }} />
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>Unable to display photo</div>
+                  <div style={{ fontSize: '0.82rem', marginBottom: '1rem', maxWidth: '340px', margin: '0 auto 1rem auto' }}>
+                    The photo data may have been corrupted or improperly encoded. Please replace it with a fresh image.
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => photoFileInputRef.current?.click()}
+                    style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+                  >
+                    <Upload size={14} /> Upload Fresh Photo
+                  </button>
+                </div>
               ) : (
                 <div style={{ padding: '3rem', color: 'var(--text-secondary)' }}>
                   <Package size={48} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
@@ -621,22 +742,24 @@ const StorageInventory = () => {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 style={{ display: 'none' }}
-                onChange={e => handlePhotoUpload(e, photoPreviewItem)}
+                onChange={e => handlePhotoUpload(e, currentPreviewItem)}
               />
               <button
                 type="button"
                 className="btn btn-secondary"
+                disabled={isCompressing}
                 onClick={() => photoFileInputRef.current?.click()}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
               >
-                <Upload size={14} /> Replace Photo
+                <Upload size={14} /> {currentPreviewItem?.photo ? 'Replace Photo' : 'Upload Photo'}
               </button>
 
-              {photoPreviewItem.photo && (
+              {currentPreviewItem?.photo && (
                 <button
                   type="button"
                   className="btn btn-danger btn-small"
-                  onClick={() => handleRemovePhoto(photoPreviewItem)}
+                  disabled={isCompressing}
+                  onClick={() => handleRemovePhoto(currentPreviewItem)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}
                 >
                   <Trash2 size={14} /> Remove Photo
@@ -646,7 +769,7 @@ const StorageInventory = () => {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setPhotoPreviewItem(null)}
+                onClick={() => { setPhotoPreviewItem(null); setImgError(false); }}
                 style={{ fontSize: '0.82rem', padding: '0.4rem 1rem' }}
               >
                 Done
