@@ -385,49 +385,62 @@ const QuotationBilling = () => {
 
   // Determine Bargain Feasibility Status
   let bargainStatus = {
-    badge: 'ACCEPT DEAL',
-    badgeClass: 'badge-success',
-    color: '#000000',
-    bgColor: 'rgba(0,0,0,0.08)',
+    badge: 'NO EVENT',
+    badgeClass: 'badge-secondary',
+    color: 'var(--text-secondary)',
+    bgColor: 'rgba(0,0,0,0.04)',
     borderColor: 'rgba(0,0,0,0.08)',
-    icon: CheckCircle2,
-    title: 'Highly Profitable Deal — Safe to Accept!',
-    description: `At ${formatCurrency(bargainedPrice)}/plate, you make ${formatCurrency(bargainedProfit)} net profit (${bargainedMarginPercent.toFixed(1)}% margin).`
+    icon: AlertCircle,
+    title: 'No Event Selected',
+    description: 'Select or create a booking to evaluate pricing and profit margins.'
   };
 
-  if (bargainedProfit < 0) {
-    bargainStatus = {
-      badge: 'REJECT DEAL (NET LOSS)',
-      badgeClass: 'badge-danger',
-      color: '#9C1519',
-      bgColor: 'rgba(156, 21, 25, 0.12)',
-      borderColor: 'rgba(156, 21, 25, 0.4)',
-      icon: XCircle,
-      title: 'REJECT DEAL — You Will Lose Money!',
-      description: `Accepting ${formatCurrency(bargainedPrice)}/plate results in a NET LOSS of ${formatCurrency(Math.abs(bargainedProfit))}. Absolute minimum zero-profit floor price is ${formatCurrency(floorPricePerPlate)}/plate.`
-    };
-  } else if (bargainedMarginPercent < 10) {
-    bargainStatus = {
-      badge: 'HIGH RISK (MINIMAL PROFIT)',
-      badgeClass: 'badge-warning',
-      color: '#B88E4C',
-      bgColor: 'rgba(210, 172, 103, 0.15)',
-      borderColor: 'rgba(210, 172, 103, 0.4)',
-      icon: AlertTriangle,
-      title: 'High Risk Deal — Minimal Margin',
-      description: `At ${formatCurrency(bargainedPrice)}/plate, your profit is only ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Any ingredient over-consumption will turn this into a loss!`
-    };
-  } else if (bargainedMarginPercent < 20) {
-    bargainStatus = {
-      badge: 'ACCEPT WITH CAUTION',
-      badgeClass: 'badge-warning',
-      color: '#D2AC67',
-      bgColor: 'rgba(210, 172, 103, 0.1)',
-      borderColor: 'rgba(210, 172, 103, 0.3)',
-      icon: AlertCircle,
-      title: 'Tight Profit Margin',
-      description: `At ${formatCurrency(bargainedPrice)}/plate, you earn ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Acceptable, but keep tight control on food portioning.`
-    };
+  if (currentEvent) {
+    if (bargainedProfit < 0) {
+      bargainStatus = {
+        badge: 'REJECT DEAL (NET LOSS)',
+        badgeClass: 'badge-danger',
+        color: '#9C1519',
+        bgColor: 'rgba(156, 21, 25, 0.12)',
+        borderColor: 'rgba(156, 21, 25, 0.4)',
+        icon: XCircle,
+        title: 'REJECT DEAL — You Will Lose Money!',
+        description: `Accepting ${formatCurrency(bargainedPrice)}/plate results in a NET LOSS of ${formatCurrency(Math.abs(bargainedProfit))}. Absolute minimum zero-profit floor price is ${formatCurrency(floorPricePerPlate)}/plate.`
+      };
+    } else if (bargainedMarginPercent < 10) {
+      bargainStatus = {
+        badge: 'HIGH RISK (MINIMAL PROFIT)',
+        badgeClass: 'badge-warning',
+        color: '#B88E4C',
+        bgColor: 'rgba(210, 172, 103, 0.15)',
+        borderColor: 'rgba(210, 172, 103, 0.4)',
+        icon: AlertTriangle,
+        title: 'High Risk Deal — Minimal Margin',
+        description: `At ${formatCurrency(bargainedPrice)}/plate, your profit is only ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Any ingredient over-consumption will turn this into a loss!`
+      };
+    } else if (bargainedMarginPercent < 20) {
+      bargainStatus = {
+        badge: 'ACCEPT WITH CAUTION',
+        badgeClass: 'badge-warning',
+        color: '#D2AC67',
+        bgColor: 'rgba(210, 172, 103, 0.1)',
+        borderColor: 'rgba(210, 172, 103, 0.3)',
+        icon: AlertCircle,
+        title: 'Tight Profit Margin',
+        description: `At ${formatCurrency(bargainedPrice)}/plate, you earn ${formatCurrency(bargainedProfit)} (${bargainedMarginPercent.toFixed(1)}% margin). Acceptable, but keep tight control on food portioning.`
+      };
+    } else {
+      bargainStatus = {
+        badge: 'ACCEPT DEAL',
+        badgeClass: 'badge-success',
+        color: '#000000',
+        bgColor: 'rgba(0,0,0,0.08)',
+        borderColor: 'rgba(0,0,0,0.08)',
+        icon: CheckCircle2,
+        title: 'Highly Profitable Deal — Safe to Accept!',
+        description: `At ${formatCurrency(bargainedPrice)}/plate, you make ${formatCurrency(bargainedProfit)} net profit (${bargainedMarginPercent.toFixed(1)}% margin).`
+      };
+    }
   }
 
   const handlePreviewInvoice = async () => {

@@ -14,25 +14,40 @@ import {
   initialLabourAttendance,
   initialMenuCategories,
   initialVendorCategories,
-  initialLabourCategories
+  initialLabourCategories,
+  isDemoRecordId
 } from '../utils/mockData';
 import { DEFAULT_RBAC_MATRIX, checkPermission, MODULES, ACCESS_LEVELS } from '../utils/rbacMatrix';
 
 export const AppContext = createContext();
+
+// Operational collection storage keys where demo records must NOT be loaded as production data
+const OPERATIONAL_COLLECTION_KEYS = new Set([
+  'cater_events',
+  'cater_venues',
+  'cater_suppliers',
+  'cater_vessels',
+  'cater_provisions',
+  'cater_vegetables',
+  'cater_labour_workers',
+  'cater_labour_attendance',
+  'cater_agencies'
+]);
 
 const getSafeLocal = (key, fallback) => {
   try {
     const local = localStorage.getItem(key);
     if (!local) return fallback;
     const parsed = JSON.parse(local);
-    if (Array.isArray(fallback)) {
-      if (!Array.isArray(parsed) || parsed.length === 0) return fallback;
+    if (Array.isArray(parsed)) {
+      // In production runtime, operational collections must never serve legacy demo records
+      if (OPERATIONAL_COLLECTION_KEYS.has(key)) {
+        const clean = parsed.filter(item => !isDemoRecordId(item?.id || item?._id));
+        return clean;
+      }
+      if (parsed.length === 0) return fallback;
       // Auto-migrate if old legacy mock dishes or events are cached in browser
       if (key === 'cater_dishes' && parsed.some(d => d.id === 'd1' || d.id === 'd2')) {
-        localStorage.setItem(key, JSON.stringify(fallback));
-        return fallback;
-      }
-      if (key === 'cater_events' && parsed.some(e => e.id === 'e1' || e.id === 'e2')) {
         localStorage.setItem(key, JSON.stringify(fallback));
         return fallback;
       }
@@ -250,21 +265,25 @@ export const AppProvider = ({ children }) => {
   };
   
   // Database states driven by MongoDB with resilient local caching
-  const [venues, setVenues] = useState(() => getSafeLocal('cater_venues', initialVenues));
-  const [rawMaterials, setRawMaterials] = useState(() => getSafeLocal('cater_raw_materials', initialRawMaterials));
-  const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
-  const [suppliers, setSuppliers] = useState(() => getSafeLocal('cater_suppliers', initialSuppliers));
-  const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
-  const [agencies, setAgencies] = useState(() => getSafeLocal('cater_agencies', initialAgencies));
+  // Operational user records (initialize cleanly as empty [] or from user's real cached records)
+  const [venues, setVenues] = useState(() => getSafeLocal('cater_venues', []));
+  const [suppliers, setSuppliers] = useState(() => getSafeLocal('cater_suppliers', []));
+  const [agencies, setAgencies] = useState(() => getSafeLocal('cater_agencies', []));
   const [events, setEvents] = useState(() => {
-    const list = getSafeLocal('cater_events', initialEvents);
+    const list = getSafeLocal('cater_events', []);
     return list.map(e => e.eventType === 'Micro Home Event' ? { ...e, eventType: 'Micro Event' } : e);
   });
-  const [vessels, setVessels] = useState(() => getSafeLocal('cater_vessels', initialVessels));
-  const [provisions, setProvisions] = useState(() => getSafeLocal('cater_provisions', initialProvisions));
-  const [vegetables, setVegetables] = useState(() => getSafeLocal('cater_vegetables', initialVegetables));
-  const [labourWorkers, setLabourWorkers] = useState(() => getSafeLocal('cater_labour_workers', initialLabourWorkers));
-  const [labourAttendance, setLabourAttendance] = useState(() => getSafeLocal('cater_labour_attendance', initialLabourAttendance));
+  const [vessels, setVessels] = useState(() => getSafeLocal('cater_vessels', []));
+  const [provisions, setProvisions] = useState(() => getSafeLocal('cater_provisions', []));
+  const [vegetables, setVegetables] = useState(() => getSafeLocal('cater_vegetables', []));
+  const [labourWorkers, setLabourWorkers] = useState(() => getSafeLocal('cater_labour_workers', []));
+  const [labourAttendance, setLabourAttendance] = useState(() => getSafeLocal('cater_labour_attendance', []));
+  const [historicalEvents, setHistoricalEvents] = useState(() => getSafeLocal('cater_historical_events', []));
+
+  // Required Master Reference Data (catalog definitions, categories, baseline formulas)
+  const [rawMaterials, setRawMaterials] = useState(() => getSafeLocal('cater_raw_materials', initialRawMaterials));
+  const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
+  const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
   const [menuCategories, setMenuCategories] = useState(() => getSafeLocal('cater_menu_categories', initialMenuCategories));
   const [vendorCategories, setVendorCategories] = useState(() => getSafeLocal('cater_vendor_categories', initialVendorCategories));
   const [labourCategories, setLabourCategories] = useState(() => getSafeLocal('cater_labour_categories', initialLabourCategories));
@@ -300,7 +319,7 @@ export const AppProvider = ({ children }) => {
         return await apiCall(path);
       };
 
-      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList, laList, mcList, vcList, lcList] = await Promise.all([
+      const [vList, rmList, dList, sList, lrList, aList, evList, pDoc, uList, vesList, prvList, vegList, lwList, laList, mcList, vcList, lcList, histList] = await Promise.all([
         fetchEndpoint('/venues'),
         fetchEndpoint('/raw-materials'),
         fetchEndpoint('/dishes'),
@@ -317,7 +336,8 @@ export const AppProvider = ({ children }) => {
         fetchEndpoint('/labour-attendance'),
         fetchEndpoint('/menu-categories'),
         fetchEndpoint('/vendor-categories'),
-        fetchEndpoint('/labour-categories')
+        fetchEndpoint('/labour-categories'),
+        fetchEndpoint('/historical-events')
       ]);
 
       const isServerReachable = statusRes?.status === 'online' || Array.isArray(vList) || Array.isArray(dList);
@@ -327,24 +347,30 @@ export const AppProvider = ({ children }) => {
         return;
       }
 
-      if (Array.isArray(vList)) setVenues(vList);
-      if (Array.isArray(rmList)) {
-        setRawMaterials(prevRm => {
-          const serverIds = new Set(rmList.map(r => r.id || r._id));
-          const localOnly = prevRm.filter(r => r && (r.id || r._id) && !serverIds.has(r.id || r._id));
-          if (localOnly.length === 0) return rmList;
-          localOnly.forEach(localRm => {
-            apiCall('/raw-materials', { method: 'POST', body: JSON.stringify(localRm) }).catch(() => {});
+      if (Array.isArray(vList)) {
+        setVenues(prevVenues => {
+          const serverIds = new Set(vList.map(v => v.id || v._id));
+          const localOnly = (prevVenues || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id) && !isDemoRecordId(v.id || v._id));
+          if (localOnly.length === 0) return vList;
+          localOnly.forEach(localV => {
+            apiCall('/venues', { method: 'POST', body: JSON.stringify(localV) }).catch(() => {});
           });
-          return [...rmList, ...localOnly];
+          return [...vList, ...localOnly];
         });
       }
-      if (Array.isArray(dList)) setDishes(dList);
-      if (Array.isArray(lrList)) setLaborRates(lrList);
+      if (Array.isArray(rmList) && rmList.length > 0) {
+        setRawMaterials(rmList);
+      }
+      if (Array.isArray(dList) && dList.length > 0) {
+        setDishes(dList);
+      }
+      if (Array.isArray(lrList) && lrList.length > 0) {
+        setLaborRates(lrList);
+      }
       if (Array.isArray(sList)) {
         setSuppliers(prevSuppliers => {
-          const serverIds = new Set(sList.map(s => s.id));
-          const localOnly = prevSuppliers.filter(s => s && s.id && !serverIds.has(s.id));
+          const serverIds = new Set(sList.map(s => s.id || s._id));
+          const localOnly = (prevSuppliers || []).filter(s => s && (s.id || s._id) && !serverIds.has(s.id || s._id) && !isDemoRecordId(s.id || s._id));
           if (localOnly.length === 0) return sList;
           localOnly.forEach(localSup => {
             apiCall('/suppliers', { method: 'POST', body: JSON.stringify(localSup) }).catch(() => {});
@@ -352,17 +378,28 @@ export const AppProvider = ({ children }) => {
           return [...sList, ...localOnly];
         });
       }
-      if (Array.isArray(aList)) setAgencies(aList);
+      if (Array.isArray(aList)) {
+        setAgencies(prevAgencies => {
+          const serverIds = new Set(aList.map(a => a.id || a._id));
+          const localOnly = (prevAgencies || []).filter(a => a && (a.id || a._id) && !serverIds.has(a.id || a._id) && !isDemoRecordId(a.id || a._id));
+          if (localOnly.length === 0) return aList;
+          localOnly.forEach(localAg => {
+            apiCall('/agencies', { method: 'POST', body: JSON.stringify(localAg) }).catch(() => {});
+          });
+          return [...aList, ...localOnly];
+        });
+      }
       if (Array.isArray(evList)) {
         setEvents(prevEvents => {
-          const serverIds = new Set(evList.map(e => e.id));
-          const localOnly = prevEvents.filter(e => e && e.id && !serverIds.has(e.id));
+          const serverIds = new Set(evList.map(e => e.id || e._id));
+          // Filter out legacy demo mock events; only preserve genuinely user-created offline bookings
+          const localOnly = (prevEvents || []).filter(e => e && (e.id || e._id) && !serverIds.has(e.id || e._id) && !isDemoRecordId(e.id || e._id));
 
           if (localOnly.length === 0) {
             return evList;
           }
 
-          // Re-sync local events to server in background
+          // Re-sync authentic user events created while offline to server in background
           localOnly.forEach(localEv => {
             apiCall('/events', { method: 'POST', body: JSON.stringify(localEv) }).catch(() => {});
           });
@@ -384,7 +421,7 @@ export const AppProvider = ({ children }) => {
             };
           });
           const serverIds = new Set(vesList.map(v => v.id || v._id));
-          const localOnly = (prevVes || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id));
+          const localOnly = (prevVes || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id) && !isDemoRecordId(v.id || v._id));
           const next = [...mergedServer, ...localOnly];
           try { localStorage.setItem('cater_vessels', JSON.stringify(next)); } catch (e) {}
           return next;
@@ -402,7 +439,7 @@ export const AppProvider = ({ children }) => {
             };
           });
           const serverIds = new Set(prvList.map(p => p.id || p._id));
-          const localOnly = (prevPrv || []).filter(p => p && (p.id || p._id) && !serverIds.has(p.id || p._id));
+          const localOnly = (prevPrv || []).filter(p => p && (p.id || p._id) && !serverIds.has(p.id || p._id) && !isDemoRecordId(p.id || p._id));
           const next = [...mergedServer, ...localOnly];
           try { localStorage.setItem('cater_provisions', JSON.stringify(next)); } catch (e) {}
           return next;
@@ -411,7 +448,7 @@ export const AppProvider = ({ children }) => {
       if (Array.isArray(vegList)) {
         setVegetables(prevVeg => {
           const serverIds = new Set(vegList.map(v => v.id || v._id));
-          const localOnly = prevVeg.filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id));
+          const localOnly = (prevVeg || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id) && !isDemoRecordId(v.id || v._id));
           if (localOnly.length === 0) return vegList;
           localOnly.forEach(localVeg => {
             apiCall('/vegetables', { method: 'POST', body: JSON.stringify(localVeg) }).catch(() => {});
@@ -419,8 +456,29 @@ export const AppProvider = ({ children }) => {
           return [...vegList, ...localOnly];
         });
       }
-      if (Array.isArray(lwList)) setLabourWorkers(lwList);
-      if (Array.isArray(laList)) setLabourAttendance(laList);
+      if (Array.isArray(lwList)) {
+        setLabourWorkers(prevLw => {
+          const serverIds = new Set(lwList.map(w => w.id || w._id));
+          const localOnly = (prevLw || []).filter(w => w && (w.id || w._id) && !serverIds.has(w.id || w._id) && !isDemoRecordId(w.id || w._id));
+          if (localOnly.length === 0) return lwList;
+          localOnly.forEach(localW => {
+            apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(localW) }).catch(() => {});
+          });
+          return [...lwList, ...localOnly];
+        });
+      }
+      if (Array.isArray(laList)) {
+        setLabourAttendance(prevLa => {
+          const serverIds = new Set(laList.map(a => a.id || a._id));
+          const localOnly = (prevLa || []).filter(a => a && (a.id || a._id) && !serverIds.has(a.id || a._id) && !isDemoRecordId(a.id || a._id));
+          if (localOnly.length === 0) return laList;
+          return [...laList, ...localOnly];
+        });
+      }
+      if (Array.isArray(histList)) {
+        setHistoricalEvents(histList);
+        try { localStorage.setItem('cater_historical_events', JSON.stringify(histList)); } catch (e) {}
+      }
       if (Array.isArray(mcList) && mcList.length > 0) setMenuCategories(mcList);
       if (Array.isArray(vcList) && vcList.length > 0) setVendorCategories(vcList);
       if (Array.isArray(lcList) && lcList.length > 0) setLabourCategories(lcList);
@@ -453,78 +511,84 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cater_users', JSON.stringify(users));
   }, [users]);
 
-  // Sync to localStorage (Fallback local cache)
+  // Sync to localStorage (Fallback local cache - filters out demo fixtures)
   useEffect(() => {
-    if (venues && venues.length > 0) {
-      try { localStorage.setItem('cater_venues', JSON.stringify(venues)); } catch (e) {}
+    if (Array.isArray(venues)) {
+      try { localStorage.setItem('cater_venues', JSON.stringify(venues.filter(v => !isDemoRecordId(v?.id || v?._id)))); } catch (e) {}
     }
   }, [venues]);
 
   useEffect(() => {
-    if (rawMaterials && rawMaterials.length > 0) {
+    if (Array.isArray(rawMaterials) && rawMaterials.length > 0) {
       try { localStorage.setItem('cater_raw_materials', JSON.stringify(rawMaterials)); } catch (e) {}
     }
   }, [rawMaterials]);
 
   useEffect(() => {
-    if (dishes && dishes.length > 0) {
+    if (Array.isArray(dishes) && dishes.length > 0) {
       try { localStorage.setItem('cater_dishes', JSON.stringify(dishes)); } catch (e) {}
     }
   }, [dishes]);
 
   useEffect(() => {
-    if (suppliers && suppliers.length > 0) {
-      try { localStorage.setItem('cater_suppliers', JSON.stringify(suppliers)); } catch (e) {}
+    if (Array.isArray(suppliers)) {
+      try { localStorage.setItem('cater_suppliers', JSON.stringify(suppliers.filter(s => !isDemoRecordId(s?.id || s?._id)))); } catch (e) {}
     }
   }, [suppliers]);
 
   useEffect(() => {
-    if (laborRates && laborRates.length > 0) {
+    if (Array.isArray(laborRates) && laborRates.length > 0) {
       try { localStorage.setItem('cater_labor_rates', JSON.stringify(laborRates)); } catch (e) {}
     }
   }, [laborRates]);
 
   useEffect(() => {
-    if (agencies && agencies.length > 0) {
-      try { localStorage.setItem('cater_agencies', JSON.stringify(agencies)); } catch (e) {}
+    if (Array.isArray(agencies)) {
+      try { localStorage.setItem('cater_agencies', JSON.stringify(agencies.filter(a => !isDemoRecordId(a?.id || a?._id)))); } catch (e) {}
     }
   }, [agencies]);
 
   useEffect(() => {
-    if (vessels && vessels.length > 0) {
-      try { localStorage.setItem('cater_vessels', JSON.stringify(vessels)); } catch (e) {}
+    if (Array.isArray(vessels)) {
+      try { localStorage.setItem('cater_vessels', JSON.stringify(vessels.filter(v => !isDemoRecordId(v?.id || v?._id)))); } catch (e) {}
     }
   }, [vessels]);
 
   useEffect(() => {
-    if (provisions && provisions.length > 0) {
-      try { localStorage.setItem('cater_provisions', JSON.stringify(provisions)); } catch (e) {}
+    if (Array.isArray(provisions)) {
+      try { localStorage.setItem('cater_provisions', JSON.stringify(provisions.filter(p => !isDemoRecordId(p?.id || p?._id)))); } catch (e) {}
     }
   }, [provisions]);
 
   useEffect(() => {
-    if (vegetables && vegetables.length > 0) {
-      try { localStorage.setItem('cater_vegetables', JSON.stringify(vegetables)); } catch (e) {}
+    if (Array.isArray(vegetables)) {
+      try { localStorage.setItem('cater_vegetables', JSON.stringify(vegetables.filter(v => !isDemoRecordId(v?.id || v?._id)))); } catch (e) {}
     }
   }, [vegetables]);
 
   useEffect(() => {
-    if (labourWorkers && labourWorkers.length > 0) {
-      try { localStorage.setItem('cater_labour_workers', JSON.stringify(labourWorkers)); } catch (e) {}
+    if (Array.isArray(labourWorkers)) {
+      try { localStorage.setItem('cater_labour_workers', JSON.stringify(labourWorkers.filter(w => !isDemoRecordId(w?.id || w?._id)))); } catch (e) {}
     }
   }, [labourWorkers]);
 
   useEffect(() => {
-    if (labourAttendance && labourAttendance.length > 0) {
-      try { localStorage.setItem('cater_labour_attendance', JSON.stringify(labourAttendance)); } catch (e) {}
+    if (Array.isArray(labourAttendance)) {
+      try { localStorage.setItem('cater_labour_attendance', JSON.stringify(labourAttendance.filter(a => !isDemoRecordId(a?.id || a?._id)))); } catch (e) {}
     }
   }, [labourAttendance]);
 
   useEffect(() => {
-    if (events && events.length > 0) {
-      try { localStorage.setItem('cater_events', JSON.stringify(events)); } catch (e) {}
+    if (Array.isArray(events)) {
+      try { localStorage.setItem('cater_events', JSON.stringify(events.filter(e => !isDemoRecordId(e?.id || e?._id)))); } catch (e) {}
     }
   }, [events]);
+
+  useEffect(() => {
+    if (Array.isArray(historicalEvents)) {
+      try { localStorage.setItem('cater_historical_events', JSON.stringify(historicalEvents)); } catch (e) {}
+    }
+  }, [historicalEvents]);
 
   useEffect(() => {
     localStorage.setItem('cater_menu_categories', JSON.stringify(menuCategories));
@@ -1335,23 +1399,57 @@ export const AppProvider = ({ children }) => {
   };
 
   const resetMasterDatabase = async () => {
-    localStorage.setItem('cater_dishes', JSON.stringify(initialDishes));
-    localStorage.setItem('cater_events', JSON.stringify(initialEvents));
-    localStorage.setItem('cater_labour_attendance', JSON.stringify(initialLabourAttendance));
     localStorage.setItem('cater_menu_categories', JSON.stringify(initialMenuCategories));
     localStorage.setItem('cater_vendor_categories', JSON.stringify(initialVendorCategories));
     localStorage.setItem('cater_labour_categories', JSON.stringify(initialLabourCategories));
-    setDishes(initialDishes);
-    setEvents(initialEvents);
-    setLabourAttendance(initialLabourAttendance);
+    localStorage.setItem('cater_raw_materials', JSON.stringify(initialRawMaterials));
+    localStorage.setItem('cater_labor_rates', JSON.stringify(initialLaborRates));
+    // If dishes has live dishes (such as 1,075 dishes from MongoDB), preserve them!
+    if (!dishes || dishes.length === 0) {
+      localStorage.setItem('cater_dishes', JSON.stringify(initialDishes));
+      setDishes(initialDishes);
+    }
     setMenuCategories(initialMenuCategories);
     setVendorCategories(initialVendorCategories);
     setLabourCategories(initialLabourCategories);
+    setRawMaterials(initialRawMaterials);
+    setLaborRates(initialLaborRates);
     try {
       await apiCall('/seed', { method: 'POST' });
-      await apiCall('/api/seed', { method: 'POST' });
     } catch (e) {
-      console.warn('Backend seed offline, local state updated');
+      console.warn('Backend seed offline, local master reference state updated');
+    }
+  };
+
+  const loadHistoricalEvents = async () => {
+    try {
+      const data = await apiCall('/historical-events');
+      if (Array.isArray(data)) {
+        setHistoricalEvents(data);
+        try { localStorage.setItem('cater_historical_events', JSON.stringify(data)); } catch (e) {}
+        return data;
+      }
+    } catch (e) {
+      console.warn('Failed to load historical events:', e);
+    }
+    return historicalEvents;
+  };
+
+  const addHistoricalEvent = async (newEvent) => {
+    const id = newEvent.id || newEvent._id || `hist_${Date.now()}`;
+    const record = { ...newEvent, id, _id: id };
+    setHistoricalEvents(prev => {
+      const updated = [record, ...(prev || []).filter(e => (e.id || e._id) !== id)];
+      try { localStorage.setItem('cater_historical_events', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+    try {
+      await apiCall('/historical-events', {
+        method: 'POST',
+        body: JSON.stringify(record)
+      });
+    } catch (e) {
+      console.warn('Backend historical-events save error:', e);
     }
   };
 
@@ -1437,6 +1535,10 @@ export const AppProvider = ({ children }) => {
       companyProfile,
       setCompanyProfile: updateCompanyProfile,
       formatCurrency: (amt) => `${companyProfile?.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`,
+      apiCall,
+      historicalEvents,
+      loadHistoricalEvents,
+      addHistoricalEvent,
       rbacMatrix,
       updateRolePermission,
       hasPermission,

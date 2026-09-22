@@ -47,6 +47,7 @@ const AppContent = () => {
   // Splash screen fade-out state
   const [showSplash, setShowSplash] = useState(syncStatus !== 'connected');
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [splashDismissed, setSplashDismissed] = useState(false);
 
   useEffect(() => {
     if (syncStatus === 'connected') {
@@ -58,11 +59,11 @@ const AppContent = () => {
         }, 700);
         return () => clearTimeout(timer);
       }
-    } else {
+    } else if (!splashDismissed) {
       setShowSplash(true);
       setIsFadingOut(false);
     }
-  }, [syncStatus]);
+  }, [syncStatus, splashDismissed]);
 
   const navigationItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
@@ -137,7 +138,7 @@ const AppContent = () => {
   };
 
   // 1. Render "Server Connecting to Cloud" screen immediately when website opens, until MongoDB connects
-  if (showSplash) {
+  if (showSplash && !splashDismissed) {
     return (
       <div className={isFadingOut ? 'fade-out-screen' : ''} style={{
         position: 'fixed',
@@ -209,30 +210,49 @@ const AppContent = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {isFadingOut ? 'MongoDB Connected! Entering App...' : 'Server Connecting to Cloud...'}
+              {isFadingOut
+                ? 'MongoDB Connected! Entering App...'
+                : (syncStatus === 'offline' ? 'Server Offline' : 'Server Connecting to Cloud...')}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '420px' }}>
-              {isFadingOut ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...' : 'Establishing secure live connection. Please wait while database initializes...'}
+              {isFadingOut
+                ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...'
+                : (syncStatus === 'offline'
+                  ? 'Cloud database is currently unreachable. You can retry connecting or proceed in offline mode with cached data.'
+                  : 'Establishing secure live connection. Please wait while database initializes...')}
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+              <button
+                className="btn btn-primary"
+                onClick={triggerManualSync}
+                disabled={isFadingOut}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.85rem' }}
+              >
+                <RefreshCw size={18} className={syncStatus === 'syncing' ? 'spin' : ''} />
+                Retry Connection Now
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={logout}
+                disabled={isFadingOut}
+                style={{ padding: '0.85rem 1.25rem', color: 'var(--color-primary)' }}
+              >
+                Logout
+              </button>
+            </div>
             <button
-              className="btn btn-primary"
-              onClick={triggerManualSync}
-              disabled={isFadingOut}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.85rem' }}
-            >
-              <RefreshCw size={18} className={syncStatus === 'syncing' ? 'spin' : ''} />
-              Retry Connection Now
-            </button>
-            <button
+              type="button"
               className="btn btn-secondary"
-              onClick={logout}
-              disabled={isFadingOut}
-              style={{ padding: '0.85rem 1.25rem', color: 'var(--color-primary)' }}
+              onClick={() => {
+                setSplashDismissed(true);
+                setShowSplash(false);
+              }}
+              style={{ width: '100%', padding: '0.65rem', fontSize: '0.85rem' }}
             >
-              Logout
+              Continue Offline (Local Cache)
             </button>
           </div>
         </div>

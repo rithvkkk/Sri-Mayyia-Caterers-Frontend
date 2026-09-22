@@ -1,3 +1,21 @@
+// ─────────────────── DEMO / SAMPLE FIXTURE IDENTIFIERS ───────────────────
+// These identifiers denote sample seed fixtures used for test suites and sandbox demos.
+// In production runtime, real user data is retrieved from MongoDB and demo records are isolated.
+export const DEMO_RECORD_IDS = new Set([
+  'EV-2026-001', 'EV-2026-002', 'EV-2026-003', 'EV-2026-09-12',
+  'v1', 'v2', 'v3', 'v4',
+  's1', 's2', 's3', 's4', 's5', 's6',
+  'a1', 'a2',
+  'ves_1', 'ves_2', 'ves_3', 'ves_4', 'ves_5', 'ves_6', 'ves_7',
+  'prv_1', 'prv_2', 'prv_3', 'prv_4', 'prv_5', 'prv_6',
+  'veg_1', 'veg_2', 'veg_3', 'veg_4', 'veg_5', 'veg_6',
+  'lw_1', 'lw_2', 'lw_3', 'lw_4', 'lw_5', 'lw_6', 'lw_7', 'lw_8', 'lw_9',
+  'att_1', 'att_2', 'att_3', 'att_4', 'att_5', 'att_6', 'att_7'
+]);
+
+export const isDemoRecordId = (id) => Boolean(id && DEMO_RECORD_IDS.has(id));
+
+// ─────────────────── DEMO TEST FIXTURES (For Tests & Seed Endpoint) ───────────────────
 export const initialVenues = [
   { id: 'v1', name: 'Royal Grand Ballroom', capacity: 500, price: 150000, address: 'S.G. Highway, Ahmedabad', venueCode: 'VN-RGB-01', contactPerson: 'Mr. Arvind Saxena', contactNumber: '+91 98250 11223', email: 'royalballroom@venues.com', type: 'Grand Ballroom', notes: 'Pillar-less banquet with centralized AC', active: true, assignedSalesPerson: '' },
   { id: 'v2', name: 'Lakeside Pavilion', capacity: 300, price: 120000, address: 'Kankaria Lake, Ahmedabad', venueCode: 'VN-LKP-02', contactPerson: 'Sanjay Rawal', contactNumber: '+91 98250 33445', email: 'lakeside@venues.com', type: 'Open Air Pavilion', notes: 'Lake view stage setup with lawn', active: true, assignedSalesPerson: 'sales' },

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
   initialHistoricalEvents,
@@ -28,14 +28,27 @@ const HistoricalLearning = () => {
     dishes,
     rawMaterials,
     companyProfile,
-    updateEvent
+    updateEvent,
+    apiCall,
+    historicalEvents,
+    loadHistoricalEvents,
+    addHistoricalEvent
   } = useContext(AppContext);
 
   // States
   const [historicalList, setHistoricalList] = useState(() => {
+    if (historicalEvents && historicalEvents.length > 0) return historicalEvents;
     const saved = localStorage.getItem('cater_historical_events');
     return saved ? JSON.parse(saved) : initialHistoricalEvents;
   });
+
+  useEffect(() => {
+    if (historicalEvents && historicalEvents.length > 0) {
+      setHistoricalList(historicalEvents);
+    } else if (loadHistoricalEvents) {
+      loadHistoricalEvents();
+    }
+  }, [historicalEvents]);
 
   const [recipeVersions, setRecipeVersions] = useState(initialRecipeVersions);
   const [historicalPrices, setHistoricalPrices] = useState(initialHistoricalPrices);
@@ -196,12 +209,19 @@ const HistoricalLearning = () => {
 
     setIsIngesting(true);
     try {
-      // 1. Post batch to backend API
-      await fetch('/api/historical-events/ingest-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(records)
-      }).catch(() => null);
+      // 1. Post batch to backend API using centralized apiCall
+      if (apiCall) {
+        await apiCall('/historical-events/ingest-batch', {
+          method: 'POST',
+          body: JSON.stringify(records)
+        }).catch(() => null);
+      } else {
+        await fetch('/api/historical-events/ingest-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(records)
+        }).catch(() => null);
+      }
 
       // 2. Update local state
       const existingIds = new Set(historicalList.map(h => h.id));
@@ -440,32 +460,47 @@ const HistoricalLearning = () => {
 
     setIsAiLoading(true);
     try {
-      const res = await fetch('/api/ai/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: q,
-          context: {
-            pax: aiPax,
-            serviceStyle: aiServiceStyle,
-            season: aiSeason,
-            eventType: aiEventType,
-            dietaryProtocol: aiDietaryProtocol
-          }
-        })
-      });
+      let data = null;
+      if (apiCall) {
+        data = await apiCall('/ai/query', {
+          method: 'POST',
+          body: JSON.stringify({
+            query: q,
+            context: {
+              pax: aiPax,
+              serviceStyle: aiServiceStyle,
+              season: aiSeason,
+              eventType: aiEventType,
+              dietaryProtocol: aiDietaryProtocol
+            }
+          })
+        });
+      } else {
+        const res = await fetch('/api/ai/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: q,
+            context: {
+              pax: aiPax,
+              serviceStyle: aiServiceStyle,
+              season: aiSeason,
+              eventType: aiEventType,
+              dietaryProtocol: aiDietaryProtocol
+            }
+          })
+        });
+        if (res.ok) data = await res.json();
+      }
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && data.summary) {
-          setAiCopilotResponse({
-            title: data.title || 'AI Catering Intelligence',
-            summary: data.summary,
-            source: data.source || 'AI Model'
-          });
-          setIsAiLoading(false);
-          return;
-        }
+      if (data && data.success && data.summary) {
+        setAiCopilotResponse({
+          title: data.title || 'AI Catering Intelligence',
+          summary: data.summary,
+          source: data.source || 'AI Model'
+        });
+        setIsAiLoading(false);
+        return;
       }
     } catch (e) {
       // Offline fallback
