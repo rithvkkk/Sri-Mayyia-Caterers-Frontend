@@ -5,10 +5,11 @@ import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdf
 
 /**
  * Compresses an image file client-side via HTML5 canvas.
- * Scales down large photos to <= 1000px and exports optimized JPEG (quality 0.8).
- * Falls back safely to raw data URL if canvas is unsupported or decode fails.
+ * - If a photo is above 5MB, automatically compresses and scales it down to <= 5MB.
+ * - Targets high-definition (<= 2048px) with adaptive quality reduction.
+ * - Falls back safely to raw data URL if canvas is unsupported or decode fails.
  */
-const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) => {
+const compressImage = (file, maxWidth = 2048, maxHeight = 2048, quality = 0.88, maxOutputBytes = 4.8 * 1024 * 1024) => {
   return new Promise((resolve, reject) => {
     if (!file) return reject(new Error('No file provided'));
     const reader = new FileReader();
@@ -26,7 +27,7 @@ const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) =
       const img = new window.Image();
       const timeout = setTimeout(() => {
         resolve(rawDataUrl);
-      }, 5000);
+      }, 10000);
 
       img.onload = () => {
         clearTimeout(timeout);
@@ -65,7 +66,32 @@ const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) =
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-          const compressed = canvas.toDataURL('image/jpeg', quality);
+          let currentQuality = quality;
+          let compressed = canvas.toDataURL('image/jpeg', currentQuality);
+
+          // Calculate approximate byte size from base64 string
+          const getByteSize = (dataUri) => {
+            const base64Str = dataUri.split(',')[1] || dataUri;
+            return Math.round((base64Str.length * 3) / 4);
+          };
+
+          // Automatically compress in a loop if photo exceeds 5MB
+          let attempts = 0;
+          while (getByteSize(compressed) > maxOutputBytes && attempts < 5) {
+            attempts++;
+            currentQuality = Math.max(0.45, currentQuality - 0.12);
+            if (attempts >= 2) {
+              newWidth = Math.round(newWidth * 0.82);
+              newHeight = Math.round(newHeight * 0.82);
+              canvas.width = Math.max(1, newWidth);
+              canvas.height = Math.max(1, newHeight);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            }
+            compressed = canvas.toDataURL('image/jpeg', currentQuality);
+          }
+
           if (!compressed || compressed === 'data:,' || compressed.length < 200) {
             return resolve(rawDataUrl);
           }
@@ -238,14 +264,21 @@ const StorageInventory = () => {
       alert('Supported formats: JPG, PNG, and WEBP only.');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Photo file size must not exceed 10MB.');
+    // Safety limit for ridiculously large raw files (> 60MB)
+    if (file.size > 60 * 1024 * 1024) {
+      alert('Photo file size exceeds 60MB safety limit. Please choose a photo under 60MB.');
       return;
     }
 
     try {
       setIsCompressing(true);
-      setUploadStatus('Optimizing image...');
+      const isAbove5Mb = file.size > 5 * 1024 * 1024;
+      if (isAbove5Mb) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        setUploadStatus(`Photo is ${sizeMb}MB: Auto-compressing to under 5MB...`);
+      } else {
+        setUploadStatus('Optimizing image...');
+      }
       const dataUrl = await compressImage(file);
 
       setUploadStatus('Uploading to AWS S3 Cloud...');
@@ -569,6 +602,7 @@ const StorageInventory = () => {
                       disabled={isCompressing}
                       style={{ fontSize: '0.82rem' }}
                     />
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>JPG, PNG, WEBP (Photos &gt;5MB compressed automatically)</span>
                     {isCompressing && (
                       <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }}>{uploadStatus || 'Optimizing image...'}</span>
                     )}
