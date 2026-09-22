@@ -8,10 +8,15 @@ import {
   calculateLearnedEstimate
 } from '../utils/historicalDataEngine';
 import {
+  predictEventCatering,
+  queryCateringAiCopilot
+} from '../utils/aiCalculationModel';
+import {
   Brain, Sparkles, TrendingUp, History, CheckCircle2, AlertTriangle,
   FileCheck, Layers, GitBranch, Search, Filter, ShieldCheck, Award,
   ArrowRight, RefreshCw, BarChart2, IndianRupee, Users, Droplets,
-  Calendar, Check, Info, HelpCircle, Save, Upload, FileUp, Database, Download
+  Calendar, Check, Info, HelpCircle, Save, Upload, FileUp, Database, Download,
+  Sliders, MessageSquare, Send, Cpu, Zap, ShoppingCart, Truck, Utensils
 } from 'lucide-react';
 
 const HistoricalLearning = () => {
@@ -33,7 +38,20 @@ const HistoricalLearning = () => {
 
   // Selected Target Event for Live Matching Sandbox
   const [targetEventId, setTargetEventId] = useState(events[0]?.id || '');
-  const [activeTab, setActiveTab] = useState('matching'); // matching | recipes | prices | postEvent | analytics
+  const [activeTab, setActiveTab] = useState('aiCalculator'); // aiCalculator | matching | recipes | prices | postEvent | ingest
+
+  // AI Scenario Simulator & Calculation Model State
+  const [aiPax, setAiPax] = useState(250);
+  const [aiServiceStyle, setAiServiceStyle] = useState('Multi-Station Live Buffet');
+  const [aiSeason, setAiSeason] = useState('Summer Peak');
+  const [aiEventType, setAiEventType] = useState('Wedding Reception');
+  const [aiDietaryProtocol, setAiDietaryProtocol] = useState('Standard Pure Vegetarian');
+  const [aiApplySuccess, setAiApplySuccess] = useState(false);
+
+  // AI Copilot Interactive Query State
+  const [aiUserQuery, setAiUserQuery] = useState('');
+  const [aiCopilotResponse, setAiCopilotResponse] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Post-Event Actuals Form State
   const [postEventForm, setPostEventForm] = useState({
@@ -250,6 +268,107 @@ const HistoricalLearning = () => {
     setTimeout(() => setReconcileSuccess(false), 4000);
   };
 
+  // Live Dynamic AI Calculation from Machine Learning Model
+  const aiCalculation = predictEventCatering({
+    pax: aiPax,
+    serviceStyle: aiServiceStyle,
+    season: aiSeason,
+    eventType: aiEventType,
+    dietaryProtocol: aiDietaryProtocol
+  }, historicalList);
+
+  // Apply AI Predictions to Target Event in ERP
+  const handleApplyAiToEvent = () => {
+    const targetEv = events.find(e => e.id === targetEventId);
+    if (!targetEv) {
+      alert('Please select an active target event first.');
+      return;
+    }
+
+    const updated = {
+      ...targetEv,
+      guestCount: aiPax,
+      execution: {
+        ...(targetEv.execution || {}),
+        costs: {
+          ...(targetEv.execution?.costs || {}),
+          rawMaterialsCost: aiCalculation.financials.totalFoodCost,
+          laborCost: aiCalculation.financials.totalLaborCost,
+          totalExecutionCost: aiCalculation.financials.totalCost
+        }
+      },
+      transport: {
+        ...(targetEv.transport || {}),
+        totalTransportCost: aiCalculation.financials.totalTransportCost
+      },
+      billing: {
+        ...(targetEv.billing || {}),
+        aiEstimatedRevenue: aiCalculation.financials.projectedRevenue,
+        suggestedQuotePerPax: aiCalculation.financials.suggestedSellingPricePerPax
+      },
+      aiModelApplied: {
+        timestamp: new Date().toISOString(),
+        pax: aiPax,
+        serviceStyle: aiServiceStyle,
+        suggestedQuote: aiCalculation.financials.suggestedSellingPricePerPax,
+        predictedMargin: aiCalculation.financials.projectedMarginPercent
+      }
+    };
+
+    updateEvent(updated);
+    setAiApplySuccess(true);
+    setTimeout(() => setAiApplySuccess(false), 4000);
+  };
+
+  // AI Copilot Query Handler (Hybrid: Backend API with Gemini + Local Engine)
+  const handleCopilotQuery = async (queryText) => {
+    const q = (queryText !== undefined ? queryText : aiUserQuery).trim();
+    if (!q) return;
+
+    setIsAiLoading(true);
+    try {
+      const res = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: q,
+          context: {
+            pax: aiPax,
+            serviceStyle: aiServiceStyle,
+            season: aiSeason,
+            eventType: aiEventType,
+            dietaryProtocol: aiDietaryProtocol
+          }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.summary) {
+          setAiCopilotResponse({
+            title: data.title || 'AI Catering Intelligence',
+            summary: data.summary,
+            source: data.source || 'AI Model'
+          });
+          setIsAiLoading(false);
+          return;
+        }
+      }
+    } catch (e) {
+      // Offline fallback
+    }
+
+    const localAnswer = queryCateringAiCopilot(q, {
+      pax: aiPax,
+      serviceStyle: aiServiceStyle,
+      season: aiSeason,
+      eventType: aiEventType,
+      dietaryProtocol: aiDietaryProtocol
+    });
+    setAiCopilotResponse(localAnswer);
+    setIsAiLoading(false);
+  };
+
   const currentTargetEvent = events.find(e => e.id === targetEventId) || events[0];
   const matchedEvents = findHistoricalMatches(currentTargetEvent, historicalList);
 
@@ -348,6 +467,27 @@ const HistoricalLearning = () => {
       {/* Navigation Sub-Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <button
+          className={`btn ${activeTab === 'aiCalculator' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('aiCalculator')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            fontSize: '0.85rem',
+            background: activeTab === 'aiCalculator' ? 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)' : undefined,
+            color: activeTab === 'aiCalculator' ? '#ffffff' : undefined,
+            fontWeight: 700,
+            boxShadow: activeTab === 'aiCalculator' ? '0 4px 12px rgba(99, 102, 241, 0.35)' : undefined
+          }}
+        >
+          <Cpu size={16} />
+          <span>AI Predictive Calculator</span>
+          <span style={{ fontSize: '0.62rem', background: activeTab === 'aiCalculator' ? 'rgba(255,255,255,0.25)' : 'rgba(99, 102, 241, 0.15)', color: activeTab === 'aiCalculator' ? '#fff' : '#6366f1', padding: '0.1rem 0.45rem', borderRadius: '10px', textTransform: 'uppercase', fontWeight: 800 }}>
+            Model
+          </span>
+        </button>
+
+        <button
           className={`btn ${activeTab === 'matching' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('matching')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
@@ -392,6 +532,473 @@ const HistoricalLearning = () => {
           <span>Legacy Data Ingestion & Seeder</span>
         </button>
       </div>
+
+      {/* TAB 0: AI PREDICTIVE CALCULATOR & SCENARIO SIMULATOR */}
+      {activeTab === 'aiCalculator' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* AI Banner Card */}
+          <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%)', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                  <div style={{ padding: '0.35rem', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)', color: '#fff' }}>
+                    <Cpu size={18} />
+                  </div>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#000000' }}>
+                    AI Predictive Catering Calculation Engine (v2.0)
+                  </h3>
+                </div>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '780px' }}>
+                  Trained on historical event actuals and commercial catering economics. Adjust parameters below to simulate any event and receive instant, machine-learned predictions for ingredient quantities, costs, staffing curves, and profit margins.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99, 102, 241, 0.12)', padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, color: '#4f46e5' }}>
+                <Zap size={14} />
+                <span>Live ML Engine Active • 0ms Latency</span>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Scenario Simulator Parameters Card */}
+          <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sliders size={18} style={{ color: 'var(--color-primary)' }} />
+                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Event Scenario Parameters</h4>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Target Guest Scale: <strong style={{ color: 'var(--color-primary)', fontSize: '1.05rem' }}>{aiPax} Pax</strong>
+              </div>
+            </div>
+
+            {/* Slider & Presets */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Guest Count (Pax):
+                </label>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {[50, 100, 250, 500, 800, 1500].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAiPax(preset)}
+                      className={`btn btn-small ${aiPax === preset ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
+                    >
+                      {preset} Pax
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <input
+                  type="range"
+                  min="25"
+                  max="2500"
+                  step="25"
+                  value={aiPax}
+                  onChange={e => setAiPax(parseInt(e.target.value, 10) || 100)}
+                  style={{ flex: 1, accentColor: 'var(--color-primary)' }}
+                />
+                <input
+                  type="number"
+                  min="25"
+                  max="2500"
+                  value={aiPax}
+                  onChange={e => setAiPax(Math.max(25, parseInt(e.target.value, 10) || 25))}
+                  className="form-control"
+                  style={{ width: '90px', textAlign: 'center', fontWeight: 700, fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
+
+            {/* Selectors Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
+                  Service Style:
+                </label>
+                <select
+                  className="form-select"
+                  value={aiServiceStyle}
+                  onChange={e => setAiServiceStyle(e.target.value)}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  <option value="Plantain Leaf Seated">Plantain Leaf Seated (Traditional Pankthi)</option>
+                  <option value="Multi-Station Live Buffet">Multi-Station Live Buffet</option>
+                  <option value="Dual Parallel Buffet Track">Dual Parallel Buffet Track</option>
+                  <option value="High Tea / Refreshments">High Tea / Refreshments</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
+                  Operating Season:
+                </label>
+                <select
+                  className="form-select"
+                  value={aiSeason}
+                  onChange={e => setAiSeason(e.target.value)}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  <option value="Summer Peak">Summer Peak (+35% Hydration Spike)</option>
+                  <option value="Winter Peak">Winter Peak (+20% Hot Beverages & Rasam)</option>
+                  <option value="Monsoon">Monsoon (Moisture Buffer Required)</option>
+                  <option value="Q1 Wedding Season">Q1 Wedding Season (Standard)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
+                  Dietary Protocol:
+                </label>
+                <select
+                  className="form-select"
+                  value={aiDietaryProtocol}
+                  onChange={e => setAiDietaryProtocol(e.target.value)}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  <option value="Sattvic Brahmin (No Onion No Garlic)">Sattvic Brahmin (No Onion No Garlic)</option>
+                  <option value="Standard Pure Vegetarian">Standard Pure Vegetarian</option>
+                  <option value="Karnataka Traditional">Karnataka Traditional Feast</option>
+                  <option value="North-South Gourmet Fusion">North-South Gourmet Fusion</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
+                  Event Occasion:
+                </label>
+                <select
+                  className="form-select"
+                  value={aiEventType}
+                  onChange={e => setAiEventType(e.target.value)}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  <option value="Wedding Reception">Wedding Reception</option>
+                  <option value="Traditional Brahmin Wedding">Traditional Brahmin Wedding</option>
+                  <option value="House Warming / Gruhapravesha">House Warming / Gruhapravesha</option>
+                  <option value="Wedding Sangeeth">Wedding Sangeeth</option>
+                  <option value="Corporate Banquet">Corporate Banquet</option>
+                  <option value="Engagement">Engagement Ceremony</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Calculated Results Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            
+            {/* Panel 1: Raw Material & Provisioning Forecast */}
+            <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #6366f1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.95rem' }}>
+                  <ShoppingCart size={17} style={{ color: '#6366f1' }} />
+                  <span>Raw Material & Provisioning Forecast</span>
+                </div>
+                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>AI Estimated</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Cooked Rice Required</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>{aiCalculation.materials.cookedRiceKg} kg</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Raw: {aiCalculation.materials.rawRiceKg} kg (1:2.5 yield)</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Sambar & Rasam</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>{aiCalculation.materials.sambarLiters}L / {aiCalculation.materials.rasamLiters}L</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Sambar / Rasam liquid output</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Sweets & Payasam</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>{aiCalculation.materials.sweetsUnits} pcs</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Payasam: {aiCalculation.materials.payasamLiters} Liters</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Paneer & Dairy</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>{aiCalculation.materials.paneerKg} kg</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Pure Ghee/Oil: {aiCalculation.materials.oilGheeLiters}L</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Water Bottles (300ml)</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0284c7' }}>{aiCalculation.materials.waterBottles} units</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>~{Math.ceil(aiCalculation.materials.waterBottles / 24)} crates (24/crate)</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Plates / Plantain Leaves</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>{aiCalculation.materials.plantainLeavesOrPlates} units</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Includes 12% multi-round buffer</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel 2: Commercial & Financial Forecast */}
+            <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.95rem' }}>
+                  <IndianRupee size={17} style={{ color: '#10b981' }} />
+                  <span>Commercial & Financial Projections</span>
+                </div>
+                <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Target 42% Margin</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Predicted Food Cost</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>₹ {aiCalculation.financials.totalFoodCost.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>₹ {aiCalculation.financials.learnedFoodCostPerPax} / Pax</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Labor & Staffing Cost</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>₹ {aiCalculation.financials.totalLaborCost.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>₹ {aiCalculation.financials.laborCostPerPax} / Pax</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Total Production Cost</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-danger)' }}>₹ {aiCalculation.financials.totalCost.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Cost: ₹ {aiCalculation.financials.costPerPax} / Pax</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600 }}>Suggested Client Quote</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#047857' }}>₹ {aiCalculation.financials.suggestedSellingPricePerPax} <span style={{ fontSize: '0.75rem' }}>/ Pax</span></div>
+                  <div style={{ fontSize: '0.68rem', color: '#047857' }}>Revenue: ₹ {aiCalculation.financials.projectedRevenue.toLocaleString('en-IN')}</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Projected Net Profit</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#047857' }}>₹ {aiCalculation.financials.projectedProfit.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 600 }}>Yield: {aiCalculation.financials.projectedMarginPercent}% Margin</div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Predicted Kitchen Wastage</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#000' }}>{aiCalculation.financials.predictedWastagePercent}%</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Industry baseline: 8.5%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel 3: Staffing Workforce Distribution */}
+            <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.95rem' }}>
+                  <Users size={17} style={{ color: '#f59e0b' }} />
+                  <span>Staffing & Workforce Allocation</span>
+                </div>
+                <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Total: {aiCalculation.staffing.totalCrew} Staff</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Table Stewards / Dining Crew</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{aiCalculation.staffing.tableStewards} crew</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Liquid Servers (Water/Rasam/Coffee)</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{aiCalculation.staffing.liquidServers} servers</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Live Counter Chefs / Dosa Masters</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{aiCalculation.staffing.liveChefs} chefs</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Clearing, Scullery & Utility Crew</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{aiCalculation.staffing.clearingCrew} crew</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.75rem', background: 'rgba(255,255,255,0.6)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Floor Supervisors & Head Captain</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{aiCalculation.staffing.supervisors} lead</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel 4: AI Analytical Observations & Risk Flags */}
+            <div className="glass-card" style={{ padding: '1.25rem', borderLeft: '4px solid #ec4899' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.95rem' }}>
+                  <Sparkles size={17} style={{ color: '#ec4899' }} />
+                  <span>AI Analytical Observations & Risk Flags</span>
+                </div>
+                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>Confidence: {aiCalculation.confidence}</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                {aiCalculation.insights.map((insight, idx) => (
+                  <div key={idx} style={{ fontSize: '0.78rem', color: 'var(--text-primary)', padding: '0.45rem 0.65rem', background: 'rgba(255,255,255,0.6)', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                    <CheckCircle2 size={14} style={{ color: '#10b981', flexShrink: 0, marginTop: '2px' }} />
+                    <span>{insight}</span>
+                  </div>
+                ))}
+
+                {aiCalculation.riskFlags.map((risk, idx) => (
+                  <div key={idx} style={{ fontSize: '0.78rem', color: '#92400e', padding: '0.45rem 0.65rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                    <AlertTriangle size={14} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '2px' }} />
+                    <span><strong>{risk.level}:</strong> {risk.message}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+                Fleet Allocation: <strong>{aiCalculation.financials.vehicleCount} vehicle trip(s)</strong> budgeted at ₹ {aiCalculation.financials.totalTransportCost.toLocaleString('en-IN')}.
+              </div>
+            </div>
+
+          </div>
+
+          {/* Apply AI Estimates to Target Event Bar */}
+          <div className="glass-card" style={{ padding: '1.25rem', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <ShieldCheck size={18} style={{ color: '#10b981' }} />
+                  <span>Apply AI Predictive Calculations to Active Event</span>
+                </h4>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Commit these machine-learned food costs, labor estimates, and suggested quote into your selected event booking.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <select
+                  className="form-select"
+                  value={targetEventId}
+                  onChange={e => setTargetEventId(e.target.value)}
+                  style={{ minWidth: '240px', fontSize: '0.85rem' }}
+                >
+                  {events.map(ev => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.id} - {ev.customer?.name} ({ev.guestCount || 100} Pax)
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleApplyAiToEvent}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', fontWeight: 700, padding: '0.45rem 1.1rem' }}
+                >
+                  <Save size={15} /> Apply AI Estimates to Event
+                </button>
+              </div>
+            </div>
+
+            {aiApplySuccess && (
+              <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.9rem', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', borderRadius: '8px', color: '#047857', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Check size={16} />
+                <span>AI predictive estimates (₹ {aiCalculation.financials.totalFoodCost.toLocaleString('en-IN')} Food Cost, {aiCalculation.staffing.totalCrew} Staff) successfully committed to event {targetEventId}!</span>
+              </div>
+            )}
+          </div>
+
+          {/* Interactive AI Catering Copilot Chat */}
+          <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ padding: '0.35rem', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)', color: '#fff' }}>
+                  <MessageSquare size={16} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Interactive Catering AI Copilot</h4>
+                  <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                    Ask any question about catering calculations, ingredient ratios, staffing, or profit margins.
+                  </p>
+                </div>
+              </div>
+              <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>Hybrid AI (Local ML + Gemini Ready)</span>
+            </div>
+
+            {/* Quick Suggestion Chips */}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+              {[
+                `How much rice and paneer for ${aiPax} Pax?`,
+                `Calculate water bottle requirements in ${aiSeason}`,
+                `Optimal staff allocation for ${aiPax} Pax`,
+                `What price should I quote for 42% margin?`
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => { setAiUserQuery(chip); handleCopilotQuery(chip); }}
+                  className="btn btn-secondary btn-small"
+                  style={{ fontSize: '0.74rem', padding: '0.25rem 0.6rem', borderRadius: '15px' }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Query Input Bar */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. How much raw rice and sambar do I need for 350 guests?"
+                value={aiUserQuery}
+                onChange={e => setAiUserQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCopilotQuery(); }}
+                style={{ fontSize: '0.85rem' }}
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={isAiLoading || !aiUserQuery.trim()}
+                onClick={() => handleCopilotQuery()}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, padding: '0.45rem 1.25rem', whiteSpace: 'nowrap' }}
+              >
+                {isAiLoading ? <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={15} />}
+                <span>{isAiLoading ? 'Analyzing...' : 'Ask AI'}</span>
+              </button>
+            </div>
+
+            {/* AI Copilot Answer Display */}
+            {aiCopilotResponse && (
+              <div style={{ marginTop: '1rem', padding: '1rem 1.25rem', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Sparkles size={15} />
+                    <span>{aiCopilotResponse.title || 'AI Catering Intelligence'}</span>
+                  </div>
+                  {aiCopilotResponse.source && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Source: {aiCopilotResponse.source}</span>
+                  )}
+                </div>
+
+                <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
+                  {aiCopilotResponse.summary}
+                </div>
+
+                {Array.isArray(aiCopilotResponse.details) && (
+                  <ul style={{ margin: '0.5rem 0', paddingLeft: '1.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {aiCopilotResponse.details.map((det, i) => (
+                      <li key={i} style={{ marginBottom: '0.2rem' }}>{det}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {aiCopilotResponse.recommendation && (
+                  <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px', fontSize: '0.8rem', color: '#047857' }}>
+                    <strong>AI Recommendation:</strong> {aiCopilotResponse.recommendation}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
 
       {/* TAB 1: HISTORICAL MATCHING & 5-LEVEL TRACEABLE ESTIMATOR */}
       {activeTab === 'matching' && (
