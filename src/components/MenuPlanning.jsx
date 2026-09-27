@@ -400,6 +400,48 @@ const MenuPlanning = () => {
     return true;
   };
 
+// Traditional Indian & Catering Dining Course Order
+const DINING_ORDER = [
+  'SHELL BASED FRESH JUICE',
+  'Welcome Drinks',
+  'Mocktails',
+  'Lassi',
+  'Beverages',
+  'Soups',
+  'Starters',
+  'Appetizers',
+  'Chaats',
+  'South Indian',
+  'North Indian',
+  'Main Course',
+  'Breads & Rotis',
+  'Breads',
+  'Rice & Biryani',
+  'Rice Dishes',
+  'Sambar & Rasam',
+  'Curries & Gravies',
+  'Sides & Poriyal',
+  'Accompaniments',
+  'Salads & Raitha',
+  'Sweets & Desserts',
+  'Desserts',
+  'Ice Creams',
+  'Pan & Beeda',
+  'Others'
+];
+
+const getDiningOrderIndex = (catName) => {
+  if (!catName) return 999;
+  const lower = catName.toLowerCase().trim();
+  for (let i = 0; i < DINING_ORDER.length; i++) {
+    const match = DINING_ORDER[i].toLowerCase();
+    if (lower === match || lower.includes(match)) {
+      return i;
+    }
+  }
+  return 500;
+};
+
   const availableMealCategories = useMemo(() => {
     const defaultMeals = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
     if (!Array.isArray(menuCategories) || menuCategories.length === 0) return defaultMeals;
@@ -407,10 +449,16 @@ const MenuPlanning = () => {
     return Array.from(new Set([...defaultMeals, ...custom]));
   }, [menuCategories]);
 
-  // Available unique categories (100% dynamic from MongoDB dishes)
+  // Available unique categories (Sorted according to dining order)
   const dynamicCategories = useMemo(() => {
     if (!Array.isArray(dishes)) return [];
-    return Array.from(new Set(dishes.map(d => d.category).filter(Boolean)));
+    const unique = Array.from(new Set(dishes.map(d => d.category).filter(Boolean)));
+    return unique.sort((a, b) => {
+      const idxA = getDiningOrderIndex(a);
+      const idxB = getDiningOrderIndex(b);
+      if (idxA !== idxB) return idxA - idxB;
+      return a.localeCompare(b);
+    });
   }, [dishes]);
 
   const displayedCategories = selectedCategoryTab === 'All'
@@ -839,14 +887,16 @@ const MenuPlanning = () => {
 
               {/* Categorized Dishes Rendering */}
               {displayedCategories.map(cat => {
-                const catDishes = dishes.filter(d => {
-                  const matchesCat = (d.category || '').toLowerCase() === cat.toLowerCase();
-                  const matchesMeal = matchesMealCategory(d, selectedMealCategory);
-                  const matchesSearch = !dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase()) || 
-                    (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.toLowerCase())) ||
-                    (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.toLowerCase()));
-                  return matchesCat && matchesMeal && matchesSearch;
-                });
+                const catDishes = dishes
+                  .filter(d => {
+                    const matchesCat = (d.category || '').toLowerCase() === cat.toLowerCase();
+                    const matchesMeal = matchesMealCategory(d, selectedMealCategory);
+                    const matchesSearch = !dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase()) || 
+                      (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.toLowerCase())) ||
+                      (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.toLowerCase()));
+                    return matchesCat && matchesMeal && matchesSearch;
+                  })
+                  .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
                 if (catDishes.length === 0) {
                   if (selectedCategoryTab === cat) {
@@ -878,35 +928,33 @@ const MenuPlanning = () => {
 
                 if (isStartersCat) {
                   STARTER_CUISINES.forEach(c => {
-                    const cDishes = catDishes.filter(d => {
-                      const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
-                      return fc.includes(c.toLowerCase());
-                    });
+                    const cDishes = catDishes
+                      .filter(d => `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase().includes(c.toLowerCase()))
+                      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                     if (cDishes.length > 0) subGroups.push({ title: c, items: cDishes });
                   });
-                  const unmatched = catDishes.filter(d => {
-                    const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
-                    return !STARTER_CUISINES.some(c => fc.includes(c.toLowerCase()));
-                  });
+                  const unmatched = catDishes
+                    .filter(d => !STARTER_CUISINES.some(c => `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase().includes(c.toLowerCase())))
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                   if (unmatched.length > 0) subGroups.push({ title: 'Other Starters', items: unmatched });
                 } else if (isSoupsCat) {
                   SOUP_CUISINES.forEach(c => {
-                    const cDishes = catDishes.filter(d => {
-                      const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
-                      return fc.includes(c.toLowerCase());
-                    });
+                    const cDishes = catDishes
+                      .filter(d => `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase().includes(c.toLowerCase()))
+                      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                     if (cDishes.length > 0) subGroups.push({ title: c, items: cDishes });
                   });
-                  const unmatched = catDishes.filter(d => {
-                    const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
-                    return !SOUP_CUISINES.some(c => fc.includes(c.toLowerCase()));
-                  });
+                  const unmatched = catDishes
+                    .filter(d => !SOUP_CUISINES.some(c => `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase().includes(c.toLowerCase())))
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                   if (unmatched.length > 0) subGroups.push({ title: 'Other Soups', items: unmatched });
                 } else {
-                  const subCategories = Array.from(new Set(catDishes.map(d => d.cuisine || d.subCategory || 'General Items')));
+                  const subCategories = Array.from(new Set(catDishes.map(d => d.cuisine || d.subCategory || 'General Items'))).sort();
                   subGroups = subCategories.map(subCat => ({
                     title: subCat,
-                    items: catDishes.filter(d => (d.cuisine || d.subCategory || 'General Items') === subCat)
+                    items: catDishes
+                      .filter(d => (d.cuisine || d.subCategory || 'General Items') === subCat)
+                      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
                   }));
                 }
 

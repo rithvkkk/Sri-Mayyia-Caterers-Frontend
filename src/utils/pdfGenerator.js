@@ -79,7 +79,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
   const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
 
-  // PAGE 1: OFFICIAL CLEAN PARCHMENT LETTERHEAD BACKGROUND
+  // PAGE 1: OFFICIAL PARCHMENT COVER BACKGROUND
   const page1Bg = menuTemplateAssets.page1Cover || menuTemplateAssets.page2MenuBg;
   if (page1Bg) {
     doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
@@ -102,10 +102,10 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.text(titleText, 166.5, 42.5, { align: 'center' });
 
   // Event Details Registry metadata
-  const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Rithvik S';
-  const evId = ev.id || 'EV-2026-001';
+  const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || '';
+  const evId = ev.id || ev._id || '';
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
-  const evType = ev.eventType || 'Wedding Reception';
+  const evType = ev.eventType || '';
 
   // Soft Glassmorphic Card Container for Client Info (y=49 to y=71)
   doc.setFillColor(253, 248, 237);
@@ -962,22 +962,6 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
     subList = [{}];
   }
 
-  // Fallback dishes
-  const fallbackDishes = [
-    { name: 'TRADITIONAL WELCOME ELANEER PAYASAM', category: 'WELCOME DRINKS' },
-    { name: 'ROYAL MYSORE PAK (PURE GHEE)', category: 'SWEETS' },
-    { name: 'CRISP LIVE MASALA DOSA WITH CHUTNEYS', category: 'CHATS' },
-    { name: 'AUTHENTIC KARNATAKA BISI BELE BATH', category: 'MAIN COURSE' },
-    { name: 'UDUPI TRADITIONAL MIXED VEG SAMBAR', category: 'MAIN COURSE' },
-    { name: 'MYSURU PEPPER RASAM', category: 'MAIN COURSE' },
-    { name: 'BEANS & CARROT PORIYAL / PALYA', category: 'PALYA' },
-    { name: 'MALABAR AVIAL WITH COCONUT OIL', category: 'PALYA' },
-    { name: 'STEAMED PREMIUM SONA MASOORI RICE', category: 'MAIN COURSE' },
-    { name: 'TEMPLE CURD RICE WITH POMEGRANATE TADKA', category: 'FINISHER' },
-    { name: 'CRISPY APPALAM / PAPAD & MANGO PICKLE', category: 'ACCOMPANIMENTS' },
-    { name: 'WATER BOTTLE', category: 'FINISHER' }
-  ];
-
   // Helper to build dishes for a sub-function
   const resolveSubDishes = (sub) => {
     const rawItemIds = Array.isArray(sub?.menuItems) ? sub.menuItems : [];
@@ -997,13 +981,7 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
       });
     }
 
-    if (resolved.length === 0) {
-      resolved = fallbackDishes;
-    }
-
-    // Check if water bottle is present, if not add at end
-    const hasWater = resolved.some(d => (d.name || '').toUpperCase().includes('WATER BOTTLE'));
-    return hasWater ? resolved : [...resolved, { name: 'WATER BOTTLE', category: 'FINISHER' }];
+    return resolved.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   };
 
   // PAGE 1 HEADER
@@ -1281,22 +1259,6 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   doc.addPage();
   doc.addImage(menuTemplateAssets.page3About, 'JPEG', 0, 0, pw, ph);
 
-  // Default authentic 12-course Sri Mayyia banquet menu fallback
-  const fallbackDishes = [
-    { name: 'TRADITIONAL WELCOME ELANEER PAYASAM', category: 'WELCOME DRINKS' },
-    { name: 'ROYAL MYSORE PAK (PURE GHEE)', category: 'SWEETS & DESSERTS' },
-    { name: 'CRISP LIVE MASALA DOSA WITH CHUTNEYS', category: 'CHATS & APPETIZERS' },
-    { name: 'AUTHENTIC KARNATAKA BISI BELE BATH', category: 'MAIN COURSE' },
-    { name: 'UDUPI TRADITIONAL MIXED VEG SAMBAR', category: 'MAIN COURSE' },
-    { name: 'MYSURU PEPPER RASAM', category: 'MAIN COURSE' },
-    { name: 'BEANS & CARROT PORIYAL / PALYA', category: 'ACCOMPANIMENTS' },
-    { name: 'MALABAR AVIAL WITH COCONUT OIL', category: 'ACCOMPANIMENTS' },
-    { name: 'STEAMED PREMIUM SONA MASOORI RICE', category: 'MAIN COURSE' },
-    { name: 'TEMPLE CURD RICE WITH POMEGRANATE TADKA', category: 'AFTER-MEAL' },
-    { name: 'CRISPY APPALAM / PAPAD & MANGO PICKLE', category: 'ACCOMPANIMENTS' },
-    { name: 'WATER BOTTLE', category: 'AFTER-MEAL' }
-  ];
-
   // Helper to map catalog category to clean uppercase header
   const getSectionHeader = (category) => {
     if (!category) return '';
@@ -1334,13 +1296,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       });
     }
 
-    if (resolved.length === 0) {
-      resolved = fallbackDishes;
-    }
-
-    // Check if water bottle is present, if not add at end
-    const hasWater = resolved.some(d => (d.name || '').toUpperCase().includes('WATER BOTTLE'));
-    const allDishes = hasWater ? [...resolved] : [...resolved, { name: 'WATER BOTTLE', category: 'AFTER-MEAL' }];
+    const allDishes = [...resolved].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     // Group into sections by mapped category
     const sectionMap = new Map();
