@@ -79,8 +79,8 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
   const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
 
-  // PAGE 1: OFFICIAL CLEAN INVOICE & QUOTATION PARCHMENT BACKGROUND
-  const page1Bg = menuTemplateAssets.invoicePage1Bg || menuTemplateAssets.page1Cover;
+  // PAGE 1: OFFICIAL PARCHMENT COVER BACKGROUND
+  const page1Bg = menuTemplateAssets.page1Cover || menuTemplateAssets.invoicePage1Bg;
   if (page1Bg) {
     doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
   }
