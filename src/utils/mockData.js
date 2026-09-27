@@ -50,6 +50,12 @@ export const initialRawMaterials = [
 import masterMenuData from '../data/catering_master_menu.json' with { type: 'json' };
 
 export const masterMenuCategories = [
+  'SHELL BASED FRESH JUICE',
+  'Mocktails',
+  'Lassi',
+  'Starters',
+  'Soups',
+  'Chaats',
   'Beverages & Welcome Drinks',
   'Appetizers, Chaats & Street Food',
   'Global & Fusion Cuisines',
@@ -65,8 +71,9 @@ export const initialDishes = Array.isArray(masterMenuData)
       id: item.id || item._id,
       _id: item._id || item.id,
       name: item.name,
-      category: item.category,
+      category: item.category === 'Other Welcome Drinks' ? 'SHELL BASED FRESH JUICE' : item.category,
       subCategory: item.subCategory,
+      cuisine: item.cuisine || item.subCategory || '',
       price: item.price,
       dietary: item.dietary || ['Vegetarian'],
       recipe: item.recipe || []
@@ -77,8 +84,9 @@ export const initialDishes = Array.isArray(masterMenuData)
           id: item.id || item._id,
           _id: item._id || item.id,
           name: item.name,
-          category: item.category || cat.name,
+          category: (item.category || cat.name) === 'Other Welcome Drinks' ? 'SHELL BASED FRESH JUICE' : (item.category || cat.name),
           subCategory: item.subCategory || sub.name,
+          cuisine: item.cuisine || item.subCategory || sub.name || '',
           price: item.price,
           dietary: item.dietary || ['Vegetarian'],
           recipe: item.recipe || []

@@ -294,14 +294,14 @@ const classifyDish = (dish) => {
   // Hot beverages
   if ((cat.includes('beverage') || sub.includes('beverage')) && (sub.includes('hot') || sub.includes('coffee') || sub.includes('tea') || sub.includes('badam'))) return 'beverages_hot';
   
-  // Cold beverages & juices
-  if (cat.includes('beverage') || sub.includes('juice') || sub.includes('mocktail') || sub.includes('smoothie') || sub.includes('lassi') || sub.includes('sherbet')) return 'beverages_cold';
+  // Cold beverages & juices (Mocktails, Lassi, Shell Juices)
+  if (cat.includes('beverage') || cat.includes('mocktail') || cat.includes('lassi') || cat.includes('shell') || cat.includes('juice') || sub.includes('juice') || sub.includes('mocktail') || sub.includes('smoothie') || sub.includes('lassi') || sub.includes('sherbet')) return 'beverages_cold';
   
   // Chaats
-  if (sub.includes('chaat') || sub.includes('puri') || sub.includes('tikki')) return 'chaats';
+  if (cat.includes('chaat') || sub.includes('chaat') || sub.includes('puri') || sub.includes('tikki')) return 'chaats';
   
-  // Appetizers & starters
-  if (cat.includes('appetizer') || cat.includes('starter') || sub.includes('snack') || sub.includes('starter') || sub.includes('bonda') || sub.includes('vada') || sub.includes('samosa')) return 'starters';
+  // Appetizers, starters & soups
+  if (cat.includes('appetizer') || cat.includes('starter') || cat.includes('soup') || sub.includes('soup') || sub.includes('snack') || sub.includes('starter') || sub.includes('bonda') || sub.includes('vada') || sub.includes('samosa')) return 'starters';
   
   // Global & Fusion
   if (cat.includes('global') || cat.includes('fusion') || sub.includes('italian') || sub.includes('continental') || sub.includes('chinese') || sub.includes('mexican') || sub.includes('thai')) return 'global';

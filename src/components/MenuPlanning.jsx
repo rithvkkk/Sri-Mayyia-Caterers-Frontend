@@ -8,6 +8,12 @@ import {
 import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
 const FOOD_CATEGORIES = [
+  'SHELL BASED FRESH JUICE',
+  'Mocktails',
+  'Lassi',
+  'Starters',
+  'Soups',
+  'Chaats',
   'Beverages & Welcome Drinks',
   'Appetizers, Chaats & Street Food',
   'Global & Fusion Cuisines',
@@ -17,6 +23,9 @@ const FOOD_CATEGORIES = [
   'Desserts, Sweets & Ice Creams',
   'After-Meal / Traditional Finishers'
 ];
+
+const STARTER_CUISINES = ['South Indian', 'North Indian', 'Asian', 'Continental', 'Chinese', 'Vegan'];
+const SOUP_CUISINES = ['Indian', 'Asian', 'Continental'];
 
 // Enterprise Event Archetype Blueprints from Sri Mayyia Master Intelligence
 const EVENT_ARCHETYPES = [
@@ -821,10 +830,11 @@ const MenuPlanning = () => {
                     All Categories ({dishes.length})
                   </button>
                   {dynamicCategories.map(cat => {
-                    const catDishes = dishes.filter(d => d.category === cat && matchesMealCategory(d, selectedMealCategory));
+                    const catDishes = dishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase() && matchesMealCategory(d, selectedMealCategory));
                     const catCount = catDishes.length;
                     const catSelectedCount = selectedSub.menuItems.filter(id => catDishes.some(d => d.id === id)).length;
-                    if (catCount === 0) return null;
+                    const isMainCategory = ['Mocktails', 'Lassi', 'SHELL BASED FRESH JUICE', 'Starters', 'Soups', 'Chaats'].includes(cat);
+                    if (catCount === 0 && !isMainCategory) return null;
                     return (
                       <button
                         key={cat}
@@ -848,18 +858,75 @@ const MenuPlanning = () => {
               {/* Categorized Dishes Rendering */}
               {displayedCategories.map(cat => {
                 const catDishes = dishes.filter(d => {
-                  const matchesCat = d.category === cat;
+                  const matchesCat = (d.category || '').toLowerCase() === cat.toLowerCase();
                   const matchesMeal = matchesMealCategory(d, selectedMealCategory);
-                  const matchesSearch = !dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase()) || (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.toLowerCase()));
+                  const matchesSearch = !dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase()) || 
+                    (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.toLowerCase())) ||
+                    (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.toLowerCase()));
                   return matchesCat && matchesMeal && matchesSearch;
                 });
 
-                if (catDishes.length === 0) return null;
+                if (catDishes.length === 0) {
+                  if (selectedCategoryTab === cat) {
+                    return (
+                      <div key={cat} style={{ marginBottom: '1.75rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#000000', marginBottom: '0.85rem', borderBottom: '1px solid rgba(147, 197, 253, 0.15)', paddingBottom: '0.4rem' }}>
+                          <span>{cat}</span>
+                        </h3>
+                        <div style={{ padding: '2.5rem', textAlign: 'center', background: 'rgba(255, 255, 255, 0.4)', borderRadius: '10px', border: '1px dashed var(--border-color)', margin: '1rem 0' }}>
+                          <Utensils size={36} style={{ color: 'var(--text-secondary)', opacity: 0.4, marginBottom: '0.5rem' }} />
+                          <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#000000', marginBottom: '0.25rem' }}>No {cat} added yet.</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            Items added to MongoDB under category "{cat}" will automatically appear here.
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }
 
                 const selectedInCat = selectedSub.menuItems.filter(id => catDishes.some(d => d.id === id)).length;
 
-                // Group by subCategory
-                const subCategories = Array.from(new Set(catDishes.map(d => d.subCategory || 'General Items')));
+                // Determine sub-grouping (Cuisine for Starters/Soups, subCategory for others)
+                const isStartersCat = cat.toLowerCase().includes('starter');
+                const isSoupsCat = cat.toLowerCase().includes('soup');
+
+                let subGroups = [];
+
+                if (isStartersCat) {
+                  STARTER_CUISINES.forEach(c => {
+                    const cDishes = catDishes.filter(d => {
+                      const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
+                      return fc.includes(c.toLowerCase());
+                    });
+                    if (cDishes.length > 0) subGroups.push({ title: c, items: cDishes });
+                  });
+                  const unmatched = catDishes.filter(d => {
+                    const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
+                    return !STARTER_CUISINES.some(c => fc.includes(c.toLowerCase()));
+                  });
+                  if (unmatched.length > 0) subGroups.push({ title: 'Other Starters', items: unmatched });
+                } else if (isSoupsCat) {
+                  SOUP_CUISINES.forEach(c => {
+                    const cDishes = catDishes.filter(d => {
+                      const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
+                      return fc.includes(c.toLowerCase());
+                    });
+                    if (cDishes.length > 0) subGroups.push({ title: c, items: cDishes });
+                  });
+                  const unmatched = catDishes.filter(d => {
+                    const fc = `${d.cuisine || ''} ${d.subCategory || ''}`.toLowerCase();
+                    return !SOUP_CUISINES.some(c => fc.includes(c.toLowerCase()));
+                  });
+                  if (unmatched.length > 0) subGroups.push({ title: 'Other Soups', items: unmatched });
+                } else {
+                  const subCategories = Array.from(new Set(catDishes.map(d => d.cuisine || d.subCategory || 'General Items')));
+                  subGroups = subCategories.map(subCat => ({
+                    title: subCat,
+                    items: catDishes.filter(d => (d.cuisine || d.subCategory || 'General Items') === subCat)
+                  }));
+                }
 
                 return (
                   <div key={cat} style={{ marginBottom: '1.75rem' }}>
@@ -880,20 +947,19 @@ const MenuPlanning = () => {
                       </span>
                     </h3>
 
-                    {/* Subcategories */}
-                    {subCategories.map(subCat => {
-                      const subDishes = catDishes.filter(d => (d.subCategory || 'General Items') === subCat);
+                    {/* Subgroups (Cuisines or Subcategories) */}
+                    {subGroups.map(group => {
                       return (
-                        <div key={subCat} style={{ marginBottom: '1rem' }}>
-                          {subCat !== 'General Items' && (
+                        <div key={group.title} style={{ marginBottom: '1rem' }}>
+                          {group.title !== 'General Items' && (
                             <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--color-primary)' }} />
-                              <span>{subCat}</span>
+                              <span>{group.title}</span>
                             </div>
                           )}
 
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.65rem' }}>
-                            {subDishes.map(dish => {
+                            {group.items.map(dish => {
                               const isSelected = selectedSub.menuItems.includes(dish.id);
                               const conflictWarning = getDishConflict(dish);
 

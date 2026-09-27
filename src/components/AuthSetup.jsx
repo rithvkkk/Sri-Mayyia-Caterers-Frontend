@@ -425,6 +425,12 @@ const AuthSetup = () => {
                     <div className="form-group">
                       <label className="form-label">Category</label>
                       <select className="form-select" value={tempData.category || ''} onChange={e => setTempData({ ...tempData, category: e.target.value })}>
+                        <option value="SHELL BASED FRESH JUICE">SHELL BASED FRESH JUICE</option>
+                        <option value="Mocktails">Mocktails</option>
+                        <option value="Lassi">Lassi</option>
+                        <option value="Starters">Starters</option>
+                        <option value="Soups">Soups</option>
+                        <option value="Chaats">Chaats</option>
                         <option value="Beverages & Welcome Drinks">Beverages & Welcome Drinks</option>
                         <option value="Appetizers, Chaats & Street Food">Appetizers, Chaats & Street Food</option>
                         <option value="Global & Fusion Cuisines">Global & Fusion Cuisines</option>
@@ -433,7 +439,19 @@ const AuthSetup = () => {
                         <option value="Sides, Accompaniments & Salads">Sides, Accompaniments & Salads</option>
                         <option value="Desserts, Sweets & Ice Creams">Desserts, Sweets & Ice Creams</option>
                         <option value="After-Meal / Traditional Finishers">After-Meal / Traditional Finishers</option>
+                        {Array.from(new Set(dishes.map(d => d.category).filter(Boolean))).map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
                       </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Cuisine / Subcategory</label>
+                      <input 
+                        className="form-input" 
+                        placeholder="e.g. South Indian, North Indian, Asian, Continental, Chinese, Vegan"
+                        value={tempData.cuisine || tempData.subCategory || ''} 
+                        onChange={e => setTempData({ ...tempData, cuisine: e.target.value, subCategory: e.target.value })} 
+                      />
                     </div>
                     <div className="form-group">
                       <label className="form-label">A La Carte Selling Price</label>

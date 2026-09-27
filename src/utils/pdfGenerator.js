@@ -54,41 +54,56 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     format: 'a4'
   });
 
-  // Color Palette
-  const primaryColor = [22, 30, 49]; // Slate Navy
-  const accentColor = [59, 130, 246];  // Accent Blue
-  
+  // Color Palette - Royal Sri Mayyia Brand Palette
+  const maroonColor = [156, 21, 25];  // Royal Crimson Maroon #9C1519
+  const navyColor = [23, 55, 94];    // Deep Royal Navy #17375E
+  const goldColor = [210, 172, 103];  // Champagne Gold #D2AC67
+  const charcoalColor = [50, 50, 50];
+
   const cpName = cp.name || 'Sri Mayyia Caterers';
-  const cpTagline = cp.tagline || 'Traditional Caterers & Event Managers';
+  const cpTagline = cp.tagline || 'Pioneers in Authentic, Pure Vegetarian Catering since 1953';
   const cpGstin = cp.gstin || 'N/A';
-  const cpPhone = cp.phone || '';
-  const cpAddress = cp.address || '';
+  const cpPhone = cp.phone || '+91 99988 77766';
+  const cpAddress = cp.address || 'Malleshwaram, Bangalore - 560003';
   const cpCurrency = cp.currency || '₹';
 
-  // Title / Corporate Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, 210, 40, 'F');
-  
-  // Header Text
+  // PAGE 1: BACKGROUND LETTERHEAD CANVAS
+  if (menuTemplateAssets.page2MenuBg) {
+    doc.addImage(menuTemplateAssets.page2MenuBg, 'JPEG', 0, 0, 210, 297);
+  }
+
+  // Header Logo & Branding
+  if (menuTemplateAssets.companyLogo) {
+    doc.addImage(menuTemplateAssets.companyLogo, 'PNG', 15, 10, 16, 20);
+  }
+
+  // Header Title
+  doc.setFont('times', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...maroonColor);
+  doc.text('SRI MAYYIA™ CATERERS', 34, 16);
+
+  // Header Tagline
+  doc.setFont('times', 'italic');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...maroonColor);
+  doc.text(cpTagline, 34, 21);
+
+  // Header Contact Line
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...charcoalColor);
+  doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}`, 34, 25.5);
+  doc.text(`Address: ${cpAddress}`, 34, 29.5);
+
+  // Document Type Top-Right Banner
+  doc.setFillColor(...maroonColor);
+  doc.roundedRect(138, 10, 57, 12, 1.5, 1.5, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.text(cpName.toUpperCase(), 15, 18);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'italic');
-  doc.text(cpTagline, 15, 24);
-  doc.text(`GSTIN: ${cpGstin} | Phone: ${cpPhone}`, 15, 30);
-  doc.text(`Address: ${cpAddress}`, 15, 35);
-  
-  // Invoice / Report Banner Type
-  doc.setFillColor(...accentColor);
-  doc.rect(145, 12, 50, 10, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  const titleText = type === 'invoice' ? t.titleInvoice : t.titleMaterials;
-  doc.text(titleText, 147, 18, { maxWidth: 46 });
+  doc.setFontSize(9.5);
+  const titleText = type === 'invoice' ? 'QUOTATION & INVOICE' : 'MATERIALS ESTIMATE';
+  doc.text(titleText, 166.5, 17.5, { align: 'center' });
 
   // Event Details Registry metadata
   const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Valued Client';
@@ -96,31 +111,41 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
   const evType = ev.eventType || 'Catering Event';
 
-  doc.setTextColor(50, 50, 50);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(`${t.clientName}:`, 15, 50);
-  doc.setFont('helvetica', 'normal');
-  doc.text(clientName, 45, 50);
+  // Soft Glassmorphic Card Container for Client Info (y=34 to y=56)
+  doc.setFillColor(253, 248, 237);
+  doc.roundedRect(15, 34, 180, 22, 2, 2, 'F');
+  doc.setDrawColor(210, 180, 130);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(15, 34, 180, 22, 2, 2, 'D');
 
+  doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t.eventId}:`, 15, 56);
+  doc.setFontSize(9);
+  doc.text(`${t.clientName || 'Client Name'}:`, 19, 41);
   doc.setFont('helvetica', 'normal');
-  doc.text(evId, 45, 56);
+  doc.setTextColor(30, 30, 30);
+  doc.text(clientName, 45, 41);
 
+  doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t.eventDate}:`, 125, 50);
+  doc.text(`${t.eventId || 'Quotation ID'}:`, 19, 49);
   doc.setFont('helvetica', 'normal');
-  doc.text(evDate, 155, 50);
+  doc.setTextColor(30, 30, 30);
+  doc.text(evId, 45, 49);
 
+  doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text('Event Type:', 125, 56);
+  doc.text(`${t.eventDate || 'Event Date'}:`, 122, 41);
   doc.setFont('helvetica', 'normal');
-  doc.text(evType, 155, 56);
+  doc.setTextColor(30, 30, 30);
+  doc.text(evDate, 148, 41);
 
-  // Line Separator
-  doc.setDrawColor(200, 200, 200);
-  doc.line(15, 62, 195, 62);
+  doc.setTextColor(...navyColor);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Event Type:', 122, 49);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  doc.text(evType, 148, 49);
 
   // Table Generation based on report type
   if (type === 'invoice') {
@@ -130,7 +155,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       ? safeSubFunctions
       : [{ id: 'sf-1', name: 'Main Function & Reception', guestCount: 100 }];
 
-    const tableHeaders = [[t.desc, t.pax, t.rate, t.amount]];
+    const tableHeaders = [['Function / Session Description', 'Guest Count', 'Price / Plate', 'Subtotal Amount']];
     const tableBody = subFunctions.map(sf => {
       const itm = (sf && typeof sf === 'object') ? sf : { name: String(sf || 'Function') };
       const gCount = parseInt(itm.guestCount, 10) || 0;
@@ -146,34 +171,24 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody,
-      startY: 68,
+      startY: 61,
       theme: 'grid',
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
-      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
+      styles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [253, 248, 237] },
       margin: { left: 15, right: 15 },
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 30, halign: 'center' },
-        2: { cellWidth: 30, halign: 'center' },
-        3: { cellWidth: 40, halign: 'right' }
+        2: { cellWidth: 32, halign: 'center' },
+        3: { cellWidth: 38, halign: 'right' }
       }
     });
 
-    const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 10;
+    const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 8;
     
-    // Financial Aggregates box right-aligned
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    
+    // Financial Aggregates Summary Box Right-Aligned
     let currentY = finalY;
-    const addFinanceRow = (label, val, highlight = false, isRawText = false) => {
-      doc.setFont('helvetica', highlight ? 'bold' : 'normal');
-      doc.setTextColor(highlight ? accentColor[0] : 50, highlight ? accentColor[1] : 50, highlight ? accentColor[2] : 50);
-      doc.text(label, 115, currentY);
-      const textVal = isRawText ? String(val) : `${cpCurrency} ${Number(val || 0).toLocaleString('en-IN')}`;
-      doc.text(textVal, 195, currentY, { align: 'right' });
-      currentY += 6;
-    };
 
     const isGst = ev.billing?.taxType !== 'NON_GST' && Number(ev.billing?.taxRate) !== 0;
     const isInter = Boolean(ev.billing?.isInterState);
@@ -184,7 +199,23 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const grandAmt = subtotalAmt + taxAmt;
     const balAmt = grandAmt - (ev.billing?.advancePaid || 0);
 
-    addFinanceRow(t.subtotal, subtotalAmt);
+    // Card background for finance summary
+    doc.setFillColor(253, 248, 237);
+    doc.roundedRect(105, currentY - 3, 90, 48, 2, 2, 'F');
+    doc.setDrawColor(210, 180, 130);
+    doc.roundedRect(105, currentY - 3, 90, 48, 2, 2, 'D');
+
+    const addFinanceRow = (label, val, highlight = false, isRawText = false) => {
+      doc.setFont('helvetica', highlight ? 'bold' : 'normal');
+      doc.setFontSize(highlight ? 9.5 : 8.5);
+      doc.setTextColor(highlight ? maroonColor[0] : 40, highlight ? maroonColor[1] : 40, highlight ? maroonColor[2] : 40);
+      doc.text(label, 110, currentY);
+      const textVal = isRawText ? String(val) : `${cpCurrency} ${Number(val || 0).toLocaleString('en-IN')}`;
+      doc.text(textVal, 190, currentY, { align: 'right' });
+      currentY += 6.5;
+    };
+
+    addFinanceRow(t.subtotal || 'Subtotal Amount:', subtotalAmt);
     if (isGst) {
       if (!isInter) {
         addFinanceRow(`CGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
@@ -195,18 +226,19 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     } else {
       addFinanceRow(`Taxation Mode:`, `Non-GST (0%)`, false, true);
     }
-    addFinanceRow(t.grandTotal, grandAmt, true);
-    addFinanceRow(t.advance, ev.billing?.advancePaid || 0);
+    addFinanceRow(t.grandTotal || 'Grand Total:', grandAmt, true);
+    addFinanceRow(t.advance || 'Advance Paid:', ev.billing?.advancePaid || 0);
     
-    // Draw boundary line for balance
-    doc.setDrawColor(150, 150, 150);
-    doc.line(110, currentY - 2, 195, currentY - 2);
+    // Boundary line for balance due
+    doc.setDrawColor(156, 21, 25);
+    doc.setLineWidth(0.5);
+    doc.line(108, currentY - 2, 192, currentY - 2); currentY += 2;
     
-    addFinanceRow(t.balance, balAmt, true);
+    addFinanceRow(t.balance || 'BALANCE DUE:', balAmt, true);
 
   } else {
     // Materials requirements table
-    const tableHeaders = [[t.ingName, t.category, t.qty, t.unitCost, t.totalCost, t.supplier]];
+    const tableHeaders = [[t.ingName || 'Ingredient', t.category || 'Category', t.qty || 'Qty', t.unitCost || 'Unit Cost', t.totalCost || 'Total Cost', t.supplier || 'Supplier']];
     const safeDataList = Array.isArray(dataList) ? dataList : [];
     const tableBody = safeDataList.map(mat => [
       mat.name || 'Ingredient',
@@ -220,10 +252,11 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody.length ? tableBody : [['General Provisions', 'Provisions', '1 batch', `${cpCurrency} 0`, `${cpCurrency} 0`, 'Local Supplier']],
-      startY: 68,
-      theme: 'striped',
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-      styles: { fontSize: 9, cellPadding: 2.5 },
+      startY: 61,
+      theme: 'grid',
+      headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'left' },
+      styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [253, 248, 237] },
       margin: { left: 15, right: 15 },
       columnStyles: {
         0: { cellWidth: 38 },
@@ -235,30 +268,38 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       }
     });
 
-    const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 10;
+    const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 8;
     const totalMaterialsCost = safeDataList.reduce((sum, item) => sum + (item.totalCost || 0), 0);
 
+    doc.setFillColor(253, 248, 237);
+    doc.roundedRect(95, finalY - 3, 100, 14, 2, 2, 'F');
+    doc.setDrawColor(210, 180, 130);
+    doc.roundedRect(95, finalY - 3, 100, 14, 2, 2, 'D');
+
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL ESTIMATED MATERIALS BUDGET:', 100, finalY);
-    doc.text(`${cpCurrency} ${Number(totalMaterialsCost || 0).toLocaleString('en-IN')}`, 195, finalY, { align: 'right' });
+    doc.setFontSize(9.5);
+    doc.setTextColor(...maroonColor);
+    doc.text('TOTAL ESTIMATED MATERIALS BUDGET:', 99, finalY + 5);
+    doc.text(`${cpCurrency} ${Number(totalMaterialsCost || 0).toLocaleString('en-IN')}`, 190, finalY + 5, { align: 'right' });
   }
 
-  // Footer Message & Page Numbers
-  const pageHeight = typeof doc.internal.pageSize.getHeight === 'function'
-    ? doc.internal.pageSize.getHeight()
-    : (doc.internal.pageSize.height || 297);
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setDrawColor(220, 220, 220);
-    doc.line(15, pageHeight - 20, 195, pageHeight - 20);
+  // Footer line on Page 1
+  const pageHeight = 297;
+  doc.setPage(1);
+  doc.setDrawColor(210, 180, 130);
+  doc.setLineWidth(0.4);
+  doc.line(15, pageHeight - 16, 195, pageHeight - 16);
 
-    doc.setTextColor(120, 120, 120);
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(8);
-    doc.text(t.footerMsg || 'Thank you for choosing our services.', 15, pageHeight - 14);
-    doc.text(`Generated securely by ${cpName} Enterprise ERP`, 15, pageHeight - 9);
-    doc.text(`Page ${i} of ${totalPages}`, 195, pageHeight - 9, { align: 'right' });
+  doc.setTextColor(100, 100, 100);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7.5);
+  doc.text('Thank you for choosing Sri Mayyia Caterers. We look forward to crafting an unforgettable culinary experience.', 15, pageHeight - 11);
+  doc.text('Page 1 of 2  |  Generated securely by Sri Mayyia ERP', 195, pageHeight - 11, { align: 'right' });
+
+  // PAGE 2: SERVICE TERMS & OFFICIAL BRASS THALI PLATTER ASSET
+  doc.addPage();
+  if (menuTemplateAssets.page4Terms) {
+    doc.addImage(menuTemplateAssets.page4Terms, 'JPEG', 0, 0, 210, 297);
   }
 
   // Standardized filename
@@ -628,23 +669,25 @@ const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templ
   const menuDishIds = subFunction?.menuItems || [];
   const selectedDishes = dishesList.filter(d => menuDishIds.includes(d.id));
 
-  const categories = [
-    'Beverages & Welcome Drinks',
-    'Appetizers, Chaats & Street Food',
-    'Global & Fusion Cuisines',
-    'South Indian Specialties',
-    'North Indian Specialties',
-    'Sides, Accompaniments & Salads',
-    'Desserts, Sweets & Ice Creams',
-    'After-Meal / Traditional Finishers'
-  ];
+  const uniqueCategories = Array.from(new Set([
+    'SHELL BASED FRESH JUICE',
+    'Mocktails',
+    'Lassi',
+    'Starters',
+    'Soups',
+    'Chaats',
+    ...selectedDishes.map(d => d.category).filter(Boolean)
+  ]));
 
   const grouped = {};
-  categories.forEach(cat => {
-    grouped[cat] = selectedDishes.filter(d => d.category === cat);
+  uniqueCategories.forEach(cat => {
+    const matches = selectedDishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase());
+    if (matches.length > 0) {
+      grouped[cat] = matches;
+    }
   });
 
-  categories.forEach(cat => {
+  uniqueCategories.forEach(cat => {
     const items = grouped[cat];
     if (!items || items.length === 0) return;
 
@@ -1182,12 +1225,18 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   const getSectionHeader = (category) => {
     if (!category) return '';
     const cat = String(category).toLowerCase();
-    if (cat.includes('beverage') || cat.includes('welcome') || cat.includes('drink')) return 'WELCOME DRINKS';
-    if (cat.includes('starter') || cat.includes('appetizer') || cat.includes('chaat') || cat.includes('street')) return 'CHATS & APPETIZERS';
+    if (cat.includes('shell')) return 'SHELL BASED FRESH JUICE';
+    if (cat.includes('mocktail')) return 'MOCKTAILS';
+    if (cat.includes('lassi')) return 'LASSI';
+    if (cat.includes('starter')) return 'STARTERS';
+    if (cat.includes('soup')) return 'SOUPS';
+    if (cat.includes('chaat')) return 'CHAATS';
+    if (cat.includes('welcome') || cat.includes('beverage')) return 'SHELL BASED FRESH JUICE';
+    if (cat.includes('appetizer') || cat.includes('street')) return 'CHATS & APPETIZERS';
     if (cat.includes('global') || cat.includes('fusion') || cat.includes('continental') || cat.includes('pasta')) return 'CONTINENTAL';
     if (cat.includes('dessert') || cat.includes('sweet') || cat.includes('ice cream')) return 'SWEETS & DESSERTS';
     if (cat.includes('after-meal') || cat.includes('finisher') || cat.includes('pan')) return 'AFTER-MEAL';
-    return '';
+    return String(category).toUpperCase();
   };
 
   // Helper to group dishes into display sections

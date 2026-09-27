@@ -362,7 +362,13 @@ export const AppProvider = ({ children }) => {
         setRawMaterials(rmList);
       }
       if (Array.isArray(dList) && dList.length > 0) {
-        setDishes(dList);
+        const normalizedDishes = dList.map(d => ({
+          ...d,
+          id: d.id || d._id,
+          category: d.category === 'Other Welcome Drinks' ? 'SHELL BASED FRESH JUICE' : d.category,
+          cuisine: d.cuisine || d.subCategory || ''
+        }));
+        setDishes(normalizedDishes);
       }
       if (Array.isArray(lrList) && lrList.length > 0) {
         setLaborRates(lrList);
