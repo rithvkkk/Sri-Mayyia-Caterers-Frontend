@@ -49,23 +49,6 @@ export const initialRawMaterials = [
 
 import masterMenuData from '../data/catering_master_menu.json' with { type: 'json' };
 
-export const masterMenuCategories = [
-  'SHELL BASED FRESH JUICE',
-  'Mocktails',
-  'Lassi',
-  'Starters',
-  'Soups',
-  'Chaats',
-  'Beverages & Welcome Drinks',
-  'Appetizers, Chaats & Street Food',
-  'Global & Fusion Cuisines',
-  'South Indian Specialties',
-  'North Indian Specialties',
-  'Sides, Accompaniments & Salads',
-  'Desserts, Sweets & Ice Creams',
-  'After-Meal / Traditional Finishers'
-];
-
 export const initialDishes = Array.isArray(masterMenuData)
   ? masterMenuData.map(item => ({
       id: item.id || item._id,
@@ -93,6 +76,8 @@ export const initialDishes = Array.isArray(masterMenuData)
         }))
       )
     );
+
+export const masterMenuCategories = Array.from(new Set(initialDishes.map(d => d.category).filter(Boolean)));
 
 export const initialSuppliers = [
   { id: 's1', name: 'Krishna Grocery Wholesalers', category: 'Grocery', subCategory: 'Rice & Grains', contact: 'Ramesh Patel', phone: '+91 98765 43210', address: 'APMC Market Yard, Bangalore', email: 'krishna.grocery@gmail.com', status: 'Active', notes: 'Primary basmati rice and dal supplier', active: true },
