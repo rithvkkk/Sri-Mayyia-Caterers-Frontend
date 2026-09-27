@@ -79,82 +79,134 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
   const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
 
+  // PAGE 1: ELEGANT ROYAL LETTERHEAD CANVAS
+  // Soft gold border frame
+  doc.setDrawColor(210, 180, 130);
+  doc.setLineWidth(0.6);
+  doc.rect(8, 8, 194, 281);
+  doc.setLineWidth(0.3);
+  doc.rect(9.5, 9.5, 191, 278);
+
+  // Header Logo & Branding
+  if (menuTemplateAssets.companyLogo) {
+    doc.addImage(menuTemplateAssets.companyLogo, 'PNG', 15, 12, 16, 20);
+  }
+
+  // Header Title
+  doc.setFont('times', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...maroonColor);
+  doc.text('SRI MAYYIA™ CATERERS', 34, 18);
+
+  // Header Tagline
+  doc.setFont('times', 'italic');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...maroonColor);
+  doc.text(cpTagline, 34, 23);
+
+  // Header Contact Line
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...charcoalColor);
+  doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}`, 34, 27.5);
+  doc.text(`Address: ${cpAddress}`, 34, 31.5);
+
+  // Document Type Top-Right Banner
+  doc.setFillColor(...maroonColor);
+  doc.roundedRect(138, 12, 57, 12, 1.5, 1.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  const titleText = type === 'invoice' ? 'QUOTATION & INVOICE' : 'MATERIALS ESTIMATE';
+  doc.text(titleText, 166.5, 19.5, { align: 'center' });
+
   // Event Details Registry metadata
   const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Rithvik S';
   const evId = ev.id || 'EV-2026-001';
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
   const evType = ev.eventType || 'Wedding Reception';
 
-  // PAGE 1: PRE-PRINTED INVOICE & ESTIMATE FORM TEMPLATE (page2MenuBg)
-  const page1Bg = menuTemplateAssets.page2MenuBg || menuTemplateAssets.page1Cover;
-  if (page1Bg) {
-    doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
-  }
+  // Soft Glassmorphic Card Container for Client Info (y=36 to y=58)
+  doc.setFillColor(253, 248, 237);
+  doc.roundedRect(15, 36, 180, 22, 2, 2, 'F');
+  doc.setDrawColor(210, 180, 130);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(15, 36, 180, 22, 2, 2, 'D');
 
-  // Fill in Pre-printed Header Fields on Template (Occasion, Date, Serving)
+  doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(50, 30, 20);
-  
-  // Occasion field (y ≈ 22.5)
-  doc.text(`${evType}  |  ${clientName}`, 48, 22.5);
+  doc.setFontSize(9);
+  doc.text(`${t.clientName || 'Client Name'}:`, 19, 43);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  doc.text(clientName, 45, 43);
 
-  // Date field (y ≈ 32.5)
-  doc.text(evDate, 36, 32.5);
-
-  // Serving / Reference field (y ≈ 42.5)
-  doc.text(`Quotation ID: ${evId}`, 42, 42.5);
-
-  // Document Title Badge Top-Right
+  doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...maroonColor);
-  const titleText = type === 'invoice' ? 'QUOTATION & INVOICE' : 'MATERIALS ESTIMATE';
-  doc.text(titleText, 192, 42.5, { align: 'right' });
+  doc.text(`${t.eventId || 'Quotation ID'}:`, 19, 51);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  doc.text(evId, 45, 51);
+
+  doc.setTextColor(...navyColor);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${t.eventDate || 'Event Date'}:`, 122, 43);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  doc.text(evDate, 148, 43);
+
+  doc.setTextColor(...navyColor);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Event Type:', 122, 51);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  doc.text(evType, 148, 51);
 
   // Table Generation based on report type
   if (type === 'invoice') {
+    // Invoice details table
     const safeSubFunctions = (Array.isArray(ev.subFunctions) ? ev.subFunctions : []).filter(Boolean);
     const subFunctions = safeSubFunctions.length > 0
       ? safeSubFunctions
       : [{ id: 'sf-1', name: 'Lunch / Wedding Feast', guestCount: 225 }];
 
-    // Align rows cleanly with template pre-printed columns (SL NO | Item | Pax | Instructions/Amount)
-    const tableBody = subFunctions.map((sf, idx) => {
+    const tableHeaders = [['Function / Session Description', 'Guest Count', 'Price / Plate', 'Subtotal Amount']];
+    const tableBody = subFunctions.map(sf => {
       const itm = (sf && typeof sf === 'object') ? sf : { name: String(sf || 'Function') };
       const gCount = parseInt(itm.guestCount, 10) || 0;
       const pRate = parseFloat(ev.billing?.pricePerPlate) || 975;
       const subTotal = gCount * pRate;
       return [
-        `${idx + 1}`,
         itm.name || 'Catering Function',
-        `${gCount} Pax @ ${formatCurrencyValue(pRate, curr)}/plate`,
+        `${gCount} Pax`,
+        formatCurrencyValue(pRate, curr),
         formatCurrencyValue(subTotal, curr)
       ];
     });
 
     renderTable(doc, {
+      head: tableHeaders,
       body: tableBody,
-      startY: 66,
-      theme: 'plain',
-      styles: {
-        fontSize: 9,
-        cellPadding: 3.5,
-        textColor: [40, 30, 20],
-        font: 'helvetica',
-        fillColor: false
-      },
+      startY: 63,
+      theme: 'grid',
+      headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
+      styles: { fontSize: 9, cellPadding: 3.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [253, 248, 237] },
       margin: { left: 15, right: 15 },
+      tableBorderColor: [210, 180, 130],
+      tableLineWidth: 0.3,
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
-        1: { cellWidth: 75, halign: 'left' },
-        2: { cellWidth: 60, halign: 'left' },
-        3: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+        0: { cellWidth: 80, halign: 'left' },
+        1: { cellWidth: 30, halign: 'center' },
+        2: { cellWidth: 32, halign: 'right' },
+        3: { cellWidth: 38, halign: 'right' }
       }
     });
 
     const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 95) + 6;
-    let currentY = Math.max(finalY, 115);
+    
+    // Financial Aggregates Summary Box Right-Aligned
+    let currentY = finalY;
 
     const isGst = ev.billing?.taxType !== 'NON_GST' && Number(ev.billing?.taxRate) !== 0;
     const isInter = Boolean(ev.billing?.isInterState);
@@ -165,90 +217,115 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const grandAmt = subtotalAmt + taxAmt;
     const balAmt = grandAmt - (ev.billing?.advancePaid || 0);
 
-    // Summary Box divider line matching template layout
-    doc.setDrawColor(156, 21, 25);
+    // Card background for finance summary
+    doc.setFillColor(253, 248, 237);
+    doc.roundedRect(105, currentY - 2, 90, 46, 2, 2, 'F');
+    doc.setDrawColor(210, 180, 130);
     doc.setLineWidth(0.3);
-    doc.line(105, currentY - 2, 195, currentY - 2);
+    doc.roundedRect(105, currentY - 2, 90, 46, 2, 2, 'D');
 
-    const addSummaryRow = (label, val, highlight = false, isRawText = false) => {
+    const addFinanceRow = (label, val, highlight = false, isRawText = false) => {
       doc.setFont('helvetica', highlight ? 'bold' : 'normal');
-      doc.setFontSize(highlight ? 9.5 : 8.5);
+      doc.setFontSize(highlight ? 9 : 8.5);
       doc.setTextColor(highlight ? maroonColor[0] : 40, highlight ? maroonColor[1] : 40, highlight ? maroonColor[2] : 40);
-      doc.text(label, 108, currentY);
+      doc.text(label, 110, currentY);
       const textVal = isRawText ? String(val) : formatCurrencyValue(val, curr);
-      doc.text(textVal, 192, currentY, { align: 'right' });
-      currentY += 6;
+      doc.text(textVal, 190, currentY, { align: 'right' });
+      currentY += 6.2;
     };
 
-    addSummaryRow('Subtotal Amount:', subtotalAmt);
+    addFinanceRow(t.subtotal || 'Subtotal Amount:', subtotalAmt);
     if (isGst) {
       if (!isInter) {
-        addSummaryRow(`CGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
-        addSummaryRow(`SGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
+        addFinanceRow(`CGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
+        addFinanceRow(`SGST (${(taxRate / 2).toFixed(1)}%):`, taxAmt / 2);
       } else {
-        addSummaryRow(`IGST (${taxRate}%):`, taxAmt);
+        addFinanceRow(`IGST (${taxRate}%):`, taxAmt);
       }
     } else {
-      addSummaryRow('Taxation Mode:', 'Non-GST (0%)', false, true);
+      addFinanceRow(`Taxation Mode:`, `Non-GST (0%)`, false, true);
     }
-    addSummaryRow('Grand Invoice Total:', grandAmt, true);
-    addSummaryRow('Advance Deposited:', ev.billing?.advancePaid || 0);
+    addFinanceRow(t.grandTotal || 'Grand Invoice Total:', grandAmt, true);
+    addFinanceRow(t.advance || 'Advance Deposited:', ev.billing?.advancePaid || 0);
     
+    // Boundary line for balance due
     doc.setDrawColor(156, 21, 25);
     doc.setLineWidth(0.4);
-    doc.line(108, currentY - 2, 192, currentY - 2);
-    currentY += 2;
+    doc.line(108, currentY - 2, 192, currentY - 2); currentY += 2;
     
-    addSummaryRow('Outstanding Balance Due:', balAmt, true);
+    addFinanceRow(t.balance || 'Outstanding Balance Due:', balAmt, true);
 
-    // Highlighted Red Note at bottom of table
-    const noteY = Math.max(currentY + 6, 210);
+    // Highlighted Yellow Note Box (Matching Estimation Reference)
+    const noteY = Math.max(currentY + 6, finalY + 52);
+    doc.setFillColor(255, 253, 200);
+    doc.roundedRect(15, noteY, 180, 8.5, 1.5, 1.5, 'F');
+    doc.setDrawColor(210, 180, 0);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(15, noteY, 180, 8.5, 1.5, 1.5, 'D');
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(180, 0, 0);
-    doc.text('NOTE : GAS, VESSELS & CLEANERS ARE NOT INCLUDED IN THE ABOVE QUOTE', 105, noteY, { align: 'center' });
+    doc.text('NOTE : GAS, VESSELS & CLEANERS ARE NOT INCLUDED IN THE ABOVE QUOTE', 105, noteY + 5.5, { align: 'center' });
 
   } else {
-    // Materials requirements table aligned with pre-printed template
+    // Materials requirements table
+    const tableHeaders = [[t.ingName || 'Ingredient', t.category || 'Category', t.qty || 'Qty', t.unitCost || 'Unit Cost', t.totalCost || 'Total Cost', t.supplier || 'Supplier']];
     const safeDataList = Array.isArray(dataList) ? dataList : [];
-    const tableBody = safeDataList.map((mat, idx) => [
-      `${idx + 1}`,
+    const tableBody = safeDataList.map(mat => [
       mat.name || 'Ingredient',
-      `${mat.requiredQty || 0} ${mat.unit || 'kg'} (${mat.category || 'General'})`,
-      formatCurrencyValue(mat.totalCost || 0, curr)
+      mat.category || 'General',
+      `${mat.requiredQty || 0} ${mat.unit || 'kg'}`,
+      formatCurrencyValue(mat.costPerUnit || 0, curr),
+      formatCurrencyValue(mat.totalCost || 0, curr),
+      mat.supplier?.name || 'Local Supplier'
     ]);
 
     renderTable(doc, {
-      body: tableBody.length ? tableBody : [['1', 'General Provisions', '1 batch', formatCurrencyValue(0, curr)]],
-      startY: 66,
-      theme: 'plain',
-      styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [40, 30, 20], fillColor: false },
+      head: tableHeaders,
+      body: tableBody.length ? tableBody : [['General Provisions', 'Provisions', '1 batch', formatCurrencyValue(0, curr), formatCurrencyValue(0, curr), 'Local Supplier']],
+      startY: 63,
+      theme: 'grid',
+      headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'left' },
+      styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [253, 248, 237] },
       margin: { left: 15, right: 15 },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
-        1: { cellWidth: 75, halign: 'left' },
-        2: { cellWidth: 60, halign: 'left' },
-        3: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+        0: { cellWidth: 38 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 25, halign: 'center' },
+        3: { cellWidth: 20, halign: 'right' },
+        4: { cellWidth: 25, halign: 'right' },
+        5: { cellWidth: 50 }
       }
     });
 
     const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 95) + 8;
     const totalMaterialsCost = safeDataList.reduce((sum, item) => sum + (item.totalCost || 0), 0);
 
+    doc.setFillColor(253, 248, 237);
+    doc.roundedRect(95, finalY - 3, 100, 14, 2, 2, 'F');
+    doc.setDrawColor(210, 180, 130);
+    doc.roundedRect(95, finalY - 3, 100, 14, 2, 2, 'D');
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(...maroonColor);
-    doc.text('TOTAL ESTIMATED MATERIALS BUDGET:', 108, finalY + 5);
-    doc.text(formatCurrencyValue(totalMaterialsCost, curr), 192, finalY + 5, { align: 'right' });
+    doc.text('TOTAL ESTIMATED MATERIALS BUDGET:', 99, finalY + 5);
+    doc.text(formatCurrencyValue(totalMaterialsCost, curr), 190, finalY + 5, { align: 'right' });
   }
 
-  // Page 1 Footer
+  // Footer line on Page 1
   const pageHeight = 297;
   doc.setPage(1);
+  doc.setDrawColor(210, 180, 130);
+  doc.setLineWidth(0.4);
+  doc.line(15, pageHeight - 16, 195, pageHeight - 16);
+
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
-  doc.text('Thank you for choosing Sri Mayyia Caterers.', 15, pageHeight - 11);
+  doc.text('Thank you for choosing Sri Mayyia Caterers. We look forward to crafting an unforgettable culinary experience.', 15, pageHeight - 11);
   doc.text('Page 1 of 2  |  Generated securely by Sri Mayyia ERP', 195, pageHeight - 11, { align: 'right' });
 
   // PAGE 2: OFFICIAL SERVICE TERMS & BRASS THALI ARTWORK TEMPLATE (page4Terms)
@@ -260,6 +337,10 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
 
   // Footer line on Page 2
   doc.setPage(2);
+  doc.setDrawColor(210, 180, 130);
+  doc.setLineWidth(0.4);
+  doc.line(15, pageHeight - 16, 195, pageHeight - 16);
+
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
