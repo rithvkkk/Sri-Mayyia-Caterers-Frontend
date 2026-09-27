@@ -79,36 +79,19 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
   const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
 
-  // PAGE 1: BACKGROUND LETTERHEAD CANVAS
-  if (menuTemplateAssets.page2MenuBg) {
-    doc.addImage(menuTemplateAssets.page2MenuBg, 'JPEG', 0, 0, 210, 297);
+  // PAGE 1: OFFICIAL CLEAN PARCHMENT LETTERHEAD BACKGROUND
+  const page1Bg = menuTemplateAssets.page1Cover || menuTemplateAssets.page2MenuBg;
+  if (page1Bg) {
+    doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
   }
 
-  // Header Logo & Branding
-  if (menuTemplateAssets.companyLogo) {
-    doc.addImage(menuTemplateAssets.companyLogo, 'PNG', 15, 9, 16, 20);
-  }
-
-  // Header Title
-  doc.setFont('times', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...maroonColor);
-  doc.text('SRI MAYYIA™ CATERERS', 34, 15);
-
-  // Header Tagline
-  doc.setFont('times', 'italic');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...maroonColor);
-  doc.text(cpTagline, 34, 20);
-
-  // Header Contact Line
+  // Header Contact Line & Document Type Top-Right Banner
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...charcoalColor);
   doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}`, 34, 24.5);
   doc.text(`Address: ${cpAddress}`, 34, 28.5);
 
-  // Document Type Top-Right Banner
   doc.setFillColor(...maroonColor);
   doc.roundedRect(138, 9, 57, 12, 1.5, 1.5, 'F');
   doc.setTextColor(255, 255, 255);
@@ -123,11 +106,9 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
   const evType = ev.eventType || 'Wedding Reception';
 
-  // Opaque Glassmorphic Card Container for Client Info (Covers any stray template text underneath)
-  doc.setFillColor(253, 248, 237);
-  doc.roundedRect(15, 32, 180, 23, 2, 2, 'F');
+  // Transparent / Soft Blended Card Container for Client Info
   doc.setDrawColor(210, 180, 130);
-  doc.setLineWidth(0.3);
+  doc.setLineWidth(0.4);
   doc.roundedRect(15, 32, 180, 23, 2, 2, 'D');
 
   doc.setTextColor(...navyColor);
@@ -187,9 +168,11 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       startY: 59,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
-      styles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30] },
-      alternateRowStyles: { fillColor: [253, 248, 237] },
+      styles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30], fillColor: false },
+      alternateRowStyles: { fillColor: false },
       margin: { left: 15, right: 15 },
+      tableBorderColor: [210, 180, 130],
+      tableLineWidth: 0.3,
       columnStyles: {
         0: { cellWidth: 80, halign: 'left' },
         1: { cellWidth: 30, halign: 'center' },
@@ -200,7 +183,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
 
     const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 95) + 6;
     
-    // Financial Aggregates Summary Box Right-Aligned
+    // Financial Aggregates Summary Box Right-Aligned (Blended with parchment background)
     let currentY = finalY;
 
     const isGst = ev.billing?.taxType !== 'NON_GST' && Number(ev.billing?.taxRate) !== 0;
@@ -212,11 +195,9 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const grandAmt = subtotalAmt + taxAmt;
     const balAmt = grandAmt - (ev.billing?.advancePaid || 0);
 
-    // Card background for finance summary
-    doc.setFillColor(253, 248, 237);
-    doc.roundedRect(105, currentY - 2, 90, 46, 2, 2, 'F');
+    // Card outline for finance summary
     doc.setDrawColor(210, 180, 130);
-    doc.setLineWidth(0.3);
+    doc.setLineWidth(0.4);
     doc.roundedRect(105, currentY - 2, 90, 46, 2, 2, 'D');
 
     const addFinanceRow = (label, val, highlight = false, isRawText = false) => {
@@ -250,12 +231,10 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     
     addFinanceRow(t.balance || 'Outstanding Balance Due:', balAmt, true);
 
-    // Highlighted Yellow Note Box (Matching Estimation Reference)
+    // Highlighted Translucent Yellow Note Box (Matching Estimation Reference)
     const noteY = Math.max(currentY + 6, finalY + 52);
-    doc.setFillColor(255, 253, 200);
-    doc.roundedRect(15, noteY, 180, 8.5, 1.5, 1.5, 'F');
     doc.setDrawColor(210, 180, 0);
-    doc.setLineWidth(0.3);
+    doc.setLineWidth(0.4);
     doc.roundedRect(15, noteY, 180, 8.5, 1.5, 1.5, 'D');
 
     doc.setFont('helvetica', 'bold');
@@ -282,9 +261,10 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       startY: 59,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'left' },
-      styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 30, 30] },
-      alternateRowStyles: { fillColor: [253, 248, 237] },
+      styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 30, 30], fillColor: false },
+      alternateRowStyles: { fillColor: false },
       margin: { left: 15, right: 15 },
+      tableBorderColor: [210, 180, 130],
       columnStyles: {
         0: { cellWidth: 38 },
         1: { cellWidth: 22 },
@@ -298,9 +278,8 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 95) + 8;
     const totalMaterialsCost = safeDataList.reduce((sum, item) => sum + (item.totalCost || 0), 0);
 
-    doc.setFillColor(253, 248, 237);
-    doc.roundedRect(95, finalY - 3, 100, 14, 2, 2, 'F');
     doc.setDrawColor(210, 180, 130);
+    doc.setLineWidth(0.4);
     doc.roundedRect(95, finalY - 3, 100, 14, 2, 2, 'D');
 
     doc.setFont('helvetica', 'bold');
@@ -323,73 +302,12 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.text('Thank you for choosing Sri Mayyia Caterers. We look forward to crafting an unforgettable culinary experience.', 15, pageHeight - 11);
   doc.text('Page 1 of 2  |  Generated securely by Sri Mayyia ERP', 195, pageHeight - 11, { align: 'right' });
 
-  // PAGE 2: OFFICIAL 16-POINT SMC SERVICE TERMS & CONDITIONS
+  // PAGE 2: OFFICIAL SERVICE TERMS & BRASS THALI ARTWORK TEMPLATE
   doc.addPage();
-  if (menuTemplateAssets.page2MenuBg) {
-    doc.addImage(menuTemplateAssets.page2MenuBg, 'JPEG', 0, 0, 210, 297);
+  const page2Bg = menuTemplateAssets.page2MenuBg || menuTemplateAssets.page1Cover;
+  if (page2Bg) {
+    doc.addImage(page2Bg, 'JPEG', 0, 0, 210, 297);
   }
-
-  // Header Logo & Branding on Page 2
-  if (menuTemplateAssets.companyLogo) {
-    doc.addImage(menuTemplateAssets.companyLogo, 'PNG', 15, 9, 16, 20);
-  }
-
-  doc.setFont('times', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...maroonColor);
-  doc.text('SRI MAYYIA™ CATERERS', 34, 15);
-
-  doc.setFont('times', 'italic');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...maroonColor);
-  doc.text(cpTagline, 34, 20);
-
-  // Section Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12.5);
-  doc.setTextColor(...maroonColor);
-  doc.text('SMC SERVICE TERMS & CONDITIONS', 105, 33, { align: 'center' });
-  doc.setDrawColor(...goldColor);
-  doc.setLineWidth(0.6);
-  doc.line(55, 35.5, 155, 35.5);
-
-  // 16 Exact Numbered Service Terms Points from Attached Reference Photo
-  const serviceTerms = [
-    'Order To Be Finalised With All Charges Before 10 Days Of The Event',
-    '95% ADVANCE TO BE PAID Before 10 Days Of The Event',
-    'Remanining 5% To Be Paid On The Day Of The Event',
-    'Gas , Vessels & Cleaners Are Not Included In The Above Estimation',
-    'Change In Quantity & Number Of Pax\'s Should Be Done 10 Days Before The Event',
-    'Communication With Operations Department Of SMC To Be Kept Transparency',
-    'Please Take The Counting At Every Serving 100% - By Yourself',
-    'Table\'s , Chair\'s , Shamiyana & Canopies Are Not Included',
-    'A Price Varie\'s As Per The Change\'s In The Number Of Dishes',
-    'Any Decrease In The Number\'s On The Function Day Won\'t Be Considered & If Any Increase In The Number\'s On The Function Day Will Be Charged Extra',
-    'Tax\'s Extra As Applicable',
-    'If It Is 1 Day Function Night Dinner Serving Till 11:00 pm Only',
-    'Please Note That We Will Not Clear Garbage\'s From The Venue , We Will Only Clean & Neatly Pack It In Garbage Covers & Leave It At Designated At Venue',
-    'Any Communication Or Tips During The Event Should Be Menshioned To Our Manager Or Designated In Charge From Our Side',
-    'Timing On Print Are Only For SMC Referance , Please Consider 30mins Later For your Actual Timing Of Service',
-    'Advance Cannot Be Refunded At Any Circumstances'
-  ];
-
-  const termsHeaders = [['#', 'SMC Service Terms & Operational Conditions']];
-  const termsBody = serviceTerms.map((term, idx) => [`${idx + 1}`, term]);
-
-  renderTable(doc, {
-    head: termsHeaders,
-    body: termsBody,
-    startY: 39,
-    theme: 'grid',
-    headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'center' },
-    styles: { fontSize: 8, cellPadding: 2.2, textColor: [30, 30, 30], valign: 'middle' },
-    alternateRowStyles: { fillColor: [253, 248, 237] },
-    margin: { left: 15, right: 15 },
-    columnStyles: {
-      0: { cellWidth: 10, halign: 'center', fontStyle: 'bold', textColor: maroonColor },
-      1: { cellWidth: 170, halign: 'left' }
-    }
-  });
 
   // Footer line on Page 2
   doc.setPage(2);
