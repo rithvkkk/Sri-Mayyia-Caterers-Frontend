@@ -7,23 +7,6 @@ import {
 } from 'lucide-react';
 import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
 
-const FOOD_CATEGORIES = [
-  'SHELL BASED FRESH JUICE',
-  'Mocktails',
-  'Lassi',
-  'Starters',
-  'Soups',
-  'Chaats',
-  'Beverages & Welcome Drinks',
-  'Appetizers, Chaats & Street Food',
-  'Global & Fusion Cuisines',
-  'South Indian Specialties',
-  'North Indian Specialties',
-  'Sides, Accompaniments & Salads',
-  'Desserts, Sweets & Ice Creams',
-  'After-Meal / Traditional Finishers'
-];
-
 const STARTER_CUISINES = ['South Indian', 'North Indian', 'Asian', 'Continental', 'Chinese', 'Vegan'];
 const SOUP_CUISINES = ['Indian', 'Asian', 'Continental'];
 
@@ -424,11 +407,11 @@ const MenuPlanning = () => {
     return Array.from(new Set([...defaultMeals, ...custom]));
   }, [menuCategories]);
 
-  // Available unique categories
-  const dynamicCategories = Array.from(new Set([
-    ...FOOD_CATEGORIES,
-    ...dishes.map(d => d.category).filter(Boolean)
-  ]));
+  // Available unique categories (100% dynamic from MongoDB dishes)
+  const dynamicCategories = useMemo(() => {
+    if (!Array.isArray(dishes)) return [];
+    return Array.from(new Set(dishes.map(d => d.category).filter(Boolean)));
+  }, [dishes]);
 
   const displayedCategories = selectedCategoryTab === 'All'
     ? dynamicCategories
@@ -833,8 +816,7 @@ const MenuPlanning = () => {
                     const catDishes = dishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase() && matchesMealCategory(d, selectedMealCategory));
                     const catCount = catDishes.length;
                     const catSelectedCount = selectedSub.menuItems.filter(id => catDishes.some(d => d.id === id)).length;
-                    const isMainCategory = ['Mocktails', 'Lassi', 'SHELL BASED FRESH JUICE', 'Starters', 'Soups', 'Chaats'].includes(cat);
-                    if (catCount === 0 && !isMainCategory) return null;
+                    if (catCount === 0) return null;
                     return (
                       <button
                         key={cat}
