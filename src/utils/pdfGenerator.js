@@ -85,12 +85,12 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
   }
 
-  // Header Contact Line & Top-Right Banner (Positioned below pre-printed template artwork to avoid overlap)
+  // Header Contact Line & Top-Right Banner (Positioned below pre-printed logo artwork at Y=50+ to avoid overlap)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...charcoalColor);
-  doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}`, 15, 40);
-  doc.text(`Address: ${cpAddress}`, 15, 44);
+  doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}`, 15, 50);
+  doc.text(`Address: ${cpAddress}`, 15, 54);
 
   // Document Type Top-Right Banner
   doc.setFillColor(...maroonColor);
@@ -107,41 +107,41 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
   const evType = ev.eventType || '';
 
-  // Soft Glassmorphic Card Container for Client Info (y=49 to y=71)
+  // Soft Glassmorphic Card Container for Client Info (y=58 to y=80)
   doc.setFillColor(253, 248, 237);
-  doc.roundedRect(15, 49, 180, 22, 2, 2, 'F');
+  doc.roundedRect(15, 58, 180, 22, 2, 2, 'F');
   doc.setDrawColor(210, 180, 130);
   doc.setLineWidth(0.3);
-  doc.roundedRect(15, 49, 180, 22, 2, 2, 'D');
+  doc.roundedRect(15, 58, 180, 22, 2, 2, 'D');
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text(`${t.clientName || 'Client Name'}:`, 19, 56);
+  doc.text(`${t.clientName || 'Client Name'}:`, 19, 65);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(clientName, 45, 56);
+  doc.text(clientName, 45, 65);
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t.eventId || 'Quotation ID'}:`, 19, 64);
+  doc.text(`${t.eventId || 'Quotation ID'}:`, 19, 73);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(evId, 45, 64);
+  doc.text(evId, 45, 73);
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t.eventDate || 'Event Date'}:`, 122, 56);
+  doc.text(`${t.eventDate || 'Event Date'}:`, 122, 65);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(evDate, 148, 56);
+  doc.text(evDate, 148, 65);
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text('Event Type:', 122, 64);
+  doc.text('Event Type:', 122, 73);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(evType, 148, 64);
+  doc.text(evType, 148, 73);
 
   // Table Generation based on report type
   if (type === 'invoice') {
@@ -168,7 +168,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody,
-      startY: 76,
+      startY: 85,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
       styles: { fontSize: 9, cellPadding: 3.5, textColor: [30, 30, 30] },
@@ -278,7 +278,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody.length ? tableBody : [['General Provisions', 'Provisions', '1 batch', formatCurrencyValue(0, curr), formatCurrencyValue(0, curr), 'Local Supplier']],
-      startY: 76,
+      startY: 85,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'left' },
       styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 30, 30] },
@@ -319,7 +319,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
-  doc.text('Thank you for choosing Sri Mayyia Caterers. We look forward to crafting an unforgettable culinary experience.', 15, pageHeight - 11);
+  doc.text('Thank you for choosing Sri Mayyia Caterers.', 15, pageHeight - 11);
   doc.text('Page 1 of 2  |  Generated securely by Sri Mayyia ERP', 195, pageHeight - 11, { align: 'right' });
 
   // PAGE 2: OFFICIAL SERVICE TERMS & BRASS THALI ARTWORK TEMPLATE (page4Terms)
