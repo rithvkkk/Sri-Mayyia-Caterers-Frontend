@@ -265,13 +265,43 @@ export const AppProvider = ({ children }) => {
   };
   
   // Database states driven by MongoDB with resilient local caching
+  // Persistent tombstone set to track deleted events and prevent resurrection/duplication
+  const [deletedEventIds, setDeletedEventIds] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('cater_deleted_event_ids') || '[]');
+      return new Set(Array.isArray(stored) ? stored : []);
+    } catch (e) {
+      return new Set();
+    }
+  });
+
+  const recordDeletedEventId = (id) => {
+    if (!id) return;
+    const cleanId = String(id).trim();
+    setDeletedEventIds(prev => {
+      const next = new Set(prev);
+      next.add(cleanId);
+      try {
+        localStorage.setItem('cater_deleted_event_ids', JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  };
+
   // Operational user records (initialize cleanly as empty [] or from user's real cached records)
   const [venues, setVenues] = useState(() => getSafeLocal('cater_venues', []));
   const [suppliers, setSuppliers] = useState(() => getSafeLocal('cater_suppliers', []));
   const [agencies, setAgencies] = useState(() => getSafeLocal('cater_agencies', []));
   const [events, setEvents] = useState(() => {
     const list = getSafeLocal('cater_events', []);
-    return list.map(e => e.eventType === 'Micro Home Event' ? { ...e, eventType: 'Micro Event' } : e);
+    let deletedIds = new Set();
+    try {
+      const stored = JSON.parse(localStorage.getItem('cater_deleted_event_ids') || '[]');
+      if (Array.isArray(stored)) deletedIds = new Set(stored);
+    } catch (e) {}
+    return list
+      .filter(e => e && !deletedIds.has(e.id) && !deletedIds.has(e._id))
+      .map(e => e.eventType === 'Micro Home Event' ? { ...e, eventType: 'Micro Event' } : e);
   });
   const [vessels, setVessels] = useState(() => getSafeLocal('cater_vessels', []));
   const [provisions, setProvisions] = useState(() => getSafeLocal('cater_provisions', []));
@@ -348,15 +378,9 @@ export const AppProvider = ({ children }) => {
       }
 
       if (Array.isArray(vList)) {
-        setVenues(prevVenues => {
-          const serverIds = new Set(vList.map(v => v.id || v._id));
-          const localOnly = (prevVenues || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id) && !isDemoRecordId(v.id || v._id));
-          if (localOnly.length === 0) return vList;
-          localOnly.forEach(localV => {
-            apiCall('/venues', { method: 'POST', body: JSON.stringify(localV) }).catch(() => {});
-          });
-          return [...vList, ...localOnly];
-        });
+        const cleanVList = vList.filter(v => !isDemoRecordId(v?.id || v?._id));
+        setVenues(cleanVList);
+        try { localStorage.setItem('cater_venues', JSON.stringify(cleanVList)); } catch (e) {}
       }
       if (Array.isArray(rmList) && rmList.length > 0) {
         setRawMaterials(rmList);
@@ -374,44 +398,54 @@ export const AppProvider = ({ children }) => {
         setLaborRates(lrList);
       }
       if (Array.isArray(sList)) {
-        setSuppliers(prevSuppliers => {
-          const serverIds = new Set(sList.map(s => s.id || s._id));
-          const localOnly = (prevSuppliers || []).filter(s => s && (s.id || s._id) && !serverIds.has(s.id || s._id) && !isDemoRecordId(s.id || s._id));
-          if (localOnly.length === 0) return sList;
-          localOnly.forEach(localSup => {
-            apiCall('/suppliers', { method: 'POST', body: JSON.stringify(localSup) }).catch(() => {});
-          });
-          return [...sList, ...localOnly];
-        });
+        const cleanSList = sList.filter(s => !isDemoRecordId(s?.id || s?._id));
+        setSuppliers(cleanSList);
+        try { localStorage.setItem('cater_suppliers', JSON.stringify(cleanSList)); } catch (e) {}
       }
       if (Array.isArray(aList)) {
-        setAgencies(prevAgencies => {
-          const serverIds = new Set(aList.map(a => a.id || a._id));
-          const localOnly = (prevAgencies || []).filter(a => a && (a.id || a._id) && !serverIds.has(a.id || a._id) && !isDemoRecordId(a.id || a._id));
-          if (localOnly.length === 0) return aList;
-          localOnly.forEach(localAg => {
-            apiCall('/agencies', { method: 'POST', body: JSON.stringify(localAg) }).catch(() => {});
-          });
-          return [...aList, ...localOnly];
-        });
+        const cleanAList = aList.filter(a => !isDemoRecordId(a?.id || a?._id));
+        setAgencies(cleanAList);
+        try { localStorage.setItem('cater_agencies', JSON.stringify(cleanAList)); } catch (e) {}
       }
       if (Array.isArray(evList)) {
-        setEvents(prevEvents => {
-          const serverIds = new Set(evList.map(e => e.id || e._id));
-          // Filter out legacy demo mock events; only preserve genuinely user-created offline bookings
-          const localOnly = (prevEvents || []).filter(e => e && (e.id || e._id) && !serverIds.has(e.id || e._id) && !isDemoRecordId(e.id || e._id));
+        let deletedIds = new Set();
+        try {
+          const stored = JSON.parse(localStorage.getItem('cater_deleted_event_ids') || '[]');
+          if (Array.isArray(stored)) deletedIds = new Set(stored);
+        } catch (e) {}
 
-          if (localOnly.length === 0) {
-            return evList;
+        const cleanServerList = evList.filter(e => {
+          if (!e) return false;
+          const eid = e.id || e._id;
+          if (!eid) return false;
+          if (deletedIds.has(eid) || (e.id && deletedIds.has(e.id)) || (e._id && deletedIds.has(e._id))) {
+            // Re-assert delete in background to ensure server drops it if still present
+            apiCall(`/events/${encodeURIComponent(eid)}`, { method: 'DELETE' }).catch(() => {});
+            return false;
           }
-
-          // Re-sync authentic user events created while offline to server in background
-          localOnly.forEach(localEv => {
-            apiCall('/events', { method: 'POST', body: JSON.stringify(localEv) }).catch(() => {});
-          });
-
-          return [...evList, ...localOnly];
+          return !isDemoRecordId(eid);
         });
+
+        const normalizedList = cleanServerList.map(e => ({
+          ...e,
+          id: e.id || e._id,
+          _id: e._id || e.id,
+          eventType: e.eventType === 'Micro Home Event' ? 'Micro Event' : (e.eventType || 'Wedding Reception')
+        }));
+
+        // Deduplicate in memory
+        const uniqueEventsMap = new Map();
+        normalizedList.forEach(e => {
+          if (!uniqueEventsMap.has(e.id)) {
+            uniqueEventsMap.set(e.id, e);
+          }
+        });
+        const finalEvents = Array.from(uniqueEventsMap.values());
+
+        setEvents(finalEvents);
+        try {
+          localStorage.setItem('cater_events', JSON.stringify(finalEvents));
+        } catch (e) {}
       }
       if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
       if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
@@ -452,34 +486,19 @@ export const AppProvider = ({ children }) => {
         });
       }
       if (Array.isArray(vegList)) {
-        setVegetables(prevVeg => {
-          const serverIds = new Set(vegList.map(v => v.id || v._id));
-          const localOnly = (prevVeg || []).filter(v => v && (v.id || v._id) && !serverIds.has(v.id || v._id) && !isDemoRecordId(v.id || v._id));
-          if (localOnly.length === 0) return vegList;
-          localOnly.forEach(localVeg => {
-            apiCall('/vegetables', { method: 'POST', body: JSON.stringify(localVeg) }).catch(() => {});
-          });
-          return [...vegList, ...localOnly];
-        });
+        const cleanVeg = vegList.filter(v => !isDemoRecordId(v?.id || v?._id));
+        setVegetables(cleanVeg);
+        try { localStorage.setItem('cater_vegetables', JSON.stringify(cleanVeg)); } catch (e) {}
       }
       if (Array.isArray(lwList)) {
-        setLabourWorkers(prevLw => {
-          const serverIds = new Set(lwList.map(w => w.id || w._id));
-          const localOnly = (prevLw || []).filter(w => w && (w.id || w._id) && !serverIds.has(w.id || w._id) && !isDemoRecordId(w.id || w._id));
-          if (localOnly.length === 0) return lwList;
-          localOnly.forEach(localW => {
-            apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(localW) }).catch(() => {});
-          });
-          return [...lwList, ...localOnly];
-        });
+        const cleanLw = lwList.filter(w => !isDemoRecordId(w?.id || w?._id));
+        setLabourWorkers(cleanLw);
+        try { localStorage.setItem('cater_labour_workers', JSON.stringify(cleanLw)); } catch (e) {}
       }
       if (Array.isArray(laList)) {
-        setLabourAttendance(prevLa => {
-          const serverIds = new Set(laList.map(a => a.id || a._id));
-          const localOnly = (prevLa || []).filter(a => a && (a.id || a._id) && !serverIds.has(a.id || a._id) && !isDemoRecordId(a.id || a._id));
-          if (localOnly.length === 0) return laList;
-          return [...laList, ...localOnly];
-        });
+        const cleanLa = laList.filter(a => !isDemoRecordId(a?.id || a?._id));
+        setLabourAttendance(cleanLa);
+        try { localStorage.setItem('cater_labour_attendance', JSON.stringify(cleanLa)); } catch (e) {}
       }
       if (Array.isArray(histList)) {
         setHistoricalEvents(histList);
@@ -1137,6 +1156,17 @@ export const AppProvider = ({ children }) => {
     const nextNum = maxNum + 1;
     const newId = `EV-${year}-${String(nextNum).padStart(3, '0')}`;
 
+    // Remove from deletedEventIds tombstone if it was ever marked previously
+    setDeletedEventIds(prev => {
+      if (prev.has(newId)) {
+        const next = new Set(prev);
+        next.delete(newId);
+        try { localStorage.setItem('cater_deleted_event_ids', JSON.stringify(Array.from(next))); } catch (e) {}
+        return next;
+      }
+      return prev;
+    });
+
     const primaryDate = eventDetails.date || (eventDetails.dates && eventDetails.dates[0]) || new Date().toISOString().split('T')[0];
     const eventDates = eventDetails.dates && eventDetails.dates.length > 0 
       ? eventDetails.dates 
@@ -1280,14 +1310,49 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteEvent = async (id) => {
-    setEvents(prev => prev.filter(e => e.id !== id));
+    if (!id) return false;
+    const cleanId = String(id).trim();
+
+    // 1. Mark in tombstone set so polling or focus sync NEVER resurrects it
+    recordDeletedEventId(cleanId);
+
+    // 2. Immediately remove from React state (optimistic)
+    setEvents(prev => (prev || []).filter(e => e && e.id !== cleanId && e._id !== cleanId));
+
+    // 3. Remove from localStorage
     try {
       const stored = JSON.parse(localStorage.getItem('cater_events') || '[]');
       if (Array.isArray(stored)) {
-        localStorage.setItem('cater_events', JSON.stringify(stored.filter(e => e.id !== id)));
+        localStorage.setItem('cater_events', JSON.stringify(stored.filter(e => e && e.id !== cleanId && e._id !== cleanId)));
       }
     } catch (e) {}
-    await apiCall(`/events/${id}`, { method: 'DELETE' });
+
+    // 4. Send DELETE request to backend
+    try {
+      await apiCall(`/events/${encodeURIComponent(cleanId)}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Background deleteEvent error:', err);
+    }
+    return true;
+  };
+
+  const deduplicateEvents = async () => {
+    try {
+      await apiCall('/events/deduplicate', { method: 'POST' });
+    } catch (e) {}
+    setEvents(prev => {
+      const seen = new Map();
+      const unique = [];
+      (prev || []).forEach(e => {
+        const key = `${(e.customer?.name || '').trim().toLowerCase()}|${(e.customer?.phone || '').trim()}|${(e.date || '').trim()}|${(e.eventType || '').trim().toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.set(key, true);
+          unique.push(e);
+        }
+      });
+      try { localStorage.setItem('cater_events', JSON.stringify(unique)); } catch (err) {}
+      return unique;
+    });
   };
 
   // Algorithmic Raw Material Requirements Calculation with 5% standard kitchen wastage buffer
@@ -1581,6 +1646,7 @@ export const AppProvider = ({ children }) => {
       createEvent,
       updateEvent,
       deleteEvent,
+      deduplicateEvents,
       refreshEventTotals,
       calculateEventRawMaterials,
       companyProfile,

@@ -1,7 +1,7 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
@@ -33,6 +33,85 @@ const AuthSetup = () => {
   const effectiveVendorCategories = (vendorCategories && vendorCategories.length > 0) ? vendorCategories : initialVendorCategories;
   const effectiveLabourCategories = (labourCategories && labourCategories.length > 0) ? labourCategories : initialLabourCategories;
   const effectiveMenuCategories = (menuCategories && menuCategories.length > 0) ? menuCategories : initialMenuCategories;
+
+  // Search & Filter States for Menu Dishes & Recipes
+  const [dishSearchTerm, setDishSearchTerm] = useState('');
+  const [dishCategoryFilter, setDishCategoryFilter] = useState('All');
+
+  // Search & Filter States for Raw Materials
+  const [rawMaterialSearchTerm, setRawMaterialSearchTerm] = useState('');
+  const [rawMaterialCategoryFilter, setRawMaterialCategoryFilter] = useState('All');
+
+  // Derived unique categories for Dishes
+  const dishCategoriesList = useMemo(() => {
+    const set = new Set();
+    (dishes || []).forEach(d => {
+      if (d && d.category && d.category.trim()) {
+        set.add(d.category.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [dishes]);
+
+  // Filtered dishes with multi-field search and category filtering
+  const filteredDishes = useMemo(() => {
+    const term = (dishSearchTerm || '').trim().toLowerCase();
+    return (dishes || []).filter(d => {
+      if (!d) return false;
+      const matchesCat = dishCategoryFilter === 'All' || d.category === dishCategoryFilter;
+      if (!matchesCat) return false;
+      if (!term) return true;
+
+      // 1. Match dish name
+      if (d.name && d.name.toLowerCase().includes(term)) return true;
+      // 2. Match category
+      if (d.category && d.category.toLowerCase().includes(term)) return true;
+      // 3. Match cuisine / subCategory
+      if (d.cuisine && d.cuisine.toLowerCase().includes(term)) return true;
+      if (d.subCategory && d.subCategory.toLowerCase().includes(term)) return true;
+      // 4. Match ID
+      if (d.id && String(d.id).toLowerCase().includes(term)) return true;
+      // 5. Match recipe raw material ingredients
+      if (Array.isArray(d.recipe) && d.recipe.length > 0) {
+        const hasIngredientMatch = d.recipe.some(ri => {
+          const mat = (rawMaterials || []).find(rm => rm.id === ri.materialId);
+          return mat && mat.name && mat.name.toLowerCase().includes(term);
+        });
+        if (hasIngredientMatch) return true;
+      }
+
+      return false;
+    });
+  }, [dishes, dishSearchTerm, dishCategoryFilter, rawMaterials]);
+
+  // Derived unique categories for Raw Materials
+  const rawMaterialCategoriesList = useMemo(() => {
+    const set = new Set();
+    (rawMaterials || []).forEach(rm => {
+      if (rm && rm.category && rm.category.trim()) {
+        set.add(rm.category.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rawMaterials]);
+
+  // Filtered raw materials with multi-field search
+  const filteredRawMaterials = useMemo(() => {
+    const term = (rawMaterialSearchTerm || '').trim().toLowerCase();
+    return (rawMaterials || []).filter(rm => {
+      if (!rm) return false;
+      const matchesCat = rawMaterialCategoryFilter === 'All' || rm.category === rawMaterialCategoryFilter;
+      if (!matchesCat) return false;
+      if (!term) return true;
+
+      return (
+        (rm.name && rm.name.toLowerCase().includes(term)) ||
+        (rm.category && rm.category.toLowerCase().includes(term)) ||
+        (rm.unit && rm.unit.toLowerCase().includes(term)) ||
+        (rm.id && String(rm.id).toLowerCase().includes(term))
+      );
+    });
+  }, [rawMaterials, rawMaterialSearchTerm, rawMaterialCategoryFilter]);
 
   // Edit / Add States
   const [editingId, setEditingId] = useState(null);
@@ -284,12 +363,110 @@ const AuthSetup = () => {
       {/* Tab: Raw Materials */}
       {activeTab === 'materials' && (
         <div className="glass-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2>Raw Ingredients & Fuel Master List</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', margin: 0, fontWeight: 800 }}>Raw Ingredients & Fuel Master List</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                Manage base raw inventory ingredients, cost rates, and storage categories used in recipe formulas.
+              </p>
+            </div>
             <button className="btn btn-primary btn-small" onClick={() => createNewItem('material')}>
               <Plus size={16} /> Add Ingredient
             </button>
           </div>
+
+          {/* Search & Category Filter Toolbar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            background: 'rgba(255, 255, 255, 0.55)',
+            padding: '0.75rem 1rem',
+            borderRadius: '10px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '240px', maxWidth: '450px', position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search raw ingredients by name, category, unit..."
+                value={rawMaterialSearchTerm}
+                onChange={e => setRawMaterialSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.45rem 2.2rem 0.45rem 2.1rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  outline: 'none'
+                }}
+              />
+              {rawMaterialSearchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setRawMaterialSearchTerm('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '2px'
+                  }}
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
+              <select
+                value={rawMaterialCategoryFilter}
+                onChange={e => setRawMaterialCategoryFilter(e.target.value)}
+                style={{
+                  padding: '0.45rem 0.65rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.82rem',
+                  outline: 'none'
+                }}
+              >
+                <option value="All">All Categories ({rawMaterials.length})</option>
+                {rawMaterialCategoriesList.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              {(rawMaterialSearchTerm.trim() || rawMaterialCategoryFilter !== 'All') && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  onClick={() => { setRawMaterialSearchTerm(''); setRawMaterialCategoryFilter('All'); }}
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+                >
+                  Reset
+                </button>
+              )}
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                Showing {filteredRawMaterials.length} of {rawMaterials.length} ingredients
+              </span>
+            </div>
+          </div>
+
           <div className="table-container">
             <table className="custom-table">
               <thead>
@@ -302,7 +479,7 @@ const AuthSetup = () => {
                 </tr>
               </thead>
               <tbody>
-                {rawMaterials.map(rm => {
+                {filteredRawMaterials.map(rm => {
                   const isEditing = editingId === rm.id;
                   return (
                     <tr key={rm.id}>
@@ -353,6 +530,29 @@ const AuthSetup = () => {
                     </tr>
                   );
                 })}
+                {filteredRawMaterials.length === 0 && (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                          {rawMaterialSearchTerm.trim() ? (
+                            <>No raw ingredients found matching &ldquo;<strong>{rawMaterialSearchTerm.trim()}</strong>&rdquo;{rawMaterialCategoryFilter !== 'All' ? ` in ${rawMaterialCategoryFilter}` : ''}.</>
+                          ) : (
+                            <>No raw ingredients found in category &ldquo;<strong>{rawMaterialCategoryFilter}</strong>&rdquo;.</>
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          onClick={() => { setRawMaterialSearchTerm(''); setRawMaterialCategoryFilter('All'); }}
+                          style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                        >
+                          Clear Search & Filters
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -363,18 +563,116 @@ const AuthSetup = () => {
       {activeTab === 'dishes' && (
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <h2>Master Dishes Database & Recipes ({dishes.length} Items)</h2>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', margin: 0, fontWeight: 800 }}>Master Dishes Database & Recipes</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                Search master dishes, configure selling rates, kitchen directives, and raw ingredient formulas.
+              </p>
+            </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button className="btn btn-primary btn-small" onClick={() => createNewItem('dish')}>
                 <Plus size={16} /> Add New Dish
               </button>
             </div>
           </div>
+
+          {/* Search & Category Filter Toolbar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            background: 'rgba(255, 255, 255, 0.55)',
+            padding: '0.75rem 1rem',
+            borderRadius: '10px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '240px', maxWidth: '450px', position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search dishes by name, cuisine, ingredients..."
+                value={dishSearchTerm}
+                onChange={e => setDishSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.45rem 2.2rem 0.45rem 2.1rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  outline: 'none'
+                }}
+              />
+              {dishSearchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setDishSearchTerm('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '2px'
+                  }}
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
+              <select
+                value={dishCategoryFilter}
+                onChange={e => setDishCategoryFilter(e.target.value)}
+                style={{
+                  padding: '0.45rem 0.65rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.82rem',
+                  outline: 'none'
+                }}
+              >
+                <option value="All">All Categories ({dishes.length})</option>
+                {dishCategoriesList.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              {(dishSearchTerm.trim() || dishCategoryFilter !== 'All') && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  onClick={() => { setDishSearchTerm(''); setDishCategoryFilter('All'); }}
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+                >
+                  Reset
+                </button>
+              )}
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                Showing {filteredDishes.length} of {dishes.length} dishes
+              </span>
+            </div>
+          </div>
+
           <div className="responsive-grid two-cols">
             
             {/* Left Box: Dishes List */}
-            <div className="table-container" style={{ maxHeight: '580px', overflowY: 'auto', overflowX: 'auto' }}>
-              <table className="custom-table">
+            <div className="table-container" style={{ maxHeight: '620px', overflowY: 'auto', overflowX: 'auto' }}>
+              <table className="custom-table" style={{ width: '100%', minWidth: '420px' }}>
                 <thead>
                   <tr>
                     <th>Dish Name</th>
@@ -385,22 +683,48 @@ const AuthSetup = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {dishes.map(d => {
+                  {filteredDishes.map(d => {
                     const isSelected = editingId === d.id;
                     return (
-                      <tr key={d.id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.04)' : 'transparent' }}>
-                        <td>{d.name}</td>
-                        <td>{d.category}</td>
-                        <td>{companyProfile?.currency || '₹'} {d.price}</td>
-                        <td>{d.recipe ? d.recipe.length : 0} ingredients</td>
+                      <tr key={d.id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'transparent', fontWeight: isSelected ? 600 : 'normal' }}>
                         <td>
-                          <button className="btn btn-secondary btn-small" onClick={() => startEdit(d)}>
-                            <Edit2 size={12} /> Edit Recipe
+                          <div style={{ fontWeight: 600 }}>{d.name}</div>
+                          {d.cuisine && <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{d.cuisine}</div>}
+                        </td>
+                        <td><span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{d.category}</span></td>
+                        <td style={{ fontWeight: 600 }}>{companyProfile?.currency || '₹'} {d.price}</td>
+                        <td>{d.recipe ? d.recipe.length : 0} items</td>
+                        <td>
+                          <button className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'} btn-small`} onClick={() => startEdit(d)}>
+                            <Edit2 size={12} /> {isSelected ? 'Editing' : 'Edit Recipe'}
                           </button>
                         </td>
                       </tr>
                     );
                   })}
+                  {filteredDishes.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                          <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                            {dishSearchTerm.trim() ? (
+                              <>No dishes found matching &ldquo;<strong>{dishSearchTerm.trim()}</strong>&rdquo;{dishCategoryFilter !== 'All' ? ` in ${dishCategoryFilter}` : ''}.</>
+                            ) : (
+                              <>No dishes found in category &ldquo;<strong>{dishCategoryFilter}</strong>&rdquo;.</>
+                            )}
+                          </p>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => { setDishSearchTerm(''); setDishCategoryFilter('All'); }}
+                            style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                          >
+                            Clear Search & Filters
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -499,7 +823,7 @@ const AuthSetup = () => {
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Select Ingredient</span>
                         <select className="form-select" value={selectedMaterialId} onChange={e => setSelectedMaterialId(e.target.value)}>
                           <option value="">Choose...</option>
-                          {rawMaterials.map(rm => (
+                          {[...rawMaterials].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(rm => (
                             <option key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</option>
                           ))}
                         </select>

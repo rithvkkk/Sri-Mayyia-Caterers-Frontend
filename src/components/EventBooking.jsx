@@ -20,6 +20,7 @@ const EventBooking = () => {
     createEvent,
     updateEvent,
     deleteEvent,
+    deduplicateEvents,
     venues,
     companyProfile
   } = useContext(AppContext);
@@ -175,7 +176,17 @@ const EventBooking = () => {
     return keys.map(k => groups[k]);
   }, [processedEvents, groupByMonth, dateSort]);
 
-  const selectedEvent = processedEvents.find(e => e.id === selectedEventId) || processedEvents[0] || events[0];
+  const selectedEvent = processedEvents.find(e => (e.id || e._id) === selectedEventId) || processedEvents[0] || events[0];
+
+  const hasDuplicates = React.useMemo(() => {
+    const seen = new Set();
+    for (const e of events) {
+      const key = `${(e.customer?.name || '').trim().toLowerCase()}|${(e.customer?.phone || '').trim()}|${(e.date || '').trim()}|${(e.eventType || '').trim().toLowerCase()}`;
+      if (key && key !== '|||' && seen.has(key)) return true;
+      seen.add(key);
+    }
+    return false;
+  }, [events]);
 
   // When selected event changes, exit edit mode and close reminder form
   React.useEffect(() => {
@@ -433,14 +444,15 @@ const EventBooking = () => {
 
   const renderEventCard = (e) => {
     const venue = venues.find(v => v.id === e.venueId);
-    const isSelected = selectedEvent?.id === e.id;
+    const eventId = e.id || e._id;
+    const isSelected = (selectedEvent?.id || selectedEvent?._id) === eventId;
     const totalGuests = (e.subFunctions || []).reduce((sum, sf) => sum + (parseInt(sf.guestCount, 10) || 0), 0);
     const eventDatesList = e.dates && e.dates.length > 0 ? e.dates : [e.date];
     const pendingReminders = (e.reminders || []).filter(r => !r.completed);
 
     return (
       <div
-        key={e.id}
+        key={eventId}
         className="event-card"
         style={{
           border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
@@ -450,11 +462,11 @@ const EventBooking = () => {
           padding: '1rem',
           borderRadius: '10px'
         }}
-        onClick={() => setSelectedEventId(e.id)}
+        onClick={() => setSelectedEventId(eventId)}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-primary)' }}>{e.id}</span>
+            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-primary)' }}>{eventId}</span>
             {pendingReminders.length > 0 && (
               <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                 <Bell size={10} /> {pendingReminders.length} reminder{pendingReminders.length > 1 ? 's' : ''}
@@ -655,9 +667,26 @@ const EventBooking = () => {
         {/* Left Column: Events List */}
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
-              Parental Event Records ({processedEvents.length})
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
+                Parental Event Records ({processedEvents.length})
+              </h2>
+              {hasDuplicates && isEditable && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  onClick={async () => {
+                    if (window.confirm('Clean up duplicate event copies? This keeps the primary copy and safely removes redundant duplicates.')) {
+                      await deduplicateEvents();
+                    }
+                  }}
+                  style={{ fontSize: '0.74rem', padding: '0.25rem 0.55rem', color: 'var(--color-primary)' }}
+                  title="Remove duplicate events"
+                >
+                  Clean Duplicates
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.65)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.4rem 0.75rem', minWidth: '220px', flex: '1', maxWidth: '300px' }}>
               <Search size={15} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
               <input
@@ -757,10 +786,13 @@ const EventBooking = () => {
                     </>
                   )}
                   {isEditable && !editDraft && (
-                    <button className="btn btn-danger btn-small" onClick={() => {
-                      if (confirm(`Delete Event ${selectedEvent.id}?`)) {
-                        deleteEvent(selectedEvent.id);
+                    <button className="btn btn-danger btn-small" onClick={async () => {
+                      const targetId = selectedEvent?.id || selectedEvent?._id;
+                      if (!targetId) return;
+                      const clientName = selectedEvent.customer?.name || 'Client';
+                      if (window.confirm(`Delete Event ${targetId} (${clientName})? This will permanently remove the booking.`)) {
                         setSelectedEventId(null);
+                        await deleteEvent(targetId);
                       }
                     }}>
                       <Trash2 size={14} /> Delete
