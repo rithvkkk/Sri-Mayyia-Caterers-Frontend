@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Boxes, Plus, Search, AlertTriangle, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
+import { Boxes, Plus, Search, AlertTriangle, CheckCircle2, Edit2, Trash2, X } from 'lucide-react';
 
 const ProvisionInventory = () => {
   const { provisions = [], addProvision, updateProvision, deleteProvision, suppliers = [], companyProfile, vendorCategories = [] } = useContext(AppContext);
@@ -52,11 +52,21 @@ const ProvisionInventory = () => {
   const lowStockCount = provisions.filter(p => Number(p.stockQty) <= Number(p.reorderLevel)).length;
   const totalValue = provisions.reduce((sum, p) => sum + ((Number(p.stockQty) || 0) * (Number(p.costPerUnit) || 0)), 0);
 
-  const filtered = provisions.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
-    return matchesSearch && matchesCat;
-  });
+  const filtered = useMemo(() => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    return (provisions || []).filter(p => {
+      if (!p) return false;
+      const supName = getSupplierName(p.supplierId).toLowerCase();
+      const matchesSearch = !term ||
+        (p.name && p.name.toLowerCase().includes(term)) ||
+        (p.category && p.category.toLowerCase().includes(term)) ||
+        (p.unit && p.unit.toLowerCase().includes(term)) ||
+        (p.id && String(p.id).toLowerCase().includes(term)) ||
+        supName.includes(term);
+      const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [provisions, searchTerm, categoryFilter, suppliers]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -66,10 +76,12 @@ const ProvisionInventory = () => {
 
     const payload = {
       ...form,
+      name: (form.name || '').trim(),
+      unit: (form.unit || 'kg').trim(),
       category: finalCategory,
-      stockQty: Number(form.stockQty),
-      reorderLevel: Number(form.reorderLevel),
-      costPerUnit: Number(form.costPerUnit)
+      stockQty: Math.max(0, Number(form.stockQty) || 0),
+      reorderLevel: Math.max(0, Number(form.reorderLevel) || 0),
+      costPerUnit: Math.max(0, Number(form.costPerUnit) || 0)
     };
     delete payload.customCategory;
 
@@ -145,12 +157,22 @@ const ProvisionInventory = () => {
 
       {/* Search & Filter */}
       <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
-          <Search size={18} style={{ color: 'var(--text-secondary)' }} />
-          <input type="text" placeholder="Search provisions..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '420px', minWidth: '220px' }}>
+          <Search size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+          <input type="text" placeholder="Search by name, category, unit, supplier..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '0 2px' }}
+              title="Clear search"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Vendor Category:</span>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
             style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}>
@@ -163,9 +185,9 @@ const ProvisionInventory = () => {
       </div>
 
       {/* Table */}
-      <div className="glass-card">
-        <div className="table-container">
-          <table className="custom-table">
+      <div className="glass-card" style={{ overflow: 'hidden' }}>
+        <div className="table-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="custom-table" style={{ width: '100%', minWidth: '780px' }}>
             <thead>
               <tr>
                 <th>Provision Item</th>
@@ -199,7 +221,37 @@ const ProvisionInventory = () => {
                   </tr>
                 );
               })}
-              {filtered.length === 0 && (<tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No provision items found.</td></tr>)}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                      <Boxes size={36} style={{ opacity: 0.35 }} />
+                      <div style={{ fontSize: '0.95rem' }}>
+                        {searchTerm.trim() ? (
+                          <>
+                            No provision items found matching &ldquo;<strong>{searchTerm.trim()}</strong>&rdquo;
+                            {categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}.
+                          </>
+                        ) : categoryFilter !== 'All' ? (
+                          <>No provision items found in category &ldquo;<strong>{categoryFilter}</strong>&rdquo;.</>
+                        ) : (
+                          'No provision items registered in inventory.'
+                        )}
+                      </div>
+                      {(searchTerm.trim() || categoryFilter !== 'All') && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          onClick={() => { setSearchTerm(''); setCategoryFilter('All'); }}
+                          style={{ fontSize: '0.82rem', padding: '0.4rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <X size={14} /> Clear Search & Filters
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -216,7 +268,7 @@ const ProvisionInventory = () => {
                 <input type="text" required placeholder="e.g. Basmati Rice / Cooking Oil" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Vendor Category</label>
                   <select
@@ -246,7 +298,7 @@ const ProvisionInventory = () => {
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Current Stock Qty</label>
                   <input type="number" min="0" required value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: e.target.value })}

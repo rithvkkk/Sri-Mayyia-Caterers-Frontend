@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
   Package,
@@ -17,7 +17,8 @@ import {
   TrendingDown,
   Sparkles,
   Layers,
-  ArrowUpDown
+  ArrowUpDown,
+  X
 } from 'lucide-react';
 
 const Inventory = () => {
@@ -106,34 +107,64 @@ const Inventory = () => {
   const totalInventoryAssetValue = vesselTotalValue + provisionTotalValue + vegetableTotalValue;
 
   // Filtered Datasets
-  const filteredVessels = vessels.filter(v => {
-    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = categoryFilter === 'All' || v.category === categoryFilter;
-    return matchesSearch && matchesCat;
-  });
+  const filteredVessels = useMemo(() => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    return (vessels || []).filter(v => {
+      if (!v) return false;
+      const matchesSearch = !term ||
+        (v.name && v.name.toLowerCase().includes(term)) ||
+        (v.category && v.category.toLowerCase().includes(term)) ||
+        (v.location && v.location.toLowerCase().includes(term)) ||
+        (v.id && String(v.id).toLowerCase().includes(term));
+      const matchesCat = categoryFilter === 'All' || v.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [vessels, searchTerm, categoryFilter]);
 
-  const filteredProvisions = provisions.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
-    return matchesSearch && matchesCat;
-  });
+  const filteredProvisions = useMemo(() => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    return (provisions || []).filter(p => {
+      if (!p) return false;
+      const supName = getSupplierName(p.supplierId).toLowerCase();
+      const matchesSearch = !term ||
+        (p.name && p.name.toLowerCase().includes(term)) ||
+        (p.category && p.category.toLowerCase().includes(term)) ||
+        (p.unit && p.unit.toLowerCase().includes(term)) ||
+        (p.id && String(p.id).toLowerCase().includes(term)) ||
+        supName.includes(term);
+      const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [provisions, searchTerm, categoryFilter, suppliers]);
 
-  const filteredVegetables = vegetables.filter(v => {
-    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = categoryFilter === 'All' || v.category === categoryFilter;
-    return matchesSearch && matchesCat;
-  });
+  const filteredVegetables = useMemo(() => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    return (vegetables || []).filter(v => {
+      if (!v) return false;
+      const supName = getSupplierName(v.supplierId).toLowerCase();
+      const matchesSearch = !term ||
+        (v.name && v.name.toLowerCase().includes(term)) ||
+        (v.category && v.category.toLowerCase().includes(term)) ||
+        (v.unit && v.unit.toLowerCase().includes(term)) ||
+        (v.id && String(v.id).toLowerCase().includes(term)) ||
+        (v.freshnessStatus && v.freshnessStatus.toLowerCase().includes(term)) ||
+        supName.includes(term);
+      const matchesCat = categoryFilter === 'All' || v.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [vegetables, searchTerm, categoryFilter, suppliers]);
 
   // Handle Vessel Submit
   const handleVesselSubmit = (e) => {
     e.preventDefault();
     const payload = {
       ...vesselForm,
-      totalQty: Number(vesselForm.totalQty),
-      availableQty: Number(vesselForm.availableQty),
-      inUseQty: Number(vesselForm.inUseQty),
-      damagedQty: Number(vesselForm.damagedQty),
-      valuePerUnit: Number(vesselForm.valuePerUnit)
+      name: (vesselForm.name || '').trim(),
+      totalQty: Math.max(0, Number(vesselForm.totalQty) || 0),
+      availableQty: Math.max(0, Number(vesselForm.availableQty) || 0),
+      inUseQty: Math.max(0, Number(vesselForm.inUseQty) || 0),
+      damagedQty: Math.max(0, Number(vesselForm.damagedQty) || 0),
+      valuePerUnit: Math.max(0, Number(vesselForm.valuePerUnit) || 0)
     };
 
     if (editingItem) {
@@ -161,9 +192,11 @@ const Inventory = () => {
     e.preventDefault();
     const payload = {
       ...provisionForm,
-      stockQty: Number(provisionForm.stockQty),
-      reorderLevel: Number(provisionForm.reorderLevel),
-      costPerUnit: Number(provisionForm.costPerUnit)
+      name: (provisionForm.name || '').trim(),
+      unit: (provisionForm.unit || 'kg').trim(),
+      stockQty: Math.max(0, Number(provisionForm.stockQty) || 0),
+      reorderLevel: Math.max(0, Number(provisionForm.reorderLevel) || 0),
+      costPerUnit: Math.max(0, Number(provisionForm.costPerUnit) || 0)
     };
 
     if (editingItem) {
@@ -190,8 +223,10 @@ const Inventory = () => {
     e.preventDefault();
     const payload = {
       ...vegetableForm,
-      stockQty: Number(vegetableForm.stockQty),
-      marketPrice: Number(vegetableForm.marketPrice)
+      name: (vegetableForm.name || '').trim(),
+      unit: (vegetableForm.unit || 'kg').trim(),
+      stockQty: Math.max(0, Number(vegetableForm.stockQty) || 0),
+      marketPrice: Math.max(0, Number(vegetableForm.marketPrice) || 0)
     };
 
     if (editingItem) {
@@ -367,18 +402,34 @@ const Inventory = () => {
 
       {/* Search & Category Filter Toolbar */}
       <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
-          <Search size={18} style={{ color: 'var(--text-secondary)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '420px', minWidth: '220px' }}>
+          <Search size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
           <input
             type="text"
-            placeholder={`Search ${activeTab}...`}
+            placeholder={
+              activeTab === 'vessels'
+                ? 'Search vessels, gear, location...'
+                : activeTab === 'provisions'
+                ? 'Search provisions, category, supplier...'
+                : 'Search fresh produce, status, supplier...'
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-primary)', fontSize: '0.9rem' }}
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '0 2px' }}
+              title="Clear search"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
           <select
             value={categoryFilter}
@@ -416,9 +467,9 @@ const Inventory = () => {
 
       {/* TAB CONTENT 1: VESSELS */}
       {activeTab === 'vessels' && (
-        <div className="glass-card">
-          <div className="table-container">
-            <table className="custom-table">
+        <div className="glass-card" style={{ overflow: 'hidden' }}>
+          <div className="table-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="custom-table" style={{ width: '100%', minWidth: '820px' }}>
               <thead>
                 <tr>
                   <th>Vessel / Item Name</th>
@@ -479,8 +530,29 @@ const Inventory = () => {
                 ))}
                 {filteredVessels.length === 0 && (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No vessels or equipment found matching filters.
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                        <Utensils size={36} style={{ opacity: 0.35 }} />
+                        <div style={{ fontSize: '0.95rem' }}>
+                          {searchTerm.trim() ? (
+                            <>No vessels found matching &ldquo;<strong>{searchTerm.trim()}</strong>&rdquo;{categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}.</>
+                          ) : categoryFilter !== 'All' ? (
+                            <>No vessels found in category &ldquo;<strong>{categoryFilter}</strong>&rdquo;.</>
+                          ) : (
+                            'No vessels or equipment registered.'
+                          )}
+                        </div>
+                        {(searchTerm.trim() || categoryFilter !== 'All') && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => { setSearchTerm(''); setCategoryFilter('All'); }}
+                            style={{ fontSize: '0.82rem', padding: '0.4rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <X size={14} /> Clear Search & Filters
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -492,9 +564,9 @@ const Inventory = () => {
 
       {/* TAB CONTENT 2: PROVISIONS */}
       {activeTab === 'provisions' && (
-        <div className="glass-card">
-          <div className="table-container">
-            <table className="custom-table">
+        <div className="glass-card" style={{ overflow: 'hidden' }}>
+          <div className="table-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="custom-table" style={{ width: '100%', minWidth: '780px' }}>
               <thead>
                 <tr>
                   <th>Provision Item</th>
@@ -549,8 +621,29 @@ const Inventory = () => {
                 })}
                 {filteredProvisions.length === 0 && (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No provision items found matching criteria.
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                        <Boxes size={36} style={{ opacity: 0.35 }} />
+                        <div style={{ fontSize: '0.95rem' }}>
+                          {searchTerm.trim() ? (
+                            <>No provisions found matching &ldquo;<strong>{searchTerm.trim()}</strong>&rdquo;{categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}.</>
+                          ) : categoryFilter !== 'All' ? (
+                            <>No provisions found in category &ldquo;<strong>{categoryFilter}</strong>&rdquo;.</>
+                          ) : (
+                            'No provisions registered in inventory.'
+                          )}
+                        </div>
+                        {(searchTerm.trim() || categoryFilter !== 'All') && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => { setSearchTerm(''); setCategoryFilter('All'); }}
+                            style={{ fontSize: '0.82rem', padding: '0.4rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <X size={14} /> Clear Search & Filters
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -562,9 +655,9 @@ const Inventory = () => {
 
       {/* TAB CONTENT 3: VEGETABLES & FRESH PRODUCE */}
       {activeTab === 'vegetables' && (
-        <div className="glass-card">
-          <div className="table-container">
-            <table className="custom-table">
+        <div className="glass-card" style={{ overflow: 'hidden' }}>
+          <div className="table-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="custom-table" style={{ width: '100%', minWidth: '820px' }}>
               <thead>
                 <tr>
                   <th>Vegetable / Produce</th>
@@ -616,8 +709,29 @@ const Inventory = () => {
                 })}
                 {filteredVegetables.length === 0 && (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No vegetable items found.
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                        <Carrot size={36} style={{ opacity: 0.35 }} />
+                        <div style={{ fontSize: '0.95rem' }}>
+                          {searchTerm.trim() ? (
+                            <>No vegetable items found matching &ldquo;<strong>{searchTerm.trim()}</strong>&rdquo;{categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}.</>
+                          ) : categoryFilter !== 'All' ? (
+                            <>No vegetable items found in category &ldquo;<strong>{categoryFilter}</strong>&rdquo;.</>
+                          ) : (
+                            'No vegetable items registered in inventory.'
+                          )}
+                        </div>
+                        {(searchTerm.trim() || categoryFilter !== 'All') && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => { setSearchTerm(''); setCategoryFilter('All'); }}
+                            style={{ fontSize: '0.82rem', padding: '0.4rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <X size={14} /> Clear Search & Filters
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -648,7 +762,7 @@ const Inventory = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
                   <select
@@ -675,7 +789,7 @@ const Inventory = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Total Qty</label>
                   <input
@@ -766,7 +880,7 @@ const Inventory = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
                   <select
@@ -794,7 +908,7 @@ const Inventory = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Current Stock Qty</label>
                   <input
@@ -876,7 +990,7 @@ const Inventory = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category</label>
                   <select
@@ -904,7 +1018,7 @@ const Inventory = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Stock Quantity</label>
                   <input

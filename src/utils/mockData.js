@@ -24,27 +24,69 @@ export const initialVenues = [
 ];
 
 export const initialRawMaterials = [
-  { id: 'rm1', name: 'Basmati Rice', category: 'Grocery', unit: 'kg', costPerUnit: 90 },
-  { id: 'rm2', name: 'Wheat Flour (Atta)', category: 'Grocery', unit: 'kg', costPerUnit: 45 },
-  { id: 'rm3', name: 'Sugar', category: 'Grocery', unit: 'kg', costPerUnit: 40 },
-  { id: 'rm4', name: 'Spices Mix', category: 'Grocery', unit: 'kg', costPerUnit: 350 },
-  { id: 'rm5', name: 'Cooking Oil', category: 'Grocery', unit: 'ltr', costPerUnit: 140 },
-  { id: 'rm6', name: 'Lentils (Dal)', category: 'Grocery', unit: 'kg', costPerUnit: 120 },
-  { id: 'rm7', name: 'Tea Leaves', category: 'Grocery', unit: 'kg', costPerUnit: 280 },
-  { id: 'rm8', name: 'Chinese Sauces', category: 'Grocery', unit: 'ltr', costPerUnit: 95 },
-  { id: 'rm9', name: 'Fresh Paneer', category: 'Dairy', unit: 'kg', costPerUnit: 380 },
-  { id: 'rm10', name: 'Amul Butter', category: 'Dairy', unit: 'kg', costPerUnit: 520 },
-  { id: 'rm11', name: 'Fresh Cream', category: 'Dairy', unit: 'ltr', costPerUnit: 220 },
-  { id: 'rm12', name: 'Full Cream Milk', category: 'Dairy', unit: 'ltr', costPerUnit: 66 },
-  { id: 'rm13', name: 'Khoya (Mawa)', category: 'Dairy', unit: 'kg', costPerUnit: 320 },
-  { id: 'rm14', name: 'Desi Ghee', category: 'Dairy', unit: 'kg', costPerUnit: 650 },
-  { id: 'rm15', name: 'Mixed Vegetables', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 50 },
-  { id: 'rm16', name: 'Onions & Potatoes', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 35 },
-  { id: 'rm17', name: 'Capsicum & Tomato', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 60 },
-  { id: 'rm18', name: 'Mint & Lemon', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 80 },
-  { id: 'rm19', name: 'Assorted Fresh Fruits', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 120 },
-  { id: 'rm20', name: 'LPG Commercial Cylinder', category: 'Fuel', unit: 'cylinder', costPerUnit: 1850 },
-  { id: 'rm21', name: 'Charcoal / Wood', category: 'Fuel', unit: 'bag', costPerUnit: 450 }
+  { id: 'rm1', name: 'Basmati Rice', category: 'Grocery', unit: 'kg', costPerUnit: 90, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 90, unit: 'kg', notes: 'Grade-A Royal Daawat' }
+  ]},
+  { id: 'rm2', name: 'Wheat Flour (Atta)', category: 'Grocery', unit: 'kg', costPerUnit: 45, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 45, unit: 'kg', notes: 'Chakki Fresh Whole Wheat' }
+  ]},
+  { id: 'rm3', name: 'Sugar', category: 'Grocery', unit: 'kg', costPerUnit: 40, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 40, unit: 'kg', notes: 'Refined sulphur-free' }
+  ]},
+  { id: 'rm4', name: 'Spices Mix', category: 'Grocery', unit: 'kg', costPerUnit: 350, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 350, unit: 'kg', notes: 'Whole Garam Masala' }
+  ]},
+  { id: 'rm5', name: 'Cooking Oil', category: 'Grocery', unit: 'ltr', costPerUnit: 140, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 140, unit: 'ltr', notes: 'Refined Sunflower Oil' }
+  ]},
+  { id: 'rm6', name: 'Lentils (Dal)', category: 'Grocery', unit: 'kg', costPerUnit: 120, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 120, unit: 'kg', notes: 'Toor Dal Premium Unpolished' }
+  ]},
+  { id: 'rm7', name: 'Tea Leaves', category: 'Grocery', unit: 'kg', costPerUnit: 280, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 280, unit: 'kg', notes: 'Assam Strong CTC' }
+  ]},
+  { id: 'rm8', name: 'Chinese Sauces', category: 'Grocery', unit: 'ltr', costPerUnit: 95, suppliers: [
+    { supplierId: 's1', supplierName: 'Krishna Grocery Wholesalers', price: 95, unit: 'ltr', notes: 'Dark Soya & Chilli' }
+  ]},
+  { id: 'rm9', name: 'Fresh Paneer', category: 'Dairy', unit: 'kg', costPerUnit: 380, suppliers: [
+    { supplierId: 's2', supplierName: 'Amul Dairy Distributors', price: 380, unit: 'kg', notes: 'Malai Paneer Fresh Daily' }
+  ]},
+  { id: 'rm10', name: 'Amul Butter', category: 'Dairy', unit: 'kg', costPerUnit: 520, suppliers: [
+    { supplierId: 's2', supplierName: 'Amul Dairy Distributors', price: 520, unit: 'kg', notes: 'Table Butter Salted' }
+  ]},
+  { id: 'rm11', name: 'Fresh Cream', category: 'Dairy', unit: 'ltr', costPerUnit: 220, suppliers: [
+    { supplierId: 's2', supplierName: 'Amul Dairy Distributors', price: 220, unit: 'ltr', notes: '25% Milk Fat Cream' }
+  ]},
+  { id: 'rm12', name: 'Full Cream Milk', category: 'Dairy', unit: 'ltr', costPerUnit: 66, suppliers: [
+    { supplierId: 's2', supplierName: 'Amul Dairy Distributors', price: 66, unit: 'ltr', notes: 'Nandini GoodLife / Amul Gold' }
+  ]},
+  { id: 'rm13', name: 'Khoya (Mawa)', category: 'Dairy', unit: 'kg', costPerUnit: 320, suppliers: [
+    { supplierId: 's2', supplierName: 'Amul Dairy Distributors', price: 320, unit: 'kg', notes: 'Hariyali Sweet Mawa' }
+  ]},
+  { id: 'rm14', name: 'Desi Ghee', category: 'Dairy', unit: 'kg', costPerUnit: 650, suppliers: [
+    { supplierId: 's2', supplierName: 'Amul Dairy Distributors', price: 650, unit: 'kg', notes: 'Pure Cow Desi Ghee' }
+  ]},
+  { id: 'rm15', name: 'Mixed Vegetables', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 50, suppliers: [
+    { supplierId: 's3', supplierName: 'Green Market Fresh Produce', price: 50, unit: 'kg', notes: 'Carrot, Beans, Cauliflower' }
+  ]},
+  { id: 'rm16', name: 'Onions & Potatoes', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 35, suppliers: [
+    { supplierId: 's3', supplierName: 'Green Market Fresh Produce', price: 35, unit: 'kg', notes: 'Nasik Red Onions & Agra Aloo' }
+  ]},
+  { id: 'rm17', name: 'Capsicum & Tomato', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 60, suppliers: [
+    { supplierId: 's3', supplierName: 'Green Market Fresh Produce', price: 60, unit: 'kg', notes: 'Green Capsicum & Hybrid Tamatar' }
+  ]},
+  { id: 'rm18', name: 'Mint & Lemon', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 80, suppliers: [
+    { supplierId: 's3', supplierName: 'Green Market Fresh Produce', price: 80, unit: 'kg', notes: 'Fresh Pudina bunches & Juicy Lemons' }
+  ]},
+  { id: 'rm19', name: 'Assorted Fresh Fruits', category: 'Veg/Fruit', unit: 'kg', costPerUnit: 120, suppliers: [
+    { supplierId: 's3', supplierName: 'Green Market Fresh Produce', price: 120, unit: 'kg', notes: 'Apple, Papaya, Pineapple, Grapes' }
+  ]},
+  { id: 'rm20', name: 'LPG Commercial Cylinder', category: 'Fuel', unit: 'cylinder', costPerUnit: 1850, suppliers: [
+    { supplierId: 's4', supplierName: 'HP Commercial Gas Corp', price: 1850, unit: 'cylinder', notes: '19kg Blue Cylinder Refill' }
+  ]},
+  { id: 'rm21', name: 'Charcoal / Wood', category: 'Fuel', unit: 'bag', costPerUnit: 450, suppliers: [
+    { supplierId: 's4', supplierName: 'HP Commercial Gas Corp', price: 450, unit: 'bag', notes: 'High Heat Hardwood Charcoal' }
+  ]}
 ];
 
 import masterMenuData from '../data/catering_master_menu.json' with { type: 'json' };

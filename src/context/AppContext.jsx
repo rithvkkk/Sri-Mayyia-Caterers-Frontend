@@ -708,6 +708,41 @@ export const AppProvider = ({ children }) => {
     await apiCall(`/raw-materials/${id}`, { method: 'DELETE' });
   };
 
+  const linkSupplierToMaterial = async (materialId, supplierPricing) => {
+    const rm = rawMaterials.find(r => r.id === materialId || r._id === materialId);
+    if (!rm) return null;
+    const targetId = rm.id || rm._id;
+    const existingSuppliers = Array.isArray(rm.suppliers) ? [...rm.suppliers] : [];
+    const idx = existingSuppliers.findIndex(s => s.supplierId === supplierPricing.supplierId);
+    if (idx >= 0) {
+      existingSuppliers[idx] = { ...existingSuppliers[idx], ...supplierPricing };
+    } else {
+      existingSuppliers.push(supplierPricing);
+    }
+    const updated = { ...rm, id: targetId, suppliers: existingSuppliers };
+    await updateRawMaterial(updated);
+    // Also sync to backend supplier pricing route
+    apiCall(`/raw-materials/${targetId}/suppliers`, {
+      method: 'POST',
+      body: JSON.stringify(supplierPricing)
+    }).catch(() => {});
+    return updated;
+  };
+
+  const unlinkSupplierFromMaterial = async (materialId, supplierId) => {
+    const rm = rawMaterials.find(r => r.id === materialId || r._id === materialId);
+    if (!rm) return null;
+    const targetId = rm.id || rm._id;
+    const existingSuppliers = Array.isArray(rm.suppliers) ? rm.suppliers.filter(s => s.supplierId !== supplierId) : [];
+    const updated = { ...rm, id: targetId, suppliers: existingSuppliers };
+    await updateRawMaterial(updated);
+    // Also sync to backend
+    apiCall(`/raw-materials/${targetId}/suppliers/${supplierId}`, {
+      method: 'DELETE'
+    }).catch(() => {});
+    return updated;
+  };
+
   const addDish = async (dish) => {
     const payload = { ...dish, id: dish.id || ('d_' + Date.now()) };
     setDishes(prev => [...prev, payload]);
@@ -851,7 +886,7 @@ export const AppProvider = ({ children }) => {
     await apiCall(`/vessels/${id}`, { method: 'DELETE' });
   };
 
-  // Cloud Image Upload (AWS S3)
+  // Cloud Image Upload (Cloudinary / AWS S3)
   const uploadCloudImage = async (dataUrl, fileName = 'vessel.jpg', folder = 'vessels') => {
     try {
       const res = await apiCall('/upload/image', {
@@ -863,7 +898,7 @@ export const AppProvider = ({ children }) => {
       }
       return {
         success: false,
-        error: res?.error || 'Failed to upload image to AWS S3 Cloud Storage.',
+        error: res?.error || 'Failed to upload image to Cloud Storage.',
         configured: res?.configured !== false
       };
     } catch (err) {
@@ -1341,6 +1376,11 @@ export const AppProvider = ({ children }) => {
     const totalGuests = subFunctions.reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
     const subtotal = totalGuests * (parseFloat(event.billing?.pricePerPlate) || 0);
 
+    // Automatic Commission Calculation
+    // Formula: Commission Amount = Base Amount * Commission % / 100
+    const commissionRate = Math.max(0, parseFloat(event.billing?.commissionRate) || 0);
+    const commissionAmount = parseFloat(((subtotal * commissionRate) / 100).toFixed(2));
+
     const isNonGst = event.billing?.taxType === 'NON_GST' || Number(event.billing?.taxRate) === 0;
     const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? parseFloat(event.billing.taxRate) : (companyProfile?.defaultTaxRate || 5));
     const taxAmount = isNonGst ? 0 : (subtotal * taxRate) / 100;
@@ -1362,6 +1402,7 @@ export const AppProvider = ({ children }) => {
       laborCost: parseFloat(laborCost.toFixed(2)),
       transportCost: parseFloat(transportCost.toFixed(2)),
       venueRent,
+      commissionCost: commissionAmount,
       otherExpenses: event.execution.costs?.otherExpenses || 0
     };
 
@@ -1371,6 +1412,8 @@ export const AppProvider = ({ children }) => {
       isInterState: !!event.billing?.isInterState,
       taxRate: isNonGst ? 0 : taxRate,
       subtotal: parseFloat(subtotal.toFixed(2)),
+      commissionRate,
+      commissionAmount,
       taxAmount: parseFloat(taxAmount.toFixed(2)),
       totalAmount: parseFloat(totalAmount.toFixed(2)),
       balanceDue: parseFloat(balanceDue.toFixed(2)),
@@ -1479,6 +1522,8 @@ export const AppProvider = ({ children }) => {
       addRawMaterial,
       updateRawMaterial,
       deleteRawMaterial,
+      linkSupplierToMaterial,
+      unlinkSupplierFromMaterial,
       dishes,
       addDish,
       updateDish,

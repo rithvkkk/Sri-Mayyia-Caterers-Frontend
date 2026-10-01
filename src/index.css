@@ -57,6 +57,15 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html, body {
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+  min-height: 100%;
+}
+
 body {
   background: var(--bg-primary);
   background-image:
@@ -66,7 +75,7 @@ body {
   background-attachment: fixed;
   color: var(--text-primary);
   overflow-x: hidden;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 /* Custom Scrollbars */
@@ -88,7 +97,7 @@ body {
 /* Layout Utilities */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .main-content {
@@ -97,7 +106,7 @@ body {
   padding: 1.5rem;
   padding-top: 5rem;
   padding-bottom: 5rem;
-  min-height: 100vh;
+  min-height: 100%;
   transition: margin-left var(--transition-normal);
 }
 
@@ -596,7 +605,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 20px;
   width: 100%;
   max-width: 600px;
-  max-height: 90vh;
+  max-height: 90%;
   overflow-y: auto;
   box-shadow: var(--shadow-lg), var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.7);
   animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);

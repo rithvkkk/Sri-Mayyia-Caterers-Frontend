@@ -290,11 +290,19 @@ const StorageInventory = () => {
     }
   };
 
-  const filtered = vessels.filter(v => {
-    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = categoryFilter === 'All' || v.category === categoryFilter;
-    return matchesSearch && matchesCat;
-  });
+  const filtered = useMemo(() => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    return (vessels || []).filter(v => {
+      if (!v) return false;
+      const matchesSearch = !term ||
+        (v.name && v.name.toLowerCase().includes(term)) ||
+        (v.category && v.category.toLowerCase().includes(term)) ||
+        (v.location && v.location.toLowerCase().includes(term)) ||
+        (v.id && String(v.id).toLowerCase().includes(term));
+      const matchesCat = categoryFilter === 'All' || v.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [vessels, searchTerm, categoryFilter]);
 
   const handlePhotoUpload = async (e, targetItem = null) => {
     const file = e.target.files?.[0];
@@ -324,7 +332,7 @@ const StorageInventory = () => {
       }
       const dataUrl = await compressImage(file);
 
-      setUploadStatus('Uploading to AWS S3 Cloud...');
+      setUploadStatus('Uploading to Cloud Storage...');
       const uploadRes = await uploadCloudImage(dataUrl, file.name, 'vessels');
 
       setIsCompressing(false);
@@ -334,9 +342,9 @@ const StorageInventory = () => {
       if (uploadRes && uploadRes.success && uploadRes.url) {
         finalPhotoUrl = uploadRes.url;
       } else if (uploadRes && uploadRes.configured === false) {
-        alert('AWS S3 Cloud Storage is not yet configured in backend/.env. The photo has been temporarily saved in local session. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET_NAME in backend/.env for direct AWS S3 storage.');
+        alert('Cloud Storage is not configured in backend/.env. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in backend/.env for cloud photo storage.');
       } else if (uploadRes && uploadRes.error) {
-        alert(`AWS S3 Upload Notice: ${uploadRes.error}. Temporary local preview retained.`);
+        alert(`Cloud Upload Notice: ${uploadRes.error}. Temporary local preview retained.`);
       }
 
       const itemToUpdate = targetItem || photoPreviewItem;
@@ -463,10 +471,20 @@ const StorageInventory = () => {
 
       {/* Search & Filter */}
       <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
-          <Search size={18} style={{ color: 'var(--text-secondary)' }} />
-          <input type="text" placeholder="Search vessels & equipment..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px', minWidth: '220px' }}>
+          <Search size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+          <input type="text" placeholder="Search by name, category, location, ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '0 2px' }}
+              title="Clear search"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
@@ -527,9 +545,9 @@ const StorageInventory = () => {
       )}
 
       {/* Table */}
-      <div className="glass-card">
-        <div className="table-container">
-          <table className="custom-table">
+      <div className="glass-card" style={{ overflow: 'hidden' }}>
+        <div className="table-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="custom-table" style={{ width: '100%', minWidth: '850px' }}>
             <thead>
               <tr>
                 <th style={{ width: '50px', textAlign: 'center' }}>Photo</th>
@@ -599,7 +617,37 @@ const StorageInventory = () => {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (<tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No vessels or equipment found.</td></tr>)}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                      <Utensils size={36} style={{ opacity: 0.35 }} />
+                      <div style={{ fontSize: '0.95rem' }}>
+                        {searchTerm.trim() ? (
+                          <>
+                            No vessels or equipment found matching &ldquo;<strong>{searchTerm.trim()}</strong>&rdquo;
+                            {categoryFilter !== 'All' ? ` in ${categoryFilter}` : ''}.
+                          </>
+                        ) : categoryFilter !== 'All' ? (
+                          <>No vessels or equipment found in category &ldquo;<strong>{categoryFilter}</strong>&rdquo;.</>
+                        ) : (
+                          'No vessels or equipment found in storage inventory.'
+                        )}
+                      </div>
+                      {(searchTerm.trim() || categoryFilter !== 'All') && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          onClick={() => { setSearchTerm(''); setCategoryFilter('All'); }}
+                          style={{ fontSize: '0.82rem', padding: '0.4rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <X size={14} /> Clear Search & Filters
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -616,7 +664,7 @@ const StorageInventory = () => {
                 <input type="text" required placeholder="e.g. Aluminium Degchi (100 Litre)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Category</label>
@@ -656,7 +704,7 @@ const StorageInventory = () => {
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.2rem' }}>Total Qty</label>
                   <input type="number" min="0" required value={form.totalQty} onChange={(e) => setForm({ ...form, totalQty: e.target.value })}

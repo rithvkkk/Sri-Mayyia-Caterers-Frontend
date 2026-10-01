@@ -136,7 +136,7 @@ const AuthSetup = () => {
     } else if (type === 'material') {
       addRawMaterial({ name: 'New Material', category: 'Grocery', unit: 'kg', costPerUnit: 50 });
     } else if (type === 'dish') {
-      addDish({ name: 'New Dish', category: 'Beverages & Welcome Drinks', subCategory: 'General Items', price: 100, recipe: [] });
+      addDish({ name: 'New Dish', category: 'Beverages & Welcome Drinks', subCategory: 'General Items', price: 100, recipe: [], instructions: '' });
     } else if (type === 'supplier') {
       addSupplier({ name: 'New Supplier', category: 'Grocery', contact: 'Name', phone: '+91' });
     } else if (type === 'agency') {
@@ -457,6 +457,17 @@ const AuthSetup = () => {
                       <label className="form-label">A La Carte Selling Price</label>
                       <input className="form-input" type="number" value={tempData.price || ''} onChange={e => setTempData({ ...tempData, price: parseFloat(e.target.value) })} />
                     </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label">Kitchen Directives & Service Instructions</label>
+                    <textarea 
+                      className="form-textarea" 
+                      rows="2"
+                      placeholder="e.g. Serve piping hot with roasted cashews and pure ghee garnish, prepare 30 mins before lunch"
+                      value={tempData.instructions || ''} 
+                      onChange={e => setTempData({ ...tempData, instructions: e.target.value })} 
+                    />
                   </div>
 
                   {/* Recipe builder section */}

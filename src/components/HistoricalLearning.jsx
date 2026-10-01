@@ -18,7 +18,7 @@ import {
   ArrowRight, RefreshCw, BarChart2, IndianRupee, Users, Droplets,
   Calendar, Check, Info, HelpCircle, Save, Upload, FileUp, Database, Download,
   Sliders, MessageSquare, Send, Cpu, Zap, ShoppingCart, Truck, Utensils,
-  Package, List, Box, Flame, Plus, Trash2, ChevronDown, ChevronUp
+  Package, List, Box, Flame, Plus, Trash2, ChevronDown, ChevronUp, X
 } from 'lucide-react';
 
 const HistoricalLearning = () => {
@@ -403,8 +403,8 @@ const HistoricalLearning = () => {
   };
 
   const filteredCatalogDishes = (dishes || []).filter(d => {
-    if (!aiDishSearch.trim()) return true;
-    const term = aiDishSearch.toLowerCase();
+    const term = (aiDishSearch || '').trim().toLowerCase();
+    if (!term) return true;
     return (d.name || '').toLowerCase().includes(term) ||
            (d.category || '').toLowerCase().includes(term) ||
            (d.subCategory || '').toLowerCase().includes(term);
@@ -1110,16 +1110,26 @@ const HistoricalLearning = () => {
               {isDishSelectorOpen && (
                 <div style={{ marginTop: '0.85rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
-                      <Search size={14} style={{ color: 'var(--text-secondary)' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px', position: 'relative' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                       <input
                         type="text"
                         placeholder="Search 374 master catalog dishes (e.g. Biryani, Paneer, Dosa, Payasam)..."
                         className="form-control"
                         value={aiDishSearch}
                         onChange={e => setAiDishSearch(e.target.value)}
-                        style={{ fontSize: '0.82rem', padding: '0.35rem 0.65rem' }}
+                        style={{ fontSize: '0.82rem', padding: '0.35rem 2rem 0.35rem 2rem', width: '100%' }}
                       />
+                      {aiDishSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setAiDishSearch('')}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: 0 }}
+                          title="Clear dish search"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <button

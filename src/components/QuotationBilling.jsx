@@ -89,11 +89,22 @@ const QuotationBilling = () => {
     if (field === 'pricePerPlate' || field === 'advancePaid' || field === 'taxRate') {
       val = parseFloat(value) || 0;
     }
+    if (field === 'commissionRate') {
+      val = Math.max(0, Math.min(100, parseFloat(value) || 0));
+    }
     
     const updatedBilling = {
       ...(currentEvent.billing || {}),
       [field]: val
     };
+
+    // Auto recalculate commission based on updated revenue/rate
+    const platePrice = field === 'pricePerPlate' ? val : (parseFloat(currentEvent.billing?.pricePerPlate) || 800);
+    const subtotal = totalGuests * platePrice;
+    const commRate = field === 'commissionRate' ? val : Math.max(0, parseFloat(currentEvent.billing?.commissionRate) || 0);
+    const commAmount = parseFloat(((subtotal * commRate) / 100).toFixed(2));
+    updatedBilling.commissionRate = commRate;
+    updatedBilling.commissionAmount = commAmount;
 
     if (field === 'taxType') {
       if (value === 'NON_GST') {
@@ -109,7 +120,14 @@ const QuotationBilling = () => {
     
     const updatedEvent = {
       ...currentEvent,
-      billing: updatedBilling
+      billing: updatedBilling,
+      execution: {
+        ...(currentEvent.execution || {}),
+        costs: {
+          ...(currentEvent.execution?.costs || {}),
+          commissionCost: commAmount
+        }
+      }
     };
 
     updateEvent(updatedEvent);
@@ -326,9 +344,16 @@ const QuotationBilling = () => {
   const transportCost = currentEvent ? (currentEvent.transport?.totalTransportCost || currentEvent.execution?.costs?.transportCost || 0) : 0;
   const venueRent = currentEvent ? (currentEvent.execution?.costs?.venueRent || 0) : 0;
   const otherExpenses = currentEvent ? (currentEvent.execution?.costs?.otherExpenses || 0) : 0;
-
-  const totalCost = rawMaterialsCost + laborCost + transportCost + venueRent + otherExpenses;
   const totalGuests = currentEvent ? (currentEvent.subFunctions || []).reduce((sum, sf) => sum + (parseInt(sf?.guestCount, 10) || 0), 0) : 0;
+  const pricePerPlate = currentEvent?.billing?.pricePerPlate || 800;
+  const revenue = totalGuests * pricePerPlate;
+  const commissionRate = Math.max(0, parseFloat(currentEvent?.billing?.commissionRate) || 0);
+  const commissionAmount = parseFloat(((revenue * commissionRate) / 100).toFixed(2));
+  const commissionCost = currentEvent?.execution?.costs?.commissionCost !== undefined
+    ? Number(currentEvent.execution.costs.commissionCost)
+    : commissionAmount;
+
+  const totalCost = rawMaterialsCost + laborCost + transportCost + venueRent + otherExpenses + commissionCost;
   const costPerPlate = totalGuests > 0 ? (totalCost / totalGuests) : 0;
   
   // Customer Bargain Simulator State & Sync
@@ -367,12 +392,10 @@ const QuotationBilling = () => {
   };
 
   // Invoice & Billing Computed Values
-  const pricePerPlate = currentEvent?.billing?.pricePerPlate || 800;
   const advancePaid = currentEvent?.billing?.advancePaid || 0;
   const isGstEnabled = currentEvent?.billing?.taxType !== 'NON_GST';
   const taxRate = isGstEnabled ? (currentEvent?.billing?.taxRate !== undefined ? currentEvent.billing.taxRate : 5) : 0;
   const isInterState = Boolean(currentEvent?.billing?.isInterState);
-  const revenue = totalGuests * pricePerPlate;
   const taxAmount = isGstEnabled ? (revenue * (taxRate / 100)) : 0;
   const cgstAmount = isGstEnabled && !isInterState ? (taxAmount / 2) : 0;
   const sgstAmount = isGstEnabled && !isInterState ? (taxAmount / 2) : 0;
@@ -847,6 +870,39 @@ const QuotationBilling = () => {
                   </div>
                 </div>
 
+                {/* Agency Commission / Brokerage Settings */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>Agency / Booking Commission:</label>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                      {formatCurrency(commissionAmount)}
+                    </span>
+                  </div>
+
+                  <div className="form-row" style={{ margin: 0, alignItems: 'center' }}>
+                    <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Commission Rate (%)</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={currentEvent.billing?.commissionRate ?? 0}
+                        onChange={e => handleBillingChange('commissionRate', e.target.value)}
+                        disabled={!isFinance}
+                        placeholder="e.g. 5"
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0, flex: 1.5 }}>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Formula & Breakdown</label>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', padding: '0.45rem', background: 'rgba(0,0,0,0.03)', borderRadius: '6px' }}>
+                        {formatCurrency(revenue)} × {commissionRate}% = <strong>{formatCurrency(commissionAmount)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Miscellaneous Expenses */}
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Miscellaneous / Venue Overheads</label>
@@ -1068,6 +1124,10 @@ const QuotationBilling = () => {
                   <span style={{ color: 'var(--text-secondary)' }}>Overhead Expenses:</span>
                   <span>{formatCurrency(otherExpenses)}</span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Agency Commission ({commissionRate}%):</span>
+                  <span style={{ color: '#000000', fontWeight: 600 }}>{formatCurrency(commissionAmount)}</span>
+                </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, padding: '0.5rem 0' }}>
                   <span>Total Event Expenses:</span>
@@ -1271,6 +1331,13 @@ const QuotationBilling = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-success)', fontSize: '0.78rem' }}>
                     <span>Taxation Format:</span>
                     <span>0% (Non-GST Commercial Quotation)</span>
+                  </div>
+                )}
+
+                {commissionAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                    <span>• Commission Allocation ({commissionRate}%):</span>
+                    <span>{formatCurrency(commissionAmount)}</span>
                   </div>
                 )}
 
@@ -1680,7 +1747,7 @@ const QuotationBilling = () => {
         <div className="modal-overlay" onClick={closePreview}>
           <div 
             className="modal-content" 
-            style={{ maxWidth: '820px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
+            style={{ maxWidth: '820px', width: '95%', height: '90%', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
             <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

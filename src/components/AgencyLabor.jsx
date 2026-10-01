@@ -471,10 +471,10 @@ const AgencyLabor = () => {
 
   // Filtered Workers
   const filteredWorkers = labourWorkers.filter(w => {
-    const q = searchWorkerTerm.toLowerCase();
-    const matchesSearch = !searchWorkerTerm ||
-      w.name.toLowerCase().includes(q) ||
-      w.phone.includes(searchWorkerTerm) ||
+    const q = (searchWorkerTerm || '').trim().toLowerCase();
+    const matchesSearch = !q ||
+      (w.name && w.name.toLowerCase().includes(q)) ||
+      (w.phone && String(w.phone).includes(q)) ||
       (w.category || '').toLowerCase().includes(q) ||
       (w.role || '').toLowerCase().includes(q);
     const matchesRole = roleFilter === 'All' || w.role === roleFilter;
@@ -668,8 +668,8 @@ const AgencyLabor = () => {
       {activeSubTab === 'directory' && (
         <div>
           <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px' }}>
-              <Search size={18} style={{ color: 'var(--text-secondary)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem 0.85rem', borderRadius: '8px', flexGrow: 1, maxWidth: '400px', minWidth: '220px' }}>
+              <Search size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
               <input
                 type="text"
                 placeholder="Search staff by name or phone..."
@@ -677,6 +677,16 @@ const AgencyLabor = () => {
                 onChange={(e) => setSearchWorkerTerm(e.target.value)}
                 style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-primary)', fontSize: '0.9rem' }}
               />
+              {searchWorkerTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchWorkerTerm('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '0 2px' }}
+                  title="Clear search"
+                >
+                  <LucideX size={16} />
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -1692,7 +1702,7 @@ const AgencyLabor = () => {
       {/* MODAL 4: BULK ATTENDANCE UPLOAD */}
       {isBulkUploadModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card modal-card" style={{ maxWidth: '820px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-card modal-card" style={{ maxWidth: '820px', width: '95%', maxHeight: '90%', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <FileSpreadsheet size={22} className="accent-text" />

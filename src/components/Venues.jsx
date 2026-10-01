@@ -76,11 +76,12 @@ const Venues = () => {
 
   const filteredVenues = useMemo(() => {
     return visibleVenues.filter(venue => {
-      const matchesSearch =
-        (venue.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (venue.venueCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (venue.contactPerson || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (venue.address || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const term = (searchTerm || '').trim().toLowerCase();
+      const matchesSearch = !term ||
+        (venue.name || '').toLowerCase().includes(term) ||
+        (venue.venueCode || '').toLowerCase().includes(term) ||
+        (venue.contactPerson || '').toLowerCase().includes(term) ||
+        (venue.address || '').toLowerCase().includes(term);
 
       const matchesType = filterType === 'ALL' || venue.type === filterType;
 
@@ -245,7 +246,7 @@ const Venues = () => {
             onChange={e => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '9px 12px 9px 38px',
+              padding: '9px 36px 9px 38px',
               borderRadius: '8px',
               border: '1px solid var(--border-color, #D1D5DB)',
               background: 'var(--bg-input, #F9FAFB)',
@@ -253,6 +254,28 @@ const Venues = () => {
               fontSize: '14px'
             }}
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary, #9CA3AF)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px'
+              }}
+              title="Clear search"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -334,20 +357,44 @@ const Venues = () => {
                 ? 'No venues are currently assigned to you or open for booking.'
                 : 'Click "Add Venue" above to register your first banquet hall.'}
           </p>
-          <button
-            onClick={handleOpenAdd}
-            style={{
-              background: 'var(--brand-primary, #9C1519)',
-              color: '#fff',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            Add New Venue
-          </button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {(searchTerm.trim() || filterType !== 'ALL' || filterStatus !== 'ALL' || filterCapacity !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterType('ALL');
+                  setFilterStatus('ALL');
+                  setFilterCapacity('ALL');
+                }}
+                style={{
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color, #D1D5DB)',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Clear Search & Filters
+              </button>
+            )}
+            <button
+              onClick={handleOpenAdd}
+              style={{
+                background: 'var(--brand-primary, #9C1519)',
+                color: '#fff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              Add New Venue
+            </button>
+          </div>
         </div>
       ) : (
         <div style={{
@@ -574,7 +621,7 @@ const Venues = () => {
             borderRadius: '16px',
             width: '100%',
             maxWidth: '620px',
-            maxHeight: '90vh',
+            maxHeight: '90%',
             overflowY: 'auto',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
             border: '1px solid var(--border-color, #E5E7EB)'

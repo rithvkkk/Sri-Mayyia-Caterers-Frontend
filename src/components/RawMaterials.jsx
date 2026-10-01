@@ -479,7 +479,7 @@ const RawMaterials = () => {
         <div className="modal-overlay" onClick={closePreview}>
           <div
             className="modal-content"
-            style={{ maxWidth: '780px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
+            style={{ maxWidth: '780px', maxHeight: '92%', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}

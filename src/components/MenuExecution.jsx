@@ -238,6 +238,12 @@ const MenuExecution = () => {
                       <span>Status: <strong style={{ color: 'var(--color-warning)' }}>{d.status}</strong></span>
                     </div>
 
+                    {d.instructions && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.35rem', background: 'rgba(0,0,0,0.03)', padding: '0.25rem 0.45rem', borderRadius: '4px', fontStyle: 'italic' }}>
+                        <strong style={{ color: 'var(--color-primary)' }}>Chef Note:</strong> {d.instructions}
+                      </div>
+                    )}
+
                     {/* Routing selection controls */}
                     {isOps && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
@@ -304,6 +310,12 @@ const MenuExecution = () => {
                       <span style={{ color: 'var(--color-primary)' }}>Cooking...</span>
                     </div>
 
+                    {d.instructions && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.35rem', background: 'rgba(0,0,0,0.03)', padding: '0.25rem 0.45rem', borderRadius: '4px', fontStyle: 'italic' }}>
+                        <strong style={{ color: 'var(--color-primary)' }}>Chef Note:</strong> {d.instructions}
+                      </div>
+                    )}
+
                     {/* Quick back promotion */}
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', gap: '0.35rem' }}>
                       <button className="btn btn-secondary btn-small" style={{ flexGrow: 1, padding: '0.2rem', fontSize: '0.7rem' }} onClick={() => handleStatusChange(d.id, 'Prep')}>
@@ -347,6 +359,12 @@ const MenuExecution = () => {
                       <span>Headcount: {d.totalPax} Pax</span>
                       <span>Served Status: <strong style={{ color: 'var(--color-success)' }}>{d.status}</strong></span>
                     </div>
+
+                    {d.instructions && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.35rem', background: 'rgba(0,0,0,0.03)', padding: '0.25rem 0.45rem', borderRadius: '4px', fontStyle: 'italic' }}>
+                        <strong style={{ color: 'var(--color-primary)' }}>Chef Note:</strong> {d.instructions}
+                      </div>
+                    )}
 
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', gap: '0.35rem' }}>
                       <button className="btn btn-secondary btn-small" style={{ flexGrow: 1, padding: '0.2rem', fontSize: '0.7rem' }} onClick={() => handleStatusChange(d.id, 'Cooking')}>

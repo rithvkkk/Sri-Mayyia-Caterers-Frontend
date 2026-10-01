@@ -691,8 +691,18 @@ const getDiningOrderIndex = (catName) => {
                       placeholder="Search dishes..."
                       value={dishSearchTerm}
                       onChange={e => setDishSearchTerm(e.target.value)}
-                      style={{ paddingLeft: '2rem', fontSize: '0.8rem', padding: '0.35rem 0.6rem 0.35rem 2rem' }}
+                      style={{ paddingLeft: '2rem', paddingRight: dishSearchTerm ? '1.8rem' : '0.6rem', fontSize: '0.8rem', padding: '0.35rem 0.6rem 0.35rem 2rem' }}
                     />
+                    {dishSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setDishSearchTerm('')}
+                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: 0 }}
+                        title="Clear dish search"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
                   </div>
                   <span className="badge badge-info">{selectedSub.date || currentEvent.date}</span>
                   <button
@@ -887,13 +897,15 @@ const getDiningOrderIndex = (catName) => {
 
               {/* Categorized Dishes Rendering */}
               {displayedCategories.map(cat => {
+                const term = (dishSearchTerm || '').trim().toLowerCase();
                 const catDishes = dishes
                   .filter(d => {
                     const matchesCat = (d.category || '').toLowerCase() === cat.toLowerCase();
                     const matchesMeal = matchesMealCategory(d, selectedMealCategory);
-                    const matchesSearch = !dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase()) || 
-                      (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.toLowerCase())) ||
-                      (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.toLowerCase()));
+                    const matchesSearch = !term || 
+                      d.name.toLowerCase().includes(term) || 
+                      (d.subCategory && d.subCategory.toLowerCase().includes(term)) ||
+                      (d.cuisine && d.cuisine.toLowerCase().includes(term));
                     return matchesCat && matchesMeal && matchesSearch;
                   })
                   .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -1038,6 +1050,12 @@ const getDiningOrderIndex = (catName) => {
                                         </span>
                                       )}
                                     </div>
+                                    {dish.instructions && (
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.3rem', fontStyle: 'italic', display: 'flex', alignItems: 'flex-start', gap: '0.25rem' }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--color-primary)', flexShrink: 0 }}>Instructions:</span>
+                                        <span>{dish.instructions}</span>
+                                      </div>
+                                    )}
                                   </div>
                                   {isSelected && (
                                     <span style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -1056,9 +1074,14 @@ const getDiningOrderIndex = (catName) => {
               })}
 
               {/* No dishes match search */}
-              {displayedCategories.every(cat => !dishes.some(d => d.category === cat && (!dishSearchTerm || d.name.toLowerCase().includes(dishSearchTerm.toLowerCase())))) && (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  No dishes found matching "{dishSearchTerm}".
+              {displayedCategories.every(cat => !dishes.some(d => d.category === cat && (!dishSearchTerm.trim() || d.name.toLowerCase().includes(dishSearchTerm.trim().toLowerCase()) || (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.trim().toLowerCase())) || (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.trim().toLowerCase()))))) && (
+                <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  <p style={{ margin: '0 0 0.5rem 0' }}>No dishes found matching "{dishSearchTerm.trim()}".</p>
+                  {dishSearchTerm.trim() && (
+                    <button className="btn btn-secondary btn-small" onClick={() => setDishSearchTerm('')}>
+                      Clear Search
+                    </button>
+                  )}
                 </div>
               )}
 

@@ -50,6 +50,7 @@ const EventBooking = () => {
   const [additionalDates, setAdditionalDates] = useState([]);
   const [newDateInput, setNewDateInput] = useState('');
   const [pricePerPlate, setPricePerPlate] = useState('');
+  const [commissionRate, setCommissionRate] = useState('');
   
   // Subfunctions builder in form
   const [subFunctionsList, setSubFunctionsList] = useState([
@@ -107,8 +108,8 @@ const EventBooking = () => {
     })
     // 3. Search Query Filter
     .filter(e => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
+      const q = (searchQuery || '').trim().toLowerCase();
+      if (!q) return true;
       return (
         (e.customer?.name || '').toLowerCase().includes(q) ||
         (e.customer?.phone || '').includes(q) ||
@@ -307,6 +308,11 @@ const EventBooking = () => {
         date: primaryDate,
         dates: allDates,
         pricePerPlate: parseFloat(pricePerPlate) || 800,
+        billing: {
+          pricePerPlate: parseFloat(pricePerPlate) || 800,
+          commissionRate: Math.max(0, Math.min(100, parseFloat(commissionRate) || 0)),
+          commissionAmount: 0
+        },
         reminders: [],
         subFunctions: subFunctionsList.map((sf, idx) => ({
           id: `sf-${Date.now()}-${idx}`,
@@ -331,6 +337,7 @@ const EventBooking = () => {
       setAdditionalDates([]);
       setNewDateInput('');
       setPricePerPlate('');
+      setCommissionRate('');
       setSubFunctionsList([{ name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }]);
       setShowCreateModal(false);
       if (newId) setSelectedEventId(newId);
@@ -925,6 +932,53 @@ const EventBooking = () => {
                 )}
               </div>
 
+              {/* Financial & Commission Summary */}
+              {selectedEvent && (
+                <div style={{ padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.55)', border: '1px solid var(--border-color)', borderRadius: '10px', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary)' }}>Financial & Billing Overview</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      ₹{selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800}/plate
+                    </span>
+                  </div>
+                  {(() => {
+                    const guestsCount = (selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
+                      ? selectedEvent.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
+                      : (parseInt(selectedEvent.guestCount, 10) || 0);
+                    const platePrice = selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800;
+                    const subtotal = guestsCount * platePrice;
+                    const commRate = selectedEvent.billing?.commissionRate || 0;
+                    const commAmt = selectedEvent.billing?.commissionAmount !== undefined
+                      ? selectedEvent.billing.commissionAmount
+                      : ((subtotal * commRate) / 100);
+
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Total Guests</span>
+                          <strong>{guestsCount} Pax</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Est. Subtotal</span>
+                          <strong>₹{subtotal.toLocaleString('en-IN')}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Commission</span>
+                          <strong>
+                            {commRate}%
+                            {commRate > 0 ? ` (₹${Number(commAmt).toLocaleString('en-IN')})` : ''}
+                          </strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Advance Paid</span>
+                          <strong style={{ color: 'var(--color-success)' }}>₹{(selectedEvent.billing?.advancePaid || 0).toLocaleString('en-IN')}</strong>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Sub-functions */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -938,8 +992,12 @@ const EventBooking = () => {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
                           <span>{sf.date || selectedEvent.date}</span>
                           <span>{(sf.menuItems || []).length} Dishes</span>
-                          {sf.clientNotes && <span style={{ color: '#000000' }}>Special Instructions</span>}
                         </div>
+                        {sf.clientNotes && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.35rem', fontStyle: 'italic', background: 'rgba(156,21,25,0.04)', padding: '0.25rem 0.5rem', borderRadius: '4px', borderLeft: '2px solid var(--color-primary)' }}>
+                            <strong style={{ color: 'var(--color-primary)' }}>Instructions:</strong> {sf.clientNotes}
+                          </div>
+                        )}
                       </div>
                       <span className="badge badge-info">{sf.guestCount} Pax</span>
                     </div>
@@ -1172,7 +1230,7 @@ const EventBooking = () => {
               <button type="button" className="btn btn-secondary btn-small" onClick={() => setShowCreateModal(false)}><X size={14} /></button>
             </div>
             
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '68vh', overflowY: 'auto' }}>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '75%', overflowY: 'auto' }}>
               <div className="form-group">
                 <label className="form-label">Client Full Name</label>
                 <input className="form-input" placeholder="e.g. Anil Patel" value={clientName} onChange={e => setClientName(e.target.value)} required />
@@ -1248,6 +1306,10 @@ const EventBooking = () => {
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>Billing Price per Plate ({companyProfile?.currency || '₹'})</label>
                     <input className="form-input" type="number" placeholder="800" value={pricePerPlate} onChange={e => setPricePerPlate(e.target.value)} />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Agency Commission (%)</label>
+                    <input className="form-input" type="number" min="0" max="100" step="0.1" placeholder="0" value={commissionRate} onChange={e => setCommissionRate(e.target.value)} />
                   </div>
                 </div>
 

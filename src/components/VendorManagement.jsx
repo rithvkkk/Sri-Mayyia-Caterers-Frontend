@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, generateSupplierPO, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import { initialVendorCategories } from '../utils/mockData';
-import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag } from 'lucide-react';
+import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag, ChevronDown, ChevronRight, Layers, Package, IndianRupee } from 'lucide-react';
 
 const VendorManagement = () => {
   const {
@@ -14,6 +14,8 @@ const VendorManagement = () => {
     addRawMaterial,
     updateRawMaterial,
     deleteRawMaterial,
+    linkSupplierToMaterial,
+    unlinkSupplierFromMaterial,
     addSupplier,
     updateSupplier,
     deleteSupplier,
@@ -35,6 +37,25 @@ const VendorManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [processingPoId, setProcessingPoId] = useState(null);
 
+  // Expandable row states
+  const [expandedSupplierId, setExpandedSupplierId] = useState(null);
+  const [expandedMaterialId, setExpandedMaterialId] = useState(null);
+
+  // Link Supplier <-> Material Modal state
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkTarget, setLinkTarget] = useState(null); // { type: 'supplier'|'material', target }
+  const [linkForm, setLinkForm] = useState({
+    materialId: '',
+    supplierId: '',
+    price: '',
+    unit: '',
+    notes: ''
+  });
+
+  // Inline supplier-material price editing
+  const [editingVendorPriceKey, setEditingVendorPriceKey] = useState(null); // `${matId}_${supId}`
+  const [editingVendorPriceVal, setEditingVendorPriceVal] = useState('');
+
   useEffect(() => {
     if (events && events.length > 0) {
       if (!selectedEventId || !events.some(e => e.id === selectedEventId)) {
@@ -43,7 +64,7 @@ const VendorManagement = () => {
     }
   }, [events, selectedEventId]);
   
-  // Inline price editing
+  // Inline price editing for master raw material
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [editingPriceValue, setEditingPriceValue] = useState('');
 
@@ -126,10 +147,31 @@ const VendorManagement = () => {
 
   const materialCategories = useMemo(() => ['All', ...allMaterialCategories], [allMaterialCategories]);
 
+  // === SUPPLIER & MATERIAL RELATIONSHIP HELPERS ===
+  const getMaterialsForSupplier = (supplierId) => {
+    const sId = String(supplierId);
+    return rawMaterials.filter(rm =>
+      Array.isArray(rm.suppliers) && rm.suppliers.some(sp => String(sp.supplierId) === sId)
+    ).map(rm => {
+      const pricing = rm.suppliers.find(sp => String(sp.supplierId) === sId);
+      return {
+        ...rm,
+        supplierPrice: pricing?.price !== undefined ? pricing.price : rm.costPerUnit,
+        supplierUnit: pricing?.unit || rm.unit,
+        supplierNotes: pricing?.notes || '',
+        isDefault: pricing?.isDefault || false
+      };
+    });
+  };
+
   const filteredMaterials = rawMaterials.filter(m => {
     if (!m) return false;
     const term = (searchTerm || '').trim().toLowerCase();
-    const matchesSearch = !term || (m.name || '').toLowerCase().includes(term);
+    const matchesSearch = !term ||
+      (m.name || '').toLowerCase().includes(term) ||
+      (m.category || '').toLowerCase().includes(term) ||
+      (m.unit || '').toLowerCase().includes(term) ||
+      (Array.isArray(m.suppliers) && m.suppliers.some(s => (s.supplierName || '').toLowerCase().includes(term)));
     const matchesCat = activeCatFilter === 'All' || (m.category || '').toLowerCase() === activeCatFilter.toLowerCase();
     return matchesSearch && matchesCat;
   });
@@ -207,6 +249,13 @@ const VendorManagement = () => {
     const sCat = s.category || 'Uncategorized';
     const sSub = s.subCategory || '';
     const sStatus = s.status || (s.active !== false ? 'Active' : 'Inactive');
+    const sId = String(s.id || s._id);
+
+    // Also match names of materials supplied by this vendor
+    const suppliedMaterials = rawMaterials.filter(rm =>
+      Array.isArray(rm.suppliers) && rm.suppliers.some(sp => String(sp.supplierId) === sId)
+    );
+    const suppliedMatNames = suppliedMaterials.map(rm => (rm.name || '').toLowerCase()).join(' ');
 
     const matchesSearch = !term ||
       (s.name && s.name.toLowerCase().includes(term)) ||
@@ -214,7 +263,8 @@ const VendorManagement = () => {
       sSub.toLowerCase().includes(term) ||
       (s.phone && s.phone.toLowerCase().includes(term)) ||
       (s.contact && s.contact.toLowerCase().includes(term)) ||
-      (s.address && s.address.toLowerCase().includes(term));
+      (s.address && s.address.toLowerCase().includes(term)) ||
+      suppliedMatNames.includes(term);
 
     const matchesCat = supplierCatFilter === 'All' || sCat === supplierCatFilter;
     const matchesStatus = supplierStatusFilter === 'All' || sStatus === supplierStatusFilter;
@@ -278,6 +328,77 @@ const VendorManagement = () => {
     setEditingSupplier(null);
   };
 
+  // === LINKING MODAL ACTIONS ===
+  const openLinkModal = (type, target) => {
+    setLinkTarget({ type, target });
+    if (type === 'supplier') {
+      const firstMat = rawMaterials[0];
+      setLinkForm({
+        materialId: firstMat ? (firstMat.id || firstMat._id) : '',
+        supplierId: target.id || target._id,
+        price: firstMat ? (firstMat.costPerUnit || '') : '',
+        unit: firstMat ? (firstMat.unit || 'kg') : 'kg',
+        notes: ''
+      });
+    } else {
+      const firstSup = suppliers[0];
+      setLinkForm({
+        materialId: target.id || target._id,
+        supplierId: firstSup ? (firstSup.id || firstSup._id) : '',
+        price: target.costPerUnit || '',
+        unit: target.unit || 'kg',
+        notes: ''
+      });
+    }
+    setIsLinkModalOpen(true);
+  };
+
+  const handleLinkSubmit = async (e) => {
+    e.preventDefault();
+    const priceNum = parseFloat(linkForm.price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+    const sup = suppliers.find(s => String(s.id || s._id) === String(linkForm.supplierId));
+    const targetMat = rawMaterials.find(r => String(r.id || r._id) === String(linkForm.materialId));
+    const supplierPricing = {
+      supplierId: String(linkForm.supplierId),
+      supplierName: sup?.name || 'Supplier',
+      price: priceNum,
+      unit: linkForm.unit || targetMat?.unit || 'kg',
+      notes: (linkForm.notes || '').trim()
+    };
+    await linkSupplierToMaterial(linkForm.materialId, supplierPricing);
+    setIsLinkModalOpen(false);
+  };
+
+  const handleUnlink = async (materialId, supplierId) => {
+    if (window.confirm('Are you sure you want to remove this vendor pricing link?')) {
+      await unlinkSupplierFromMaterial(materialId, supplierId);
+    }
+  };
+
+  const handleSaveVendorPrice = async (materialId, supplierId, newPrice) => {
+    const p = parseFloat(newPrice);
+    if (isNaN(p) || p < 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+    const rm = rawMaterials.find(r => (r.id || r._id) === materialId);
+    const sup = suppliers.find(s => String(s.id || s._id) === String(supplierId));
+    const existing = rm?.suppliers?.find(sp => String(sp.supplierId) === String(supplierId));
+    await linkSupplierToMaterial(materialId, {
+      supplierId: String(supplierId),
+      supplierName: existing?.supplierName || sup?.name || 'Supplier',
+      price: p,
+      unit: existing?.unit || rm?.unit || 'kg',
+      notes: existing?.notes || ''
+    });
+    setEditingVendorPriceKey(null);
+    setEditingVendorPriceVal('');
+  };
+
   // === ALLOCATION (Event Materials) FUNCTIONS ===
   const materialList = currentEvent?.manualMaterials || [];
   const allocationCategories = ['All', 'Grocery', 'Dairy', 'Veg/Fruit', 'Fuel'];
@@ -303,15 +424,20 @@ const VendorManagement = () => {
       alert('Please fill out all fields.');
       return;
     }
-    const rm = rawMaterials.find(r => r.id === newMaterial.rawMaterialId);
-    const sup = suppliers.find(s => s.id === newMaterial.supplierId);
+    const rm = rawMaterials.find(r => (r.id || r._id) === newMaterial.rawMaterialId);
+    const sup = suppliers.find(s => (s.id || s._id) === newMaterial.supplierId);
     if (!rm || !sup) return;
-    const totalCost = parseFloat(newMaterial.requiredQty) * rm.costPerUnit;
+
+    // Check if supplier has custom pricing for this raw material
+    const supPricing = rm.suppliers?.find(sp => String(sp.supplierId) === String(sup.id || sup._id));
+    const unitPrice = supPricing && supPricing.price > 0 ? Number(supPricing.price) : Number(rm.costPerUnit);
+    const totalCost = parseFloat(newMaterial.requiredQty) * unitPrice;
+
     const manualMat = {
       name: rm.name, category: rm.category,
-      requiredQty: parseFloat(newMaterial.requiredQty), unit: rm.unit,
-      costPerUnit: rm.costPerUnit, totalCost,
-      supplier: { _id: sup.id, name: sup.name, contact: sup.phone || sup.contact || '', category: sup.category }
+      requiredQty: parseFloat(newMaterial.requiredQty), unit: supPricing?.unit || rm.unit,
+      costPerUnit: unitPrice, totalCost,
+      supplier: { _id: sup.id || sup._id, name: sup.name, contact: sup.phone || sup.contact || '', category: sup.category }
     };
     const updatedEvent = { ...currentEvent, manualMaterials: [...materialList, manualMat] };
     
@@ -319,7 +445,6 @@ const VendorManagement = () => {
     setNewMaterial({ rawMaterialId: '', requiredQty: '', supplierId: '' });
     
     // Trigger synchronous finance calculation & background sync
-    updateEvent(updatedEvent);
   };
 
   const handleRemoveMaterial = (indexToRemove) => {
@@ -578,74 +703,254 @@ const VendorManagement = () => {
             <table className="custom-table">
               <thead>
                 <tr>
+                  <th style={{ width: '30px' }}></th>
                   <th>Material Name</th>
                   <th>Category</th>
                   <th>Unit</th>
-                  <th>Cost / Unit</th>
+                  <th>Master Base Cost</th>
+                  <th>Linked Suppliers & Pricing</th>
                   {isOps && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredMaterials.map(m => {
                   const matId = m.id || m._id;
+                  const isExpanded = expandedMaterialId === matId;
+                  const suppliersList = Array.isArray(m.suppliers) ? m.suppliers : [];
+
                   return (
-                    <tr key={matId}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {matId}</div>
-                      </td>
-                      <td><span className="badge badge-info">{m.category}</span></td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{m.unit}</td>
-                      <td>
-                        {editingPriceId === matId ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={editingPriceValue}
-                              onChange={(e) => setEditingPriceValue(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') handlePriceSave(m); if (e.key === 'Escape') handlePriceCancel(); }}
-                              autoFocus
-                              style={{ width: '80px', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--color-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
-                            />
-                            <button onClick={() => handlePriceSave(m)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-success)', display: 'flex' }}>
-                              <Check size={16} />
-                            </button>
-                            <button onClick={handlePriceCancel} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', display: 'flex' }}>
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            style={{ fontWeight: 600, cursor: isOps ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                            onClick={() => isOps && handlePriceEdit(matId, m.costPerUnit)}
-                            title={isOps ? 'Click to edit price' : ''}
-                          >
-                            {formatCurrency(m.costPerUnit)} / {m.unit}
-                            {isOps && <Edit2 size={12} style={{ opacity: 0.4 }} />}
-                          </div>
-                        )}
-                      </td>
-                      {isOps && (
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                            <button className="btn btn-secondary btn-small" onClick={() => openMaterialForm(m)} title="Edit Material">
-                              <Edit2 size={14} />
-                            </button>
-                            <button className="btn btn-secondary btn-small" onClick={() => deleteRawMaterial(matId)} style={{ color: 'var(--color-danger)' }} title="Delete Material">
-                              <Trash2 size={14} />
-                            </button>
+                    <React.Fragment key={matId}>
+                      <tr>
+                        <td style={{ width: '30px', textAlign: 'center', cursor: 'pointer' }} onClick={() => setExpandedMaterialId(isExpanded ? null : matId)}>
+                          {suppliersList.length > 0 ? (
+                            isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>•</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {matId}</div>
+                        </td>
+                        <td><span className="badge badge-info">{m.category}</span></td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{m.unit}</td>
+                        <td>
+                          {editingPriceId === matId ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={editingPriceValue}
+                                onChange={(e) => setEditingPriceValue(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handlePriceSave(m); if (e.key === 'Escape') handlePriceCancel(); }}
+                                autoFocus
+                                style={{ width: '80px', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--color-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                              />
+                              <button onClick={() => handlePriceSave(m)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-success)', display: 'flex' }}>
+                                <Check size={16} />
+                              </button>
+                              <button onClick={handlePriceCancel} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', display: 'flex' }}>
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              style={{ fontWeight: 600, cursor: isOps ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                              onClick={() => isOps && handlePriceEdit(matId, m.costPerUnit)}
+                              title={isOps ? 'Click to edit base price' : ''}
+                            >
+                              {formatCurrency(m.costPerUnit)} / {m.unit}
+                              {isOps && <Edit2 size={12} style={{ opacity: 0.4 }} />}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                            {suppliersList.map(sp => (
+                              <span
+                                key={sp.supplierId}
+                                className="badge"
+                                style={{
+                                  background: 'rgba(156, 21, 25, 0.08)',
+                                  border: '1px solid rgba(156, 21, 25, 0.25)',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.75rem',
+                                  padding: '0.2rem 0.5rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem'
+                                }}
+                              >
+                                <strong>{sp.supplierName}:</strong> {formatCurrency(sp.price)}/{sp.unit || m.unit}
+                              </span>
+                            ))}
+                            {suppliersList.length === 0 && (
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                Master catalog price only
+                              </span>
+                            )}
+                            {isOps && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-small"
+                                onClick={() => openLinkModal('material', m)}
+                                style={{ padding: '0.15rem 0.4rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                                title="Link a supplier with vendor-specific price"
+                              >
+                                <Plus size={12} /> Link Vendor
+                              </button>
+                            )}
                           </div>
                         </td>
+                        {isOps && (
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                              <button className="btn btn-secondary btn-small" onClick={() => openMaterialForm(m)} title="Edit Material">
+                                <Edit2 size={14} />
+                              </button>
+                              <button className="btn btn-secondary btn-small" onClick={() => deleteRawMaterial(matId)} style={{ color: 'var(--color-danger)' }} title="Delete Material">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+
+                      {/* Expandable details of all suppliers providing this material */}
+                      {isExpanded && suppliersList.length > 0 && (
+                        <tr style={{ background: 'rgba(255, 255, 255, 0.45)' }}>
+                          <td colSpan={isOps ? 7 : 6} style={{ padding: '0.75rem 1.25rem' }}>
+                            <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem', background: 'var(--bg-card)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                                  Suppliers Providing {m.name} ({suppliersList.length} vendors)
+                                </span>
+                                {isOps && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary btn-small"
+                                    onClick={() => openLinkModal('material', m)}
+                                    style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem' }}
+                                  >
+                                    <Plus size={12} /> Link Another Vendor
+                                  </button>
+                                )}
+                              </div>
+                              <table className="custom-table" style={{ fontSize: '0.82rem' }}>
+                                <thead>
+                                  <tr>
+                                    <th>Supplier Name</th>
+                                    <th>Vendor Price</th>
+                                    <th>Base Catalog Price</th>
+                                    <th>Price Variance</th>
+                                    <th>Notes / Terms</th>
+                                    {isOps && <th style={{ textAlign: 'right', width: '90px' }}>Actions</th>}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {suppliersList.map(sp => {
+                                    const editKey = `${matId}_${sp.supplierId}`;
+                                    const isEditingPrice = editingVendorPriceKey === editKey;
+                                    const diff = Number(sp.price) - Number(m.costPerUnit);
+
+                                    return (
+                                      <tr key={sp.supplierId}>
+                                        <td style={{ fontWeight: 600 }}>{sp.supplierName}</td>
+                                        <td>
+                                          {isEditingPrice ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={editingVendorPriceVal}
+                                                onChange={(e) => setEditingVendorPriceVal(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveVendorPrice(matId, sp.supplierId, editingVendorPriceVal);
+                                                  if (e.key === 'Escape') setEditingVendorPriceKey(null);
+                                                }}
+                                                autoFocus
+                                                style={{ width: '75px', padding: '0.2rem 0.35rem', fontSize: '0.8rem' }}
+                                              />
+                                              <button onClick={() => handleSaveVendorPrice(matId, sp.supplierId, editingVendorPriceVal)} style={{ background: 'none', border: 'none', color: 'var(--color-success)', cursor: 'pointer' }}>
+                                                <Check size={14} />
+                                              </button>
+                                              <button onClick={() => setEditingVendorPriceKey(null)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>
+                                                <X size={14} />
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div
+                                              style={{ cursor: isOps ? 'pointer' : 'default', fontWeight: 700 }}
+                                              onClick={() => {
+                                                if (isOps) {
+                                                  setEditingVendorPriceKey(editKey);
+                                                  setEditingVendorPriceVal(String(sp.price));
+                                                }
+                                              }}
+                                              title={isOps ? 'Click to edit vendor price' : ''}
+                                            >
+                                              {formatCurrency(sp.price)} / {sp.unit || m.unit}
+                                            </div>
+                                          )}
+                                        </td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>{formatCurrency(m.costPerUnit)} / {m.unit}</td>
+                                        <td>
+                                          {diff === 0 ? (
+                                            <span style={{ color: 'var(--text-muted)' }}>Same as Master</span>
+                                          ) : diff > 0 ? (
+                                            <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>+{formatCurrency(diff)}</span>
+                                          ) : (
+                                            <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>-{formatCurrency(Math.abs(diff))}</span>
+                                          )}
+                                        </td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>{sp.notes || '—'}</td>
+                                        {isOps && (
+                                          <td style={{ textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem' }}>
+                                              <button
+                                                className="btn btn-secondary btn-small"
+                                                onClick={() => { setEditingVendorPriceKey(editKey); setEditingVendorPriceVal(String(sp.price)); }}
+                                                title="Edit Price"
+                                                style={{ padding: '0.2rem' }}
+                                              >
+                                                <Edit2 size={12} />
+                                              </button>
+                                              <button
+                                                className="btn btn-secondary btn-small"
+                                                onClick={() => handleUnlink(matId, sp.supplierId)}
+                                                title="Unlink Supplier"
+                                                style={{ padding: '0.2rem', color: 'var(--color-danger)' }}
+                                              >
+                                                <Trash2 size={12} />
+                                              </button>
+                                            </div>
+                                          </td>
+                                        )}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </tr>
+                    </React.Fragment>
                   );
                 })}
                 {filteredMaterials.length === 0 && (
                   <tr>
-                    <td colSpan={isOps ? "5" : "4"} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No materials found matching filters.
+                    <td colSpan={isOps ? "7" : "6"} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-secondary)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0' }}>
+                        {searchTerm ? `No materials found matching "${searchTerm.trim()}".` : 'No materials found matching filters.'}
+                      </p>
+                      {searchTerm && (
+                        <button className="btn btn-secondary btn-small" onClick={() => setSearchTerm('')}>
+                          Clear Search
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}
@@ -662,61 +967,271 @@ const VendorManagement = () => {
             <table className="custom-table">
               <thead>
                 <tr>
+                  <th style={{ width: '30px' }}></th>
                   <th>Supplier Name</th>
                   <th>Category</th>
                   <th>Subcategory</th>
                   <th>Phone / Contact</th>
                   <th>Address</th>
+                  <th>Supplied Materials</th>
                   <th>Status</th>
                   {isOps && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredSuppliers.map(s => {
+                  const supId = s.id || s._id;
                   const sCategory = s.category || 'Uncategorized';
                   const sSubCategory = s.subCategory || '—';
                   const isActive = s.status ? s.status === 'Active' : s.active !== false;
+                  const isExpanded = expandedSupplierId === supId;
+                  const suppliedMaterials = getMaterialsForSupplier(supId);
+
+                  // Group materials by category
+                  const groupedMaterials = suppliedMaterials.reduce((acc, rm) => {
+                    const cat = rm.category || 'General';
+                    if (!acc[cat]) acc[cat] = [];
+                    acc[cat].push(rm);
+                    return acc;
+                  }, {});
 
                   return (
-                    <tr key={s.id || s._id}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {s.id || s._id}</div>
-                      </td>
-                      <td>
-                        <span className="badge badge-info" style={{ fontWeight: 600 }}>{sCategory}</span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 500, color: sSubCategory === '—' ? 'var(--text-muted)' : 'var(--text-primary)' }}>
-                          {sSubCategory}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{s.phone || s.contact || 'N/A'}</td>
-                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.address || '—'}</td>
-                      <td>
-                        <span className={`badge ${isActive ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
-                          {isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      {isOps && (
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                            <button className="btn btn-secondary btn-small" onClick={() => openSupplierForm(s)} title="Edit Supplier">
-                              <Edit2 size={14} />
-                            </button>
-                            <button className="btn btn-secondary btn-small" onClick={() => deleteSupplier(s.id || s._id)} style={{ color: 'var(--color-danger)' }} title="Delete Supplier">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                    <React.Fragment key={supId}>
+                      <tr>
+                        <td style={{ width: '30px', textAlign: 'center', cursor: 'pointer' }} onClick={() => setExpandedSupplierId(isExpanded ? null : supId)}>
+                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </td>
+                        <td>
+                          <div
+                            style={{ fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}
+                            onClick={() => setExpandedSupplierId(isExpanded ? null : supId)}
+                          >
+                            {s.name}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {supId}</div>
+                        </td>
+                        <td>
+                          <span className="badge badge-info" style={{ fontWeight: 600 }}>{sCategory}</span>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 500, color: sSubCategory === '—' ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                            {sSubCategory}
+                          </span>
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{s.phone || s.contact || 'N/A'}</td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.address || '—'}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => setExpandedSupplierId(isExpanded ? null : supId)}
+                            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                          >
+                            <Package size={13} />
+                            <span>{suppliedMaterials.length} materials</span>
+                          </button>
+                        </td>
+                        <td>
+                          <span className={`badge ${isActive ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        {isOps && (
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                              <button
+                                className="btn btn-primary btn-small"
+                                onClick={() => openLinkModal('supplier', s)}
+                                title="Add Material & Pricing to this Vendor"
+                                style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+                              >
+                                <Plus size={13} /> Material
+                              </button>
+                              <button className="btn btn-secondary btn-small" onClick={() => openSupplierForm(s)} title="Edit Supplier">
+                                <Edit2 size={14} />
+                              </button>
+                              <button className="btn btn-secondary btn-small" onClick={() => deleteSupplier(supId)} style={{ color: 'var(--color-danger)' }} title="Delete Supplier">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+
+                      {/* Expandable Vendor Materials Drawer grouped by Category */}
+                      {isExpanded && (
+                        <tr style={{ background: 'rgba(255, 255, 255, 0.45)' }}>
+                          <td colSpan={isOps ? 9 : 8} style={{ padding: '1rem 1.25rem' }}>
+                            <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '1rem', background: 'var(--bg-card)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div>
+                                  <h3 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)' }}>
+                                    <Layers size={16} />
+                                    <span>Materials & Pricing Provided by {s.name} ({suppliedMaterials.length} items)</span>
+                                  </h3>
+                                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.15rem 0 0 0' }}>
+                                    Configured unit prices and terms stored in database for {s.name}.
+                                  </p>
+                                </div>
+                                {isOps && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary btn-small"
+                                    onClick={() => openLinkModal('supplier', s)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                                  >
+                                    <Plus size={14} /> Add Material to {s.name}
+                                  </button>
+                                )}
+                              </div>
+
+                              {suppliedMaterials.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
+                                  <Package size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>No materials are linked to this vendor yet.</p>
+                                  {isOps && (
+                                    <button className="btn btn-secondary btn-small" onClick={() => openLinkModal('supplier', s)}>
+                                      <Plus size={13} /> Link First Material
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  {Object.keys(groupedMaterials).sort().map(categoryName => {
+                                    const items = groupedMaterials[categoryName];
+                                    return (
+                                      <div key={categoryName} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+                                        <div style={{ background: 'rgba(156, 21, 25, 0.05)', padding: '0.45rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <Tag size={14} style={{ color: 'var(--color-primary)' }} />
+                                            <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{categoryName}</span>
+                                          </div>
+                                          <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{items.length} items</span>
+                                        </div>
+
+                                        <table className="custom-table" style={{ fontSize: '0.82rem', margin: 0 }}>
+                                          <thead>
+                                            <tr>
+                                              <th>Material Name</th>
+                                              <th>Unit</th>
+                                              <th>Vendor Price</th>
+                                              <th>Base Catalog Cost</th>
+                                              <th>Variance</th>
+                                              <th>Notes / Grade</th>
+                                              {isOps && <th style={{ textAlign: 'right', width: '90px' }}>Actions</th>}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {items.map(rm => {
+                                              const matId = rm.id || rm._id;
+                                              const editKey = `${matId}_${supId}`;
+                                              const isEditingPrice = editingVendorPriceKey === editKey;
+                                              const diff = Number(rm.supplierPrice) - Number(rm.costPerUnit);
+
+                                              return (
+                                                <tr key={matId}>
+                                                  <td style={{ fontWeight: 600 }}>{rm.name}</td>
+                                                  <td style={{ color: 'var(--text-secondary)' }}>{rm.supplierUnit || rm.unit}</td>
+                                                  <td>
+                                                    {isEditingPrice ? (
+                                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        <input
+                                                          type="number"
+                                                          min="0"
+                                                          step="0.01"
+                                                          value={editingVendorPriceVal}
+                                                          onChange={(e) => setEditingVendorPriceVal(e.target.value)}
+                                                          onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleSaveVendorPrice(matId, supId, editingVendorPriceVal);
+                                                            if (e.key === 'Escape') setEditingVendorPriceKey(null);
+                                                          }}
+                                                          autoFocus
+                                                          style={{ width: '75px', padding: '0.2rem 0.35rem', fontSize: '0.8rem' }}
+                                                        />
+                                                        <button onClick={() => handleSaveVendorPrice(matId, supId, editingVendorPriceVal)} style={{ background: 'none', border: 'none', color: 'var(--color-success)', cursor: 'pointer' }}>
+                                                          <Check size={14} />
+                                                        </button>
+                                                        <button onClick={() => setEditingVendorPriceKey(null)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>
+                                                          <X size={14} />
+                                                        </button>
+                                                      </div>
+                                                    ) : (
+                                                      <div
+                                                        style={{ cursor: isOps ? 'pointer' : 'default', fontWeight: 700, color: 'var(--color-primary)' }}
+                                                        onClick={() => {
+                                                          if (isOps) {
+                                                            setEditingVendorPriceKey(editKey);
+                                                            setEditingVendorPriceVal(String(rm.supplierPrice));
+                                                          }
+                                                        }}
+                                                        title={isOps ? 'Click to edit vendor price' : ''}
+                                                      >
+                                                        {formatCurrency(rm.supplierPrice)} / {rm.supplierUnit || rm.unit}
+                                                        {isOps && <Edit2 size={11} style={{ opacity: 0.35, marginLeft: '0.25rem' }} />}
+                                                      </div>
+                                                    )}
+                                                  </td>
+                                                  <td style={{ color: 'var(--text-secondary)' }}>{formatCurrency(rm.costPerUnit)} / {rm.unit}</td>
+                                                  <td>
+                                                    {diff === 0 ? (
+                                                      <span style={{ color: 'var(--text-muted)' }}>Match</span>
+                                                    ) : diff > 0 ? (
+                                                      <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>+{formatCurrency(diff)}</span>
+                                                    ) : (
+                                                      <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>-{formatCurrency(Math.abs(diff))}</span>
+                                                    )}
+                                                  </td>
+                                                  <td style={{ color: 'var(--text-secondary)' }}>{rm.supplierNotes || '—'}</td>
+                                                  {isOps && (
+                                                    <td style={{ textAlign: 'right' }}>
+                                                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem' }}>
+                                                        <button
+                                                          className="btn btn-secondary btn-small"
+                                                          onClick={() => { setEditingVendorPriceKey(editKey); setEditingVendorPriceVal(String(rm.supplierPrice)); }}
+                                                          title="Edit Price"
+                                                          style={{ padding: '0.2rem' }}
+                                                        >
+                                                          <Edit2 size={12} />
+                                                        </button>
+                                                        <button
+                                                          className="btn btn-secondary btn-small"
+                                                          onClick={() => handleUnlink(matId, supId)}
+                                                          title="Remove Material from Vendor"
+                                                          style={{ padding: '0.2rem', color: 'var(--color-danger)' }}
+                                                        >
+                                                          <Trash2 size={12} />
+                                                        </button>
+                                                      </div>
+                                                    </td>
+                                                  )}
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </tr>
+                    </React.Fragment>
                   );
                 })}
                 {filteredSuppliers.length === 0 && (
                   <tr>
-                    <td colSpan={isOps ? "7" : "6"} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No suppliers found matching the selected filters.
+                    <td colSpan={isOps ? "9" : "8"} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-secondary)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0' }}>
+                        {searchTerm ? `No suppliers found matching "${searchTerm.trim()}".` : 'No suppliers found matching the selected filters.'}
+                      </p>
+                      {searchTerm && (
+                        <button className="btn btn-secondary btn-small" onClick={() => setSearchTerm('')}>
+                          Clear Search
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}
@@ -1142,7 +1657,7 @@ const VendorManagement = () => {
         <div className="modal-overlay" onClick={closePreview}>
           <div
             className="modal-content"
-            style={{ maxWidth: '780px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
+            style={{ maxWidth: '780px', maxHeight: '92%', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
@@ -1174,6 +1689,131 @@ const VendorManagement = () => {
                 <Share2 size={16} /> Share
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Link Supplier <-> Material Modal */}
+      {isLinkModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-card" style={{ maxWidth: '540px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>
+                {linkTarget?.type === 'supplier'
+                  ? `Add Material to ${linkTarget?.target?.name}`
+                  : `Link Supplier to ${linkTarget?.target?.name}`}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsLinkModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleLinkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {linkTarget?.type === 'supplier' ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Select Raw Material *
+                  </label>
+                  <select
+                    className="form-select"
+                    value={linkForm.materialId}
+                    onChange={(e) => {
+                      const matId = e.target.value;
+                      const mat = rawMaterials.find(r => (r.id || r._id) === matId);
+                      setLinkForm({
+                        ...linkForm,
+                        materialId: matId,
+                        price: mat?.costPerUnit !== undefined ? mat.costPerUnit : linkForm.price,
+                        unit: mat?.unit || linkForm.unit
+                      });
+                    }}
+                    required
+                  >
+                    <option value="">-- Choose Material from Catalog --</option>
+                    {rawMaterials.map(rm => (
+                      <option key={rm.id || rm._id} value={rm.id || rm._id}>
+                        {rm.name} ({rm.category}) — Base: {formatCurrency(rm.costPerUnit)}/{rm.unit}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Select Supplier / Vendor *
+                  </label>
+                  <select
+                    className="form-select"
+                    value={linkForm.supplierId}
+                    onChange={(e) => setLinkForm({ ...linkForm, supplierId: e.target.value })}
+                    required
+                  >
+                    <option value="">-- Choose Supplier from Directory --</option>
+                    {suppliers.map(s => (
+                      <option key={s.id || s._id} value={s.id || s._id}>
+                        {s.name} ({s.category || 'Uncategorized'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Vendor Price ({companyProfile?.currency || '₹'}) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={linkForm.price}
+                    onChange={(e) => setLinkForm({ ...linkForm, price: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Unit of Measure *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="kg, ltr, bag, packet"
+                    value={linkForm.unit}
+                    onChange={(e) => setLinkForm({ ...linkForm, unit: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  Terms / Notes / Quality Specification
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bulk discount 50kg+, First-grade export quality"
+                  value={linkForm.notes}
+                  onChange={(e) => setLinkForm({ ...linkForm, notes: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsLinkModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Vendor Pricing
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

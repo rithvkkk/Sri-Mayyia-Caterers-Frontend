@@ -30,7 +30,7 @@ class ErrorBoundary extends React.Component {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '100vh',
+          minHeight: '100%',
           background: '#0d090a',
           color: '#ffffff',
           padding: '2rem',
