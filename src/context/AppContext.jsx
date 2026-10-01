@@ -92,6 +92,24 @@ export const AppProvider = ({ children }) => {
         if (!res.ok) {
           const errData = await res.json().catch(() => null);
           console.warn(`API ${options.method || 'GET'} ${fullUrl} error ${res.status}:`, errData);
+          if (options.returnErrorResponse) {
+            if (errData && typeof errData === 'object') {
+              return { ...errData, __httpError: true, status: res.status };
+            }
+            if (res.status === 503) {
+              return {
+                __httpError: true,
+                status: 503,
+                error: 'Backend service on Vercel is currently PAUSED or unavailable (503 DEPLOYMENT_PAUSED). Please unpause/resume your backend project in Vercel.',
+                configured: false
+              };
+            }
+            return {
+              __httpError: true,
+              status: res.status,
+              error: `Backend error (HTTP ${res.status}). Please check server logs.`
+            };
+          }
           return null;
         }
         const contentType = res.headers.get('content-type');
@@ -910,14 +928,15 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await apiCall('/upload/image', {
         method: 'POST',
-        body: JSON.stringify({ image: dataUrl, name: fileName, folder })
+        body: JSON.stringify({ image: dataUrl, name: fileName, folder }),
+        returnErrorResponse: true
       });
       if (res && res.success && res.url) {
         return { success: true, url: res.url, key: res.key };
       }
       return {
         success: false,
-        error: res?.error || 'Failed to upload image to Cloud Storage.',
+        error: res?.error || 'Failed to upload image to Cloud Storage. Please check backend connection.',
         configured: res?.configured !== false
       };
     } catch (err) {

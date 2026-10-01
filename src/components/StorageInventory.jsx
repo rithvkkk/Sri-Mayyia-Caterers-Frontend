@@ -342,9 +342,9 @@ const StorageInventory = () => {
       if (uploadRes && uploadRes.success && uploadRes.url) {
         finalPhotoUrl = uploadRes.url;
       } else if (uploadRes && uploadRes.configured === false) {
-        alert('Cloud Storage is not configured in backend/.env. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in backend/.env for cloud photo storage.');
+        alert(`Cloud Storage Notice: ${uploadRes.error || 'Cloud storage is not configured in backend environment variables.'}\n\nTemporary local preview will be retained.`);
       } else if (uploadRes && uploadRes.error) {
-        alert(`Cloud Upload Notice: ${uploadRes.error}. Temporary local preview retained.`);
+        alert(`Cloud Upload Notice: ${uploadRes.error}\n\nTemporary local preview retained.`);
       }
 
       const itemToUpdate = targetItem || photoPreviewItem;
