@@ -154,7 +154,7 @@ const MenuPlanning = () => {
 
   // Indian Occasion Menu PDF Modal State
   const [isMenuPdfModalOpen, setIsMenuPdfModalOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('official');
+  const [selectedTemplate, setSelectedTemplate] = useState('olive');
 
   const isEditable = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager' || isSalesExec;
   const currentEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
@@ -1114,18 +1114,36 @@ const getDiningOrderIndex = (catName) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
               {[
                 {
-                  id: 'official',
-                  title: 'Official Proposal & Menu Booklet',
-                  badge: '★ Ceremonial Presentation',
-                  description: 'Complete presentation booklet with high-res banquet cover, company credentials & achievements since 1953, centered ceremonial menus, service terms, and palace heritage back cover.',
-                  color: '#C00000'
+                  id: 'olive',
+                  title: 'Olive Green Proposal & Menu Booklet',
+                  badge: '★ Biryani Theme (5 Pages)',
+                  description: 'Complete 5-page ceremonial proposal booklet featuring hot Biryani cover, credentials & stats since 1953, tabular menu layout, brass thali service terms, and palace heritage back cover.',
+                  color: '#4A5D23',
+                  bgTint: 'rgba(74, 93, 35, 0.06)'
+                },
+                {
+                  id: 'crimson',
+                  title: 'Royal Crimson Proposal & Menu Booklet',
+                  badge: '★ Royal Thali Theme (5 Pages)',
+                  description: 'Majestic 5-page presentation booklet featuring royal crimson sunburst thali cover, company credentials, tabular sub-function menu pages, service guidelines, and palace heritage back cover.',
+                  color: '#C00000',
+                  bgTint: 'rgba(192, 0, 0, 0.05)'
+                },
+                {
+                  id: 'gold',
+                  title: 'Traditional Festive Gold Food Menu',
+                  badge: '★ South Indian Festive (3 Pages)',
+                  description: 'Ceremonial 3-page South Indian festive menu with sacred Kalasha & banana plants cover, gold floral inner course menu, and 25000+ events heritage stats back cover.',
+                  color: '#B8860B',
+                  bgTint: 'rgba(184, 134, 11, 0.06)'
                 },
                 {
                   id: 'executive',
                   title: 'Executive Function Menu Sheet',
-                  badge: '★ Event Order Sheet (New)',
+                  badge: '★ Event Order Sheet (1-2 Pages)',
                   description: 'Clean, modern minimalist event order sheet with official logo header, centered date & venue, sequential numbered session menus, Pax headcount, notes, and parcel list.',
-                  color: '#17375E'
+                  color: '#17375E',
+                  bgTint: 'rgba(23, 55, 94, 0.05)'
                 }
               ].map(tpl => {
                 const isSelected = selectedTemplate === tpl.id;
@@ -1137,10 +1155,10 @@ const getDiningOrderIndex = (catName) => {
                       padding: '1rem',
                       borderRadius: '12px',
                       border: isSelected ? `2px solid ${tpl.color}` : '1px solid rgba(0,0,0,0.12)',
-                      background: isSelected ? (tpl.id === 'official' ? 'rgba(192, 0, 0, 0.05)' : 'rgba(23, 55, 94, 0.05)') : 'rgba(255, 255, 255, 0.8)',
+                      background: isSelected ? tpl.bgTint : 'rgba(255, 255, 255, 0.8)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
-                      boxShadow: isSelected ? `0 4px 14px ${tpl.id === 'official' ? 'rgba(192,0,0,0.15)' : 'rgba(23,55,94,0.15)'}` : 'none'
+                      boxShadow: isSelected ? `0 4px 14px ${tpl.color}33` : 'none'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>

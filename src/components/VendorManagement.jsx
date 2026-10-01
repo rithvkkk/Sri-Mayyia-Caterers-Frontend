@@ -1,8 +1,105 @@
-import React, { useContext, useState, useEffect, useMemo } from 'react';
+import React, { useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, generateSupplierPO, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import { initialVendorCategories } from '../utils/mockData';
-import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag, ChevronDown, ChevronRight, Layers, Package, IndianRupee } from 'lucide-react';
+import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag, ChevronDown, ChevronRight, Layers, Package, IndianRupee, Camera, Image, Upload, AlertCircle } from 'lucide-react';
+
+const compressImage = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.82, maxOutputBytes = 1.6 * 1024 * 1024) => {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('No file provided'));
+    const reader = new FileReader();
+    reader.onerror = (err) => reject(err);
+    reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      if (!rawDataUrl || typeof rawDataUrl !== 'string') {
+        return reject(new Error('Failed to read file as data URL'));
+      }
+
+      if (typeof window === 'undefined' || !window.Image) {
+        return resolve(rawDataUrl);
+      }
+
+      const img = new window.Image();
+      const timeout = setTimeout(() => {
+        resolve(rawDataUrl);
+      }, 10000);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        try {
+          const width = img.naturalWidth || img.width;
+          const height = img.naturalHeight || img.height;
+
+          if (!width || !height) {
+            return resolve(rawDataUrl);
+          }
+
+          let newWidth = width;
+          let newHeight = height;
+
+          if (newWidth > maxWidth || newHeight > maxHeight) {
+            if (newWidth / newHeight > maxWidth / maxHeight) {
+              newHeight = Math.round((newHeight * maxWidth) / newWidth);
+              newWidth = maxWidth;
+            } else {
+              newWidth = Math.round((newWidth * maxHeight) / newHeight);
+              newHeight = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, newWidth);
+          canvas.height = Math.max(1, newHeight);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            return resolve(rawDataUrl);
+          }
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          let currentQuality = quality;
+          let compressed = canvas.toDataURL('image/jpeg', currentQuality);
+
+          const getByteSize = (dataUri) => {
+            const base64Str = dataUri.split(',')[1] || dataUri;
+            return Math.round((base64Str.length * 3) / 4);
+          };
+
+          let attempts = 0;
+          while (getByteSize(compressed) > maxOutputBytes && attempts < 5) {
+            attempts++;
+            currentQuality = Math.max(0.45, currentQuality - 0.12);
+            if (attempts >= 2) {
+              newWidth = Math.round(newWidth * 0.82);
+              newHeight = Math.round(newHeight * 0.82);
+              canvas.width = Math.max(1, newWidth);
+              canvas.height = Math.max(1, newHeight);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            }
+            compressed = canvas.toDataURL('image/jpeg', currentQuality);
+          }
+
+          if (!compressed || compressed === 'data:,' || compressed.length < 200) {
+            return resolve(rawDataUrl);
+          }
+          resolve(compressed);
+        } catch (err) {
+          resolve(rawDataUrl);
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(rawDataUrl);
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+};
 
 const VendorManagement = () => {
   const {
@@ -21,6 +118,7 @@ const VendorManagement = () => {
     deleteSupplier,
     updateEvent,
     refreshEventTotals,
+    uploadCloudImage,
     vendorCategories = []
   } = useContext(AppContext);
 
@@ -72,8 +170,11 @@ const VendorManagement = () => {
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [materialForm, setMaterialForm] = useState({
-    name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0
+    name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0, photo: ''
   });
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoUploadStatus, setPhotoUploadStatus] = useState('');
+  const materialFileInputRef = useRef(null);
 
   // Supplier form modal
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
@@ -198,6 +299,46 @@ const VendorManagement = () => {
     setEditingPriceValue('');
   };
 
+  const handleMaterialPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, WEBP).');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      alert('Photo file size exceeds 50MB safety limit. Please choose a photo under 50MB.');
+      return;
+    }
+
+    try {
+      setIsUploadingPhoto(true);
+      setPhotoUploadStatus('Optimizing image...');
+      const dataUrl = await compressImage(file);
+
+      setPhotoUploadStatus('Uploading to Cloud Storage...');
+      const uploadRes = await uploadCloudImage(dataUrl, file.name, 'materials');
+
+      setIsUploadingPhoto(false);
+      setPhotoUploadStatus('');
+
+      let finalPhotoUrl = dataUrl;
+      if (uploadRes && uploadRes.success && uploadRes.url) {
+        finalPhotoUrl = uploadRes.url;
+      } else if (uploadRes && uploadRes.error) {
+        alert(`Cloud Upload Notice: ${uploadRes.error}\n\nTemporary local preview retained.`);
+      }
+
+      setMaterialForm(prev => ({ ...prev, photo: finalPhotoUrl }));
+    } catch (err) {
+      setIsUploadingPhoto(false);
+      setPhotoUploadStatus('');
+      console.error('Material photo upload error:', err);
+      alert('Failed to process image. Please try another photo.');
+    }
+  };
+
   const openMaterialForm = (material = null) => {
     if (material) {
       setEditingMaterial(material);
@@ -207,12 +348,15 @@ const VendorManagement = () => {
         category: isKnown ? (material.category || 'Grocery') : '__custom__',
         customCategory: isKnown ? '' : (material.category || ''),
         unit: material.unit || 'kg',
-        costPerUnit: material.costPerUnit || 0
+        costPerUnit: material.costPerUnit || 0,
+        photo: material.photo || ''
       });
     } else {
       setEditingMaterial(null);
-      setMaterialForm({ name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0 });
+      setMaterialForm({ name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0, photo: '' });
     }
+    setIsUploadingPhoto(false);
+    setPhotoUploadStatus('');
     setIsMaterialModalOpen(true);
   };
 
@@ -226,7 +370,8 @@ const VendorManagement = () => {
       name: (materialForm.name || '').trim(),
       category: finalCategory,
       unit: (materialForm.unit || '').trim(),
-      costPerUnit: Number(materialForm.costPerUnit) || 0
+      costPerUnit: Number(materialForm.costPerUnit) || 0,
+      photo: materialForm.photo || ''
     };
 
     if (editingMaterial) {
@@ -237,7 +382,7 @@ const VendorManagement = () => {
     }
     setIsMaterialModalOpen(false);
     setEditingMaterial(null);
-    setMaterialForm({ name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0 });
+    setMaterialForm({ name: '', category: 'Grocery', customCategory: '', unit: 'kg', costPerUnit: 0, photo: '' });
   };
 
   // === SUPPLIER FUNCTIONS ===
@@ -729,8 +874,23 @@ const VendorManagement = () => {
                           )}
                         </td>
                         <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {matId}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            {m.photo ? (
+                              <img
+                                src={m.photo}
+                                alt={m.name}
+                                style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                              />
+                            ) : (
+                              <div style={{ width: '38px', height: '38px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                                <Package size={18} opacity={0.6} />
+                              </div>
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {matId}</div>
+                            </div>
+                          </div>
                         </td>
                         <td><span className="badge badge-info">{m.category}</span></td>
                         <td style={{ color: 'var(--text-secondary)' }}>{m.unit}</td>
@@ -1524,6 +1684,58 @@ const VendorManagement = () => {
                 <input type="number" min="0" step="0.01" required value={materialForm.costPerUnit} onChange={(e) => setMaterialForm({ ...materialForm, costPerUnit: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }} />
               </div>
+
+              {/* Item Photo (Cloudinary) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Item Photo (Cloud Storage)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--bg-card)', padding: '0.75rem', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+                  {materialForm.photo ? (
+                    <div style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+                      <img src={materialForm.photo} alt="Item Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ) : (
+                    <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                      <Camera size={24} opacity={0.6} />
+                    </div>
+                  )}
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => materialFileInputRef.current?.click()}
+                        disabled={isUploadingPhoto}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                      >
+                        <Upload size={14} /> {isUploadingPhoto ? 'Uploading...' : (materialForm.photo ? 'Change Photo' : 'Upload Photo')}
+                      </button>
+                      {materialForm.photo && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          onClick={() => setMaterialForm(prev => ({ ...prev, photo: '' }))}
+                          disabled={isUploadingPhoto}
+                          style={{ color: 'var(--color-danger)', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      ref={materialFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleMaterialPhotoUpload}
+                    />
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
+                      {photoUploadStatus || 'Uploads directly to Cloudinary cloud.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => { setIsMaterialModalOpen(false); setEditingMaterial(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editingMaterial ? 'Update Material' : 'Save Material'}</button>

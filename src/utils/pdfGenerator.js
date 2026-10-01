@@ -56,7 +56,384 @@ const translations = {
   }
 };
 
-export const calculatePdfReport = async (event, dataList, companyProfile, lang = 'EN', type = 'invoice', returnBlob = false) => {
+/**
+ * Converts numeric amount into Indian currency words representation.
+ * e.g., 750750 -> "Seven Lakh Fifty Thousand Seven Hundred Fifty Rupees only"
+ */
+export const numberToWordsIndian = (num) => {
+  const n = Math.round(Number(num) || 0);
+  if (n === 0) return 'Zero Rupees only';
+  if (n < 0) return 'Minus ' + numberToWordsIndian(-n);
+
+  const units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  const convertLessThanOneThousand = (val) => {
+    let str = '';
+    if (val >= 100) {
+      str += units[Math.floor(val / 100)] + ' Hundred ';
+      val %= 100;
+    }
+    if (val > 0) {
+      if (val < 20) {
+        str += units[val] + ' ';
+      } else {
+        str += tens[Math.floor(val / 10)] + ' ';
+        if (val % 10 > 0) {
+          str += units[val % 10] + ' ';
+        }
+      }
+    }
+    return str;
+  };
+
+  const crore = Math.floor(n / 10000000);
+  const remCrore = n % 10000000;
+  const lakh = Math.floor(remCrore / 100000);
+  const remLakh = remCrore % 100000;
+  const thousand = Math.floor(remLakh / 1000);
+  const remainder = remLakh % 1000;
+
+  let words = '';
+  if (crore > 0) words += convertLessThanOneThousand(crore) + 'Crore ';
+  if (lakh > 0) words += convertLessThanOneThousand(lakh) + 'Lakh ';
+  if (thousand > 0) words += convertLessThanOneThousand(thousand) + 'Thousand ';
+  if (remainder > 0) words += convertLessThanOneThousand(remainder);
+
+  return words.trim() + ' Rupees only';
+};
+
+/**
+ * Formats a date into "21st Sep 2026"
+ */
+export const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const day = d.getDate();
+    const ord = (n) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return s[(v - 20) % 10] || s[v] || s[0];
+    };
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${day}${ord(day)} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+/**
+ * Generates the Official Sri Mayyia Caterers Tax Invoice PDF.
+ * Matches uploaded official tax invoice template (media_1790875990736.pdf):
+ * - Centered brand logo at top
+ * - "TAX INVOICE" header
+ * - Left: Company corporate details (Govardhanagiri, Kalyani Gardens, BSK 1st Stage, Telefax, GSTIN)
+ * - Right: TAX Invoice No. & TAX Invoice Date
+ * - Left: TO: Customer name, organization, address, GSTIN
+ * - Right: Event Date & Venue
+ * - Black-bordered tabular grid: DATE | ITEM DESCRIPTION | QUANTITY | UOM | AMOUNT | TOTAL
+ * - Line items for sub-functions / catering meals
+ * - Totals: SUB TOTAL, CGST @ 2.5 %, SGST @ 2.5 %, TOTAL
+ * - "Amount in words: ... Rupees only" in Indian currency wording
+ * - Payment Instructions: Karur Vysya Bank Halasuru branch account details
+ * - Right: FOR SRI MAYYIA CATERERS / Authorized Signature
+ * - Bottom corporate footer card with marketing & corporate office details
+ * 
+ * Returns { blobUrl, blob, filename, doc }
+ */
+export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {}) => {
+  const ev = event || {};
+  const cp = companyProfile || {};
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // 1. Centered Official Brand Logo
+  if (menuTemplateAssets.invoiceLogo) {
+    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 93, 10, 24, 24);
+  }
+
+  // 2. Document Title
+  doc.setFont('times', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  doc.text('TAX INVOICE', 105, 40, { align: 'center' });
+
+  // 3. Company & Invoice Metadata
+  const cpGstin = cp.gstin || '29ACUPA7565Q1ZI';
+  doc.setFont('times', 'bold');
+  doc.setFontSize(9.5);
+  doc.text('SRI MAYYIA CATERERS', 14, 49);
+
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('#39/2, C2 GOVARDHANAGIRI,', 14, 53.5);
+  doc.text('KALYANI GARDENS, BSK 1ST STAGE,', 14, 58);
+
+  doc.setFont('times', 'normal');
+  doc.text('Bangalore - 560 050. India', 14, 62.5);
+  doc.text('Telefax - +91 90191 64761', 14, 67);
+
+  doc.setFont('times', 'bold');
+  doc.text(`GSTIN: ${cpGstin}`, 14, 71.5);
+
+  // Right side: Invoice Number & Date
+  const invNo = ev.billing?.invoiceNumber || ev.invoiceNumber || (ev.id ? `016/${ev.id.slice(-5)}` : '016/26-27');
+  const invDate = ev.billing?.invoiceDate || (ev.billing?.date ? formatMenuDateDDMMYYYY(ev.billing.date) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.'));
+
+  doc.setFont('times', 'bold');
+  doc.setFontSize(9);
+  doc.text(`TAX Invoice No.  : ${invNo}`, 135, 49);
+  doc.text(`TAX Invoice Date : ${invDate}`, 135, 54);
+
+  // 4. Client Section (TO:) & Event Details
+  doc.setFont('times', 'bold');
+  doc.setFontSize(9.5);
+  doc.text('TO:', 14, 80);
+
+  const custName = (typeof ev.customer === 'object' ? ev.customer?.name : ev.customer) || 'VALUED CLIENT';
+  const custCompany = ev.customer?.company || ev.clientCompany || '';
+  const custAddress = ev.customer?.address || '';
+  const custGstin = ev.customer?.gstin || '';
+
+  let curY = 85;
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.text(custName.toUpperCase(), 14, curY);
+  curY += 4.5;
+
+  if (custCompany) {
+    doc.text(custCompany.toUpperCase(), 14, curY);
+    curY += 4.5;
+  }
+  if (custAddress) {
+    doc.setFont('times', 'normal');
+    doc.setFontSize(8);
+    const addrLines = doc.splitTextToSize(custAddress, 85);
+    addrLines.forEach(l => {
+      doc.text(l, 14, curY);
+      curY += 4;
+    });
+  }
+  if (custGstin) {
+    doc.setFont('times', 'bold');
+    doc.setFontSize(8);
+    doc.text(`GSTIN: ${custGstin}`, 14, curY);
+    curY += 4;
+  }
+
+  // Right side: Event Date & Venue
+  const rawEvDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
+  const evDateFormatted = formatDisplayDate(rawEvDate);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(9);
+  doc.text(`Event Date : ${evDateFormatted}`, 135, 85);
+  if (ev.venue) {
+    doc.setFont('times', 'normal');
+    doc.setFontSize(8);
+    const venueLines = doc.splitTextToSize(`Venue: ${ev.venue}`, 62);
+    venueLines.forEach((vl, idx) => {
+      doc.text(vl, 135, 90 + (idx * 4));
+    });
+  }
+
+  // 5. Table of Line Items
+  const tableRows = [];
+  const safeSubFunctions = (Array.isArray(ev.subFunctions) ? ev.subFunctions : []).filter(Boolean);
+
+  let calculatedSubtotal = 0;
+  const rawEventDate = ev.date ? formatMenuDateDDMMYYYY(ev.date) : formatMenuDateDDMMYYYY(new Date().toISOString().split('T')[0]);
+
+  if (safeSubFunctions.length > 0) {
+    safeSubFunctions.forEach((sub, sIdx) => {
+      const subDate = sub.date ? formatMenuDateDDMMYYYY(sub.date) : rawEventDate;
+      const subName = sub.name || sub.occasion || `Session ${sIdx + 1}`;
+      const pax = Number(sub.guestCount || ev.guestCount || 100);
+      const rate = Number(sub.pricePerPlate || ev.billing?.pricePerPlate || 0);
+      const rowTotal = (pax * rate) || (sIdx === 0 ? Number(ev.billing?.totalAmount || ev.billing?.subtotal || 0) : 0);
+      calculatedSubtotal += rowTotal;
+
+      tableRows.push([
+        sIdx === 0 || subDate !== tableRows[sIdx - 1]?.[0] ? subDate : '',
+        subName,
+        pax ? String(pax) : '-',
+        'Pax',
+        rate ? rate.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
+        rowTotal ? rowTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'
+      ]);
+    });
+  } else {
+    const pax = Number(ev.guestCount || 100);
+    const rate = Number(ev.billing?.pricePerPlate || 0);
+    const rowTotal = Number(ev.billing?.totalAmount || ev.billing?.subtotal || (pax * rate) || 0);
+    calculatedSubtotal = rowTotal;
+
+    tableRows.push([
+      rawEventDate,
+      ev.eventType ? `Catering Services - ${ev.eventType}` : 'Pure Vegetarian Catering Services',
+      String(pax),
+      'Pax',
+      rate ? rate.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
+      rowTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ]);
+  }
+
+  if (ev.billing?.additionalServices && Array.isArray(ev.billing.additionalServices)) {
+    ev.billing.additionalServices.forEach(srv => {
+      const srvTotal = Number(srv.amount || 0);
+      calculatedSubtotal += srvTotal;
+      tableRows.push([
+        '',
+        srv.name || 'Additional Service',
+        String(srv.quantity || 1),
+        srv.unit || 'Nos',
+        Number(srv.rate || srvTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        srvTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      ]);
+    });
+  }
+
+  const explicitSubtotal = Number(ev.billing?.subtotal || ev.billing?.totalAmount || 0);
+  const subtotal = explicitSubtotal > 0 ? explicitSubtotal : calculatedSubtotal;
+
+  const cgstAmount = subtotal * 0.025;
+  const sgstAmount = subtotal * 0.025;
+  const grandTotal = subtotal + cgstAmount + sgstAmount;
+
+  // Add Summary Rows
+  tableRows.push([
+    '', '', '', '',
+    { content: 'SUB TOTAL', styles: { fontStyle: 'bold', halign: 'right' } },
+    { content: subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+  ]);
+  tableRows.push([
+    '', '', '', '',
+    { content: 'CGST @ 2.5 %', styles: { fontStyle: 'bold', halign: 'right' } },
+    { content: cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+  ]);
+  tableRows.push([
+    '', '', '', '',
+    { content: 'SGST @ 2.5 %', styles: { fontStyle: 'bold', halign: 'right' } },
+    { content: sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+  ]);
+  tableRows.push([
+    '', '', '', '',
+    { content: 'TOTAL', styles: { fontStyle: 'bold', halign: 'right' } },
+    { content: grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+  ]);
+
+  const startTableY = Math.max(105, curY + 6);
+
+  renderTable(doc, {
+    startY: startTableY,
+    head: [['DATE', 'ITEM DESCRIPTION', 'QUANTITY', 'UOM', 'AMOUNT', 'TOTAL']],
+    body: tableRows,
+    theme: 'plain',
+    styles: {
+      font: 'times',
+      fontSize: 8.5,
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.25,
+      cellPadding: 2
+    },
+    headStyles: {
+      font: 'times',
+      fontStyle: 'bold',
+      fontSize: 8.5,
+      halign: 'center',
+      textColor: [0, 0, 0],
+      fillColor: [255, 255, 255],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.25
+    },
+    columnStyles: {
+      0: { cellWidth: 26, halign: 'center' },
+      1: { cellWidth: 68, halign: 'left' },
+      2: { cellWidth: 20, halign: 'center' },
+      3: { cellWidth: 16, halign: 'center' },
+      4: { cellWidth: 26, halign: 'right' },
+      5: { cellWidth: 26, halign: 'right' }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  const finalTableY = doc.lastAutoTable?.finalY || (startTableY + 50);
+
+  // 6. Amount in words
+  const wordsY = finalTableY + 6;
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Amount in words: ${numberToWordsIndian(grandTotal)}`, 14, wordsY);
+
+  // 7. Instructions & Payment Details (Left) + Authorized Signature (Right)
+  const instY = wordsY + 8;
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('Instructions:', 14, instY);
+  doc.text('Account Name :- SRI MAYYIA CATERERS', 14, instY + 4.5);
+  doc.text('Account Number: 1304013000000051', 14, instY + 9);
+  doc.text('IFSC CODE :- KVBL0001304', 14, instY + 13.5);
+  doc.text('BANK :- KARUR VYSYA BANK', 14, instY + 18);
+  doc.text('BRANCH :- HALASURU', 14, instY + 22.5);
+  doc.text('BRANCH CODE :- 1304', 14, instY + 27);
+
+  // Authorized Signatory
+  doc.text('FOR SRI MAYYIA CATERERS', 135, instY);
+  doc.setFont('times', 'normal');
+  doc.text('Authorized Signature', 140, instY + 20);
+
+  // 8. Corporate Footer Image at bottom right
+  if (menuTemplateAssets.invoiceFooter) {
+    doc.addImage(menuTemplateAssets.invoiceFooter, 'PNG', 122, 258, 74, 24);
+  }
+
+  const safeEventId = (ev.id || 'INV').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Tax_Invoice_${safeEventId}.pdf`;
+
+  const blob = doc.output('blob');
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(blob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
+
+  return { blobUrl, blob, filename, doc };
+};
+
+export const calculatePdfReport = async (event, dataList, companyProfile, lang = 'EN', type = 'invoice', returnBlob = false, template = 'official_tax_invoice') => {
+  // If invoice type requested with official tax invoice template (default), route directly
+  if (type === 'invoice' && template !== 'commercial' && template !== 'commercial_quotation') {
+    const res = generateOfficialTaxInvoicePdf(event, companyProfile, { rawMaterials: dataList });
+    if (returnBlob) {
+      return res;
+    }
+    const file = new File([res.blob], res.filename, { type: 'application/pdf' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Tax Invoice - ${event?.id || 'Doc'}`,
+          text: `Official Tax Invoice for ${event?.id || 'event'}.`
+        });
+        return true;
+      } catch (err) {
+        console.error('Web Share failed, falling back to download', err);
+      }
+    }
+    downloadPdfBlob(res.blob, res.filename);
+    return true;
+  }
+
   const ev = event || {};
   const cp = companyProfile || {};
   const t = (translations && translations[lang]) || translations.EN;
@@ -382,8 +759,11 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
 /**
  * Direct Invoice PDF Generator alias returning { blob, blobUrl, filename }
  */
-export const generateInvoicePdf = (event, rawMaterials, companyProfile) => {
-  return calculatePdfReport(event, rawMaterials, companyProfile, 'EN', 'invoice', true);
+export const generateInvoicePdf = (event, rawMaterials, companyProfile, template = 'official_tax_invoice') => {
+  if (template === 'commercial' || template === 'commercial_quotation') {
+    return calculatePdfReport(event, rawMaterials, companyProfile, 'EN', 'invoice', true, 'commercial');
+  }
+  return generateOfficialTaxInvoicePdf(event, companyProfile, { rawMaterials });
 };
 
 /**
@@ -1195,29 +1575,289 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
 };
 
 /**
- * Generates the Official Sri Mayyia Caterers Proposal & Menu PDF booklet.
- * Exactly matches the ready client presentation booklet format:
- * Page 1: Cover Page with Date & Event
- * Page 2: Company Profile & Credentials ("Pioneers in Pure Authentic Vegetarian Catering since 1953")
- * Pages 3..N: Sub-Function Menu Pages (Occasion, Date, Serving, Merged Header, Pax, Centered Dishes in Navy/Red)
- * Page N+1: Service Terms
- * Page N+2: Back Cover & Heritage ("Journey from Payasam to Pasta")
+ * Generates the Traditional Festive Gold Food Menu PDF.
+ * Matches uploaded gold festive menu template (media_1790875990683.pdf):
+ * - Page 1: Traditional South Indian Kalasha, coconut & banana plant cover
+ *   - Event Title & Client dedication
+ *   - Date & Venue placed at exact coordinate geometry
+ * - Page 2..N: Inner Food Menu with gold rounded border & floral accents
+ *   - Sub-function session title and serving details
+ *   - Course categories in royal crimson maroon #9C1519
+ *   - Traditional dish list centered in deep royal navy #17375E
+ * - Page N+1: Static Back Cover with 25000+ events stats, services, & contact info
+ * 
  * Returns { blobUrl, blob, filename, doc }
  */
-export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'official', dishesList = []) => {
+export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesList = []) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.width; // 210
+  const ph = doc.internal.pageSize.height; // 297
+
+  const maroonColor = [156, 21, 25];  // Deep Ceremonial Maroon #9C1519
+  const navyColor = [23, 55, 94];     // Royal Navy #17375E
+  const goldColor = [184, 134, 11];   // Dark Goldenrod #B8860B
+
+  // Resolve sub-functions
+  let subList = [];
+  const isAllSessions = subFunction === 'all' || subFunction?.all === true;
+  if (isAllSessions) {
+    subList = Array.isArray(event?.subFunctions) && event.subFunctions.length > 0
+      ? event.subFunctions
+      : (subFunction && typeof subFunction === 'object' ? [subFunction] : [{}]);
+  } else if (subFunction && typeof subFunction === 'object') {
+    subList = [subFunction];
+  } else if (Array.isArray(event?.subFunctions) && event.subFunctions.length > 0) {
+    subList = event.subFunctions;
+  } else {
+    subList = [{}];
+  }
+
+  const rawCoverDate = event?.date || subList[0]?.date || new Date().toISOString().split('T')[0];
+  const coverDateText = formatDisplayDate(rawCoverDate) || formatCoverDate(rawCoverDate);
+  const coverEventText = (event?.eventType || event?.title || 'GRAND WEDDING SEATED FEAST').toUpperCase();
+  const clientName = (event?.customer && typeof event.customer === 'object' ? event.customer.name : event?.customer) || '';
+  const venueText = event?.venue || 'Sri Mayyia Heritage Convention Center';
+
+  // PAGE 1: FESTIVE GOLD COVER
+  if (menuTemplateAssets.goldPage1Cover) {
+    doc.addImage(menuTemplateAssets.goldPage1Cover, 'JPEG', 0, 0, pw, ph);
+  }
+
+  // Event Occasion Title (Y = 126 mm, centered)
+  doc.setFont('times', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...maroonColor);
+  let dispTitle = coverEventText;
+  if (doc.getTextWidth(dispTitle) > 130) {
+    doc.setFontSize(12);
+    if (doc.getTextWidth(dispTitle) > 130) {
+      dispTitle = doc.splitTextToSize(dispTitle, 128)[0] + '...';
+    }
+  }
+  doc.text(dispTitle, 105, 126, { align: 'center' });
+
+  // Dedicated Client sub-line if available
+  if (clientName) {
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(...goldColor);
+    doc.text(`Specially Curated for ${clientName}`, 105, 133, { align: 'center' });
+  }
+
+  // Date value right next to "Date: " (X = 114 mm, Y = 160.4 mm)
+  doc.setFont('times', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...navyColor);
+  doc.text(coverDateText, 114, 160.4);
+
+  // Venue value right next to "VENUE: " (X = 118 mm, Y = 171.7 mm)
+  let dispVenue = venueText;
+  if (doc.getTextWidth(dispVenue) > 78) {
+    doc.setFontSize(9.5);
+    if (doc.getTextWidth(dispVenue) > 78) {
+      dispVenue = doc.splitTextToSize(dispVenue, 76)[0] + '...';
+    }
+  }
+  doc.text(dispVenue, 118, 171.7);
+
+  // Helper to map catalog category to clean uppercase header
+  const getSectionHeader = (category) => {
+    if (!category) return 'SPECIALITIES';
+    const cat = String(category).toLowerCase();
+    if (cat.includes('sweet') || cat.includes('dessert') || cat.includes('payasam') || cat.includes('holige')) return 'SWEETS & DESSERTS';
+    if (cat.includes('starter') || cat.includes('palya') || cat.includes('kosambari') || cat.includes('appetizer')) return 'STARTERS & SAVORIES';
+    if (cat.includes('welcome') || cat.includes('beverage') || cat.includes('juice') || cat.includes('soup')) return 'WELCOME DRINKS';
+    if (cat.includes('rice') || cat.includes('bath') || cat.includes('biryani') || cat.includes('sambar') || cat.includes('saaru') || cat.includes('curd')) return 'MAIN COURSE & RICE';
+    if (cat.includes('after-meal') || cat.includes('finisher') || cat.includes('pan') || cat.includes('tambula') || cat.includes('coffee')) return 'AFTER-MEAL & TAMBULA';
+    return String(category).toUpperCase();
+  };
+
+  // Helper to build sections
+  const buildMenuSections = (sub) => {
+    const rawItemIds = Array.isArray(sub?.menuItems) ? sub.menuItems : [];
+    const menuDishIds = rawItemIds.map(item => (typeof item === 'object' && item !== null ? (item.dishId || item.id) : item));
+
+    let resolved = [];
+    menuDishIds.forEach(id => {
+      const found = dishesList.find(d => String(d.id) === String(id));
+      if (found) resolved.push(found);
+    });
+
+    if (resolved.length === 0 && rawItemIds.length > 0) {
+      rawItemIds.forEach(item => {
+        if (typeof item === 'object' && item !== null && item.name) {
+          resolved.push(item);
+        }
+      });
+    }
+
+    const allDishes = [...resolved].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    const sectionMap = new Map();
+    allDishes.forEach(d => {
+      const header = getSectionHeader(d.category);
+      if (!sectionMap.has(header)) sectionMap.set(header, []);
+      sectionMap.get(header).push((d.name || '').toUpperCase());
+    });
+
+    const sections = [];
+    sectionMap.forEach((items, header) => {
+      sections.push({ category: header, items });
+    });
+    return sections;
+  };
+
+  // PAGES 2..N: INNER FESTIVE MENU
+  subList.forEach(sub => {
+    const rawSubDate = sub.date || event?.date || new Date().toISOString().split('T')[0];
+    const dateText = formatMenuDateDDMMYYYY(rawSubDate);
+    const subCleanName = sub.name ? sub.name.toUpperCase().replace(/^MENU\s+FOR\s+/i, '') : (event?.eventType || 'BALEYELE FEAST').toUpperCase();
+    const servingText = sub.servingType || sub.mealType || event?.serviceStyle || 'Seated Plantain Leaf Feast';
+    const paxCount = sub.guestCount || event?.guestCount || 200;
+
+    const sections = buildMenuSections(sub);
+    const renderLines = [];
+    sections.forEach(s => {
+      if (s.category) {
+        renderLines.push({ type: 'category', text: s.category });
+      }
+      s.items.forEach(item => {
+        renderLines.push({ type: 'item', text: item });
+      });
+    });
+
+    const MAX_LINES_PER_PAGE = 18;
+    const pageChunks = [];
+    for (let i = 0; i < renderLines.length; i += MAX_LINES_PER_PAGE) {
+      pageChunks.push(renderLines.slice(i, i + MAX_LINES_PER_PAGE));
+    }
+    if (pageChunks.length === 0) pageChunks.push([]);
+
+    pageChunks.forEach((chunk, chunkIdx) => {
+      doc.addPage();
+      if (menuTemplateAssets.goldPage2Menu) {
+        doc.addImage(menuTemplateAssets.goldPage2Menu, 'JPEG', 0, 0, pw, ph);
+      }
+
+      // Session Header under FOOD MENU pill badge (Y = 38 to 44 mm)
+      doc.setFont('times', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...maroonColor);
+      const headerSuffix = chunkIdx > 0 ? ' (CONTD.)' : '';
+      doc.text(`${subCleanName}${headerSuffix}`, 105, 38, { align: 'center' });
+
+      doc.setFont('times', 'italic');
+      doc.setFontSize(9.5);
+      doc.setTextColor(110, 110, 110);
+      doc.text(`${dateText}   •   ${servingText.toUpperCase()}   •   ${paxCount} PAX`, 105, 44, { align: 'center' });
+
+      // Ornamental separator
+      doc.setDrawColor(212, 175, 55); // Gold line
+      doc.setLineWidth(0.4);
+      doc.line(75, 47, 135, 47);
+
+      // Distribute lines within available height Y = 56 to 265 mm
+      const availableHeight = 265 - 56;
+      const stepY = Math.min(8.5, Math.max(6.0, availableHeight / (chunk.length + 1)));
+      let curY = 56 + stepY;
+
+      chunk.forEach(entry => {
+        if (entry.type === 'category') {
+          curY += stepY * 0.25;
+          doc.setFont('times', 'bold');
+          doc.setFontSize(10.5);
+          doc.setTextColor(...maroonColor);
+          doc.text(`—  ${entry.text}  —`, 105, curY, { align: 'center' });
+          curY += stepY;
+        } else {
+          doc.setFont('times', 'bold');
+          doc.setFontSize(9.5);
+          doc.setTextColor(...navyColor);
+
+          let displayName = entry.text;
+          if (doc.getTextWidth(displayName) > 130) {
+            doc.setFontSize(8.5);
+            if (doc.getTextWidth(displayName) > 130) {
+              displayName = doc.splitTextToSize(displayName, 128)[0] + '...';
+            }
+          }
+          doc.text(displayName, 105, curY, { align: 'center' });
+          curY += stepY;
+        }
+      });
+    });
+  });
+
+  // LAST PAGE: FESTIVE GOLD BACK COVER
+  doc.addPage();
+  if (menuTemplateAssets.goldPage3Back) {
+    doc.addImage(menuTemplateAssets.goldPage3Back, 'JPEG', 0, 0, pw, ph);
+  }
+
+  const safeEventId = (event?.id || 'EVT').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeSubName = isAllSessions
+    ? 'Traditional_Festive_Gold_Full_Menu'
+    : (subList[0]?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Sri_Mayyia_Festive_Gold_Menu_${safeEventId}_${safeSubName}.pdf`;
+
+  const blob = doc.output('blob');
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(blob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
+
+  return { blobUrl, blob, filename, doc };
+};
+
+/**
+ * Generates the Official Sri Mayyia Caterers Proposal & Menu PDF booklet.
+ * Supports:
+ * - 'olive': 5-page Olive Green Proposal & Menu Booklet (Biryani Cover)
+ * - 'crimson' / 'official': 5-page Royal Crimson Proposal & Menu Booklet (Thali Cover)
+ * - 'gold': 3-page Traditional Festive Gold Food Menu (Kalasha Cover)
+ * - 'executive': 1-2 page Executive Function Menu Sheet
+ * 
+ * Returns { blobUrl, blob, filename, doc }
+ */
+export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'olive', dishesList = []) => {
   // If executive function sheet requested, route to generateExecutiveMenuPdf
   if (templateId === 'executive' || templateId === 'compact' || templateId === 'function_sheet') {
     return generateExecutiveMenuPdf(event, subFunction, companyProfile, dishesList);
   }
 
-  // Official Sri Mayyia Caterers Presentation Proposal & Menu Booklet
+  // If traditional festive gold menu requested, route to generateGoldMenuPdf
+  if (templateId === 'gold' || templateId === 'festive_gold' || templateId === 'traditional') {
+    return generateGoldMenuPdf(event, subFunction, companyProfile, dishesList);
+  }
+
+  // Choose Theme Assets based on templateId
+  const isCrimson = templateId === 'crimson' || templateId === 'official';
+  const coverAsset = isCrimson
+    ? (menuTemplateAssets.crimsonPage1Cover || menuTemplateAssets.page1Cover)
+    : (menuTemplateAssets.olivePage1Cover || menuTemplateAssets.page1Cover);
+  const aboutAsset = isCrimson
+    ? (menuTemplateAssets.crimsonPage2About || menuTemplateAssets.page3About)
+    : (menuTemplateAssets.olivePage2About || menuTemplateAssets.page3About);
+  const menuAsset = isCrimson
+    ? (menuTemplateAssets.crimsonPage3Menu || menuTemplateAssets.page2MenuBg)
+    : (menuTemplateAssets.olivePage3Menu || menuTemplateAssets.page2MenuBg);
+  const termsAsset = isCrimson
+    ? (menuTemplateAssets.crimsonPage4Terms || menuTemplateAssets.page4Terms)
+    : (menuTemplateAssets.olivePage4Terms || menuTemplateAssets.page4Terms);
+  const backAsset = isCrimson
+    ? (menuTemplateAssets.crimsonPage5Back || menuTemplateAssets.page5Back)
+    : (menuTemplateAssets.olivePage5Back || menuTemplateAssets.page5Back);
+
+  const primaryColor = isCrimson ? [192, 0, 0] : [74, 93, 35]; // Crimson Red #C00000 vs Deep Olive #4A5D23
+  const navyColor = [23, 55, 94];     // Deep royal navy #17375E
+
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width; // 210
   const ph = doc.internal.pageSize.height; // 297
-
-  // Official Brand Palette from Client PDF
-  const redColor = [192, 0, 0];    // Primary ceremonial red #C00000
-  const navyColor = [23, 55, 94];  // Deep royal navy #17375E
 
   // Resolve Sub-Functions to render
   let subList = [];
@@ -1240,7 +1880,9 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     (event?.customer?.name ? ` - ${event.customer.name}` : '');
 
   // PAGE 1: COVER PAGE
-  doc.addImage(menuTemplateAssets.page1Cover, 'JPEG', 0, 0, pw, ph);
+  if (coverAsset) {
+    doc.addImage(coverAsset, 'JPEG', 0, 0, pw, ph);
+  }
   doc.setFont('times', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(...navyColor);
@@ -1257,7 +1899,9 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
 
   // PAGE 2: COMPANY CREDENTIALS & ACHIEVEMENTS
   doc.addPage();
-  doc.addImage(menuTemplateAssets.page3About, 'JPEG', 0, 0, pw, ph);
+  if (aboutAsset) {
+    doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
+  }
 
   // Helper to map catalog category to clean uppercase header
   const getSectionHeader = (category) => {
@@ -1316,7 +1960,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     return sections;
   };
 
-  const centerX = (29.3 + 161.5) / 2; // 95.4 mm (exact center of Item column)
+  const centerX = 94.0; // Exact center of table item section
 
   // PAGES 3..N: SUB-FUNCTION MENU PAGES
   subList.forEach(sub => {
@@ -1347,49 +1991,37 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
 
     pageChunks.forEach((chunk, chunkIdx) => {
       doc.addPage();
-      doc.addImage(menuTemplateAssets.page2MenuBg, 'JPEG', 0, 0, pw, ph);
+      if (menuAsset) {
+        doc.addImage(menuAsset, 'JPEG', 0, 0, pw, ph);
+      }
 
-      // 1. Top Left Dynamic Values (Occasion, Date, Serving)
-      // Note: 'Occasion:', 'Date:', 'Serving:' labels are already pre-printed in the background template.
-      // We print only the values directly after each static label with ample clearance from the logo.
-      doc.setFont('times', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(...redColor);
-
-      // Occasion value (e.g. SANGEETH, WEDDING) - starts at X=47.5, Y=24.4
+      // 1. Dynamic Session Details (Occasion, Date, Serving)
       const occasionVal = (sub.occasion || (sub.name && sub.name.toUpperCase() !== occasionText.toUpperCase() ? occasionText : '') || event?.eventType || '').toUpperCase();
-      if (occasionVal) {
-        let occText = occasionVal;
-        if (doc.getTextWidth(occText) > 90) {
-          occText = doc.splitTextToSize(occText, 90)[0] + '...';
-        }
-        doc.text(occText, 47.5, 24.4);
-      }
-
-      // Date value (e.g. 28.08.2026) - starts at X=35.5, Y=34.8 (ends at ~58mm; logo starts at 158mm)
-      doc.text(dateText, 35.5, 34.8);
-
-      // Serving value (e.g. BUFFET, PLANTAIN LEAF) - starts at X=42.5, Y=47.0
       let servingVal = servingText.toUpperCase();
-      if (doc.getTextWidth(servingVal) > 95) {
-        servingVal = doc.splitTextToSize(servingVal, 95)[0] + '...';
-      }
-      doc.text(servingVal, 42.5, 47.0);
+
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...primaryColor);
+
+      // Above the table (Y = 48 mm)
+      doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
+      doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
+      doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
 
       // 2. Table Merged Bar: "MENU for <NAME>"
       const subCleanName = sub.name ? sub.name.toUpperCase().replace(/^MENU\s+FOR\s+/i, '') : 'BANQUET';
       const headerSuffix = chunkIdx > 0 ? ' (CONTD.)' : '';
       doc.setFont('times', 'bold');
       doc.setFontSize(11.5);
-      doc.setTextColor(...redColor);
-      doc.text(`MENU for ${subCleanName}${headerSuffix}`, 106.1, 61.0, { align: 'center' });
+      doc.setTextColor(...primaryColor);
+      doc.text(`MENU for ${subCleanName}${headerSuffix}`, 94.0, 60.5, { align: 'center' });
 
       // 3. Pax in Column 3 header: exact number right after "Pax:"
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFont('times', 'bold');
       doc.setFontSize(10.5);
-      doc.setTextColor(...redColor);
-      doc.text(String(paxCount), 128.0, 70.3);
+      doc.setTextColor(...primaryColor);
+      doc.text(String(paxCount), 126.0, 70.3);
 
       const availableHeight = 270 - 77; // 193 mm
       const stepY = Math.min(8.0, Math.max(5.8, availableHeight / (chunk.length + 1)));
@@ -1401,7 +2033,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           curY += stepY * 0.3;
           doc.setFont('times', 'bold');
           doc.setFontSize(10);
-          doc.setTextColor(...redColor);
+          doc.setTextColor(...primaryColor);
           doc.text(entry.text, centerX, curY, { align: 'center' });
           curY += stepY;
         } else {
@@ -1428,17 +2060,22 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
 
   // SECOND-TO-LAST PAGE: SERVICE TERMS
   doc.addPage();
-  doc.addImage(menuTemplateAssets.page4Terms, 'JPEG', 0, 0, pw, ph);
+  if (termsAsset) {
+    doc.addImage(termsAsset, 'JPEG', 0, 0, pw, ph);
+  }
 
   // LAST PAGE: BACK COVER & HERITAGE
   doc.addPage();
-  doc.addImage(menuTemplateAssets.page5Back, 'JPEG', 0, 0, pw, ph);
+  if (backAsset) {
+    doc.addImage(backAsset, 'JPEG', 0, 0, pw, ph);
+  }
 
   const safeEventId = (event?.id || 'EVT').replace(/[^a-zA-Z0-9_-]/g, '_');
   const safeSubName = isAllSessions
     ? 'Full_Event_Proposal'
     : (subList[0]?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `Sri_Mayyia_Proposal_${safeEventId}_${safeSubName}.pdf`;
+  const themePrefix = isCrimson ? 'Crimson_Proposal' : 'Olive_Proposal';
+  const filename = `Sri_Mayyia_${themePrefix}_${safeEventId}_${safeSubName}.pdf`;
 
   const blob = doc.output('blob');
   let blobUrl = '';

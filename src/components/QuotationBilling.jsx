@@ -21,6 +21,8 @@ const QuotationBilling = () => {
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
   const [invoicePreview, setInvoicePreview] = useState(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [selectedInvoiceTemplate, setSelectedInvoiceTemplate] = useState('official_tax_invoice');
+  const [isInvoicePdfModalOpen, setIsInvoicePdfModalOpen] = useState(false);
 
   useEffect(() => {
     if (events && events.length > 0) {
@@ -466,14 +468,14 @@ const QuotationBilling = () => {
     }
   }
 
-  const handlePreviewInvoice = async () => {
+  const handlePreviewInvoice = async (templateId = selectedInvoiceTemplate) => {
     if (!currentEvent) {
       alert('Please select an event before generating invoice.');
       return;
     }
     setIsGeneratingPdf(true);
     try {
-      const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
+      const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true, templateId);
       if (result && result.blobUrl) {
         setInvoicePreview(result);
       } else {
@@ -487,7 +489,7 @@ const QuotationBilling = () => {
     }
   };
 
-  const handleDownloadInvoice = async (previewResult = null) => {
+  const handleDownloadInvoice = async (previewResult = null, templateId = selectedInvoiceTemplate) => {
     if (!currentEvent) {
       alert('Please select an event before downloading invoice.');
       return;
@@ -499,7 +501,7 @@ const QuotationBilling = () => {
       if (data && (data.blob || data.blobUrl)) {
         downloadPdfBlob(data.blob || data.blobUrl, data.filename || `Invoice_${currentEvent?.id || 'doc'}.pdf`);
       } else {
-        const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true);
+        const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true, templateId);
         if (result && (result.blob || result.blobUrl)) {
           downloadPdfBlob(result.blob || result.blobUrl, result.filename || `Invoice_${currentEvent.id}.pdf`);
         } else {
@@ -1239,8 +1241,17 @@ const QuotationBilling = () => {
               
               <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
                 <button 
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setIsInvoicePdfModalOpen(true)}
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                  title="Choose Invoice or Quotation PDF Template"
+                >
+                  <Sliders size={14} /> PDF Options
+                </button>
+                <button 
                   className="btn btn-secondary btn-small" 
-                  onClick={handlePreviewInvoice} 
+                  onClick={() => handlePreviewInvoice()} 
                   disabled={isGeneratingPdf}
                   style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                 >
@@ -1788,6 +1799,104 @@ const QuotationBilling = () => {
               </button>
               <button className="btn btn-primary" onClick={handleShareNative} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Share2 size={16} /> Share via Apps
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice & Quotation PDF Template Selector Modal */}
+      {isInvoicePdfModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-content" style={{ maxWidth: '620px', width: '92%', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FileText size={22} style={{ color: 'var(--color-primary)' }} />
+                <div>
+                  <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Invoice & Quotation PDF Templates</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Select official tax invoice or comprehensive commercial quotation</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setIsInvoicePdfModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+              {[
+                {
+                  id: 'official_tax_invoice',
+                  title: 'Official Sri Mayyia Tax Invoice',
+                  badge: '★ Statutory Tax Invoice (Karur Vysya Bank)',
+                  description: 'Official template with centered brand logo, Govardhanagiri corporate address, Halasuru branch payment instructions (IFSC KVBL0001304), CGST @ 2.5%, SGST @ 2.5%, amount in words, and authorized signatory.',
+                  color: '#9C1519',
+                  bgTint: 'rgba(156, 21, 25, 0.05)'
+                },
+                {
+                  id: 'commercial_quotation',
+                  title: 'Commercial Quotation & Estimate',
+                  badge: '★ Client Cost Estimation',
+                  description: 'Parchment presentation document with complete cost estimation, logistics, transport, porters breakdown, advance payment tracking, and client metadata container.',
+                  color: '#17375E',
+                  bgTint: 'rgba(23, 55, 94, 0.05)'
+                }
+              ].map(tpl => {
+                const isSelected = selectedInvoiceTemplate === tpl.id;
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => setSelectedInvoiceTemplate(tpl.id)}
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${tpl.color}` : '1px solid rgba(0,0,0,0.12)',
+                      background: isSelected ? tpl.bgTint : 'rgba(255, 255, 255, 0.8)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? `0 4px 14px ${tpl.color}33` : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: tpl.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {tpl.badge}
+                      </span>
+                      {isSelected && <Check size={16} style={{ color: tpl.color }} />}
+                    </div>
+                    <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#000000', marginBottom: '0.3rem' }}>
+                      {tpl.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                      {tpl.description}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  handlePreviewInvoice(selectedInvoiceTemplate);
+                  setIsInvoicePdfModalOpen(false);
+                }}
+                disabled={isGeneratingPdf}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              >
+                <Eye size={16} /> Preview Selected Template
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  handleDownloadInvoice(null, selectedInvoiceTemplate);
+                  setIsInvoicePdfModalOpen(false);
+                }}
+                disabled={isGeneratingPdf}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
+              >
+                <Download size={16} /> Download Selected Template
               </button>
             </div>
           </div>

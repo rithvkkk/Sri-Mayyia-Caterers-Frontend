@@ -5,11 +5,11 @@ import { generateGatePassPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdf
 
 /**
  * Compresses an image file client-side via HTML5 canvas.
- * - If a photo is above 5MB, automatically compresses and scales it down to <= 5MB.
- * - Targets high-definition (<= 2048px) with adaptive quality reduction.
- * - Falls back safely to raw data URL if canvas is unsupported or decode fails.
+ * - If a photo is large, automatically scales and compresses it down to <= 1.6MB.
+ * - Targets high-definition (<= 1280px) with adaptive quality reduction.
+ * - Safely fits within Vercel's serverless payload limits.
  */
-const compressImage = (file, maxWidth = 2048, maxHeight = 2048, quality = 0.88, maxOutputBytes = 4.8 * 1024 * 1024) => {
+const compressImage = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.82, maxOutputBytes = 1.6 * 1024 * 1024) => {
   return new Promise((resolve, reject) => {
     if (!file) return reject(new Error('No file provided'));
     const reader = new FileReader();
@@ -323,10 +323,10 @@ const StorageInventory = () => {
 
     try {
       setIsCompressing(true);
-      const isAbove5Mb = file.size > 5 * 1024 * 1024;
-      if (isAbove5Mb) {
+      const isAbove2Mb = file.size > 2 * 1024 * 1024;
+      if (isAbove2Mb) {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-        setUploadStatus(`Photo is ${sizeMb}MB: Auto-compressing to under 5MB...`);
+        setUploadStatus(`Photo is ${sizeMb}MB: Optimizing for cloud upload...`);
       } else {
         setUploadStatus('Optimizing image...');
       }
