@@ -457,7 +457,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
 
   // PAGE 1: OFFICIAL PARCHMENT COVER BACKGROUND
-  const page1Bg = menuTemplateAssets.page1Cover || menuTemplateAssets.invoicePage1Bg;
+  const page1Bg = menuTemplateAssets.invoiceCleanBg || menuTemplateAssets.invoicePage1CleanBg || menuTemplateAssets.invoicePage1Bg;
   if (page1Bg) {
     doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
   }
@@ -471,12 +471,12 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
 
   // Document Type Top-Right Banner
   doc.setFillColor(...maroonColor);
-  doc.roundedRect(138, 36, 57, 10, 1.5, 1.5, 'F');
+  doc.roundedRect(132, 36, 63, 10, 1.5, 1.5, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  const titleText = type === 'invoice' ? 'QUOTATION & INVOICE' : 'MATERIALS ESTIMATE';
-  doc.text(titleText, 166.5, 42.5, { align: 'center' });
+  doc.setFontSize(8.5);
+  const titleText = type === 'invoice' ? 'COMMERCIAL QUOTATION' : 'MATERIALS ESTIMATE';
+  doc.text(titleText, 163.5, 42.5, { align: 'center' });
 
   // Event Details Registry metadata
   const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || '';
@@ -716,7 +716,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
 
   // Standardized filename
   const safeEvId = String(evId).replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
-  const filename = `${type === 'invoice' ? 'Invoice' : 'Materials'}_${safeEvId || 'Document'}.pdf`;
+  const filename = `${type === 'invoice' ? 'Quotation' : 'Materials'}_${safeEvId || 'Document'}.pdf`;
   
   let pdfBlob;
   try {
@@ -742,7 +742,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     try {
       await navigator.share({
         files: [file],
-        title: `${type === 'invoice' ? 'Tax Invoice' : 'Materials List'} - ${evId}`,
+        title: `${type === 'invoice' ? 'Commercial Quotation' : 'Materials List'} - ${evId}`,
         text: `Share catering report for ${evId} in ${lang}.`
       });
       return true;
@@ -772,134 +772,275 @@ export const generateInvoicePdf = (event, rawMaterials, companyProfile, template
  */
 export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = 210;
+  const ph = 297;
 
-  const primaryColor = [22, 30, 49];
-  const accentColor  = [59, 130, 246];
+  // Royal Sri Mayyia Brand Colors
+  const maroonColor = [156, 21, 25];  // Royal Crimson #9C1519
+  const navyColor = [23, 55, 94];     // Royal Navy #17375E
+  const goldColor = [210, 172, 103];  // Champagne Gold #D2AC67
+  const charcoalColor = [50, 50, 50];
 
   const cp = companyProfile || {};
   const cpName = cp.name || 'Sri Mayyia Caterers';
+  const cpTagline = cp.tagline || 'Pioneers in authentic, pure vegetarian catering since 1953';
   const cpPhone = cp.phone || '+91 99988 77766';
-  const cpAddress = cp.address || 'Malleshwaram, Bangalore';
-  const cpGstin = cp.gstin || '29AAAAA0000A1Z5';
-  const cpCurrency = cp.currency || '₹';
+  const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
+  const cpGstin = cp.gstin || '29ACUPA7565Q1ZI';
+  const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
 
   const sup = supplier || {};
   const supName = sup.name || 'Vendor / Supplier';
   const supContact = sup.contact || sup.phone || 'N/A';
-  const supCategory = sup.category || 'General';
+  const supCategory = sup.category || 'General Provisions';
+  const supGst = sup.gstin || sup.gstNumber || '';
 
   const ev = event || {};
-  const evId = ev.id || 'PO-REQ';
+  const evId = ev.id || ev._id || 'PO-REQ';
   const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Valued Client';
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
+  const evVenue = ev.venue || 'Sri Mayyia Heritage Convention Center';
+  const poDateFormatted = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
+  const safeSupFilename = supName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+  const poNumber = `PO-${String(evId).replace(/[^a-zA-Z0-9]/g, '')}-${String(sup.id || sup._id || 'V').slice(-4).toUpperCase()}`;
 
-  // Header band
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, 210, 40, 'F');
+  // 1. BRAND HEADER & EMBLEM
+  // Top thin ceremonial gold bar
+  doc.setFillColor(...goldColor);
+  doc.rect(0, 0, pw, 3.5, 'F');
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.text(cpName.toUpperCase(), 15, 17);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.text(`${cpPhone} | ${cpAddress}`, 15, 24);
-  doc.text(`GSTIN: ${cpGstin}`, 15, 30);
+  // Official Logo if available
+  if (menuTemplateAssets.invoiceLogo) {
+    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 14, 8, 20, 20);
+  }
 
-  // PO badge
-  doc.setFillColor(...accentColor);
-  doc.rect(148, 10, 48, 14, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(255, 255, 255);
-  doc.text('PURCHASE ORDER', 150, 19);
+  // Company Name & Credential Details (Left-aligned next to logo)
+  const headerTextX = menuTemplateAssets.invoiceLogo ? 38 : 14;
+  doc.setFont('times', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(...maroonColor);
+  doc.text(cpName.toUpperCase(), headerTextX, 15);
 
-  // Supplier details
-  doc.setTextColor(40, 40, 40);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('TO SUPPLIER:', 15, 50);
+  doc.setFont('times', 'italic');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...goldColor);
+  doc.text(cpTagline, headerTextX, 20);
+
   doc.setFont('helvetica', 'normal');
-  doc.text(supName, 55, 50);
-  doc.setFontSize(9);
-  doc.text(`Contact: ${supContact} | Category: ${supCategory}`, 15, 56);
+  doc.setFontSize(7.5);
+  doc.setTextColor(...charcoalColor);
+  doc.text(`${cpAddress}`, headerTextX, 24.5);
+  doc.text(`Phone: ${cpPhone}  |  GSTIN: ${cpGstin}`, headerTextX, 28.5);
 
-  // Event ref
+  // Document Type Badge (Top Right)
+  doc.setFillColor(...maroonColor);
+  doc.roundedRect(134, 9, 62, 17, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(`REF EVENT: ${evId}`, 130, 50);
+  doc.setFontSize(10.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('PURCHASE ORDER', 165, 16.5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
-  doc.text(`Client: ${clientName}`, 130, 56);
-  doc.text(`Event Date: ${evDate}`, 130, 62);
+  doc.setFontSize(7.5);
+  doc.text(`PO Ref: ${poNumber}`, 165, 22, { align: 'center' });
 
-  doc.setDrawColor(200, 200, 200);
-  doc.line(15, 66, 195, 66);
+  // Divider Line
+  doc.setDrawColor(...goldColor);
+  doc.setLineWidth(0.5);
+  doc.line(14, 32, pw - 14, 32);
 
-  // Items table
+  // 2. TWO-COLUMN STRUCTURED METADATA CARDS (Y = 35 to 64)
+  const cardW = 88;
+  const cardH = 29;
+
+  // Left Card: Supplier / Vendor Details
+  doc.setFillColor(253, 249, 242); // Warm ivory tint
+  doc.roundedRect(14, 35, cardW, cardH, 2, 2, 'F');
+  doc.setDrawColor(220, 200, 165);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(14, 35, cardW, cardH, 2, 2, 'D');
+
+  // Supplier Card Header Tag
+  doc.setFillColor(...navyColor);
+  doc.roundedRect(18, 38, 44, 4.5, 1, 1, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('SUPPLIER / VENDOR DETAILS', 40, 41.2, { align: 'center' });
+
+  doc.setTextColor(20, 20, 20);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  let dispSupName = supName;
+  if (doc.getTextWidth(dispSupName) > 78) {
+    dispSupName = doc.splitTextToSize(dispSupName, 78)[0];
+  }
+  doc.text(dispSupName, 18, 48);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...charcoalColor);
+  doc.text(`Category: ${supCategory}`, 18, 53);
+  doc.text(`Contact: ${supContact}`, 18, 57.5);
+  if (supGst) {
+    doc.text(`GSTIN: ${supGst}`, 18, 61.5);
+  }
+
+  // Right Card: PO Reference & Event Execution Details
+  const rightCardX = pw - 14 - cardW;
+  doc.setFillColor(253, 249, 242);
+  doc.roundedRect(rightCardX, 35, cardW, cardH, 2, 2, 'F');
+  doc.setDrawColor(220, 200, 165);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(rightCardX, 35, cardW, cardH, 2, 2, 'D');
+
+  doc.setFillColor(...maroonColor);
+  doc.roundedRect(rightCardX + 4, 38, 48, 4.5, 1, 1, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('EVENT & PROCUREMENT REF', rightCardX + 28, 41.2, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...charcoalColor);
+  doc.text(`PO Issue Date: ${poDateFormatted}`, rightCardX + 4, 48);
+  doc.text(`Target Event: ${evId} (${clientName})`, rightCardX + 4, 53);
+  doc.text(`Required By Date: ${formatDisplayDate(evDate) || evDate}`, rightCardX + 4, 57.5);
+  let dispVenue = evVenue;
+  if (doc.getTextWidth(`Venue: ${dispVenue}`) > 78) {
+    dispVenue = doc.splitTextToSize(dispVenue, 65)[0] + '...';
+  }
+  doc.text(`Delivery Venue: ${dispVenue}`, rightCardX + 4, 61.5);
+
+  // 3. ITEMS TABLE
   const safeItems = (Array.isArray(items) ? items : []).filter(Boolean);
-  const headers = [['#', 'Ingredient', 'Category', 'Qty Required', 'Unit Cost', 'Total Est.']];
-  const rows = safeItems.map((m, i) => {
+  let grandTotal = 0;
+  const tableRows = (safeItems.length ? safeItems : [{ name: 'General Provisions', category: 'Grocery', requiredQty: 1, unit: 'batch', costPerUnit: 0 }]).map((m, i) => {
     const itm = (m && typeof m === 'object') ? m : { name: String(m || 'Item') };
-    const unitCost = Number(itm.costPerUnit || 0);
-    const totalCost = Number(itm.totalCost !== undefined && itm.totalCost !== null ? itm.totalCost : unitCost * (itm.requiredQty || 0));
+    const unitCost = Number(itm.costPerUnit || itm.price || 0);
+    const qty = Number(itm.requiredQty || itm.quantity || 0);
+    const totalCost = Number(itm.totalCost !== undefined && itm.totalCost !== null ? itm.totalCost : unitCost * qty);
+    grandTotal += (isNaN(totalCost) ? 0 : totalCost);
+
     return [
-      i + 1,
-      itm.name || 'Ingredient Item',
+      String(i + 1),
+      itm.name || 'Raw Material Item',
       itm.category || 'General',
-      `${itm.requiredQty || 0} ${itm.unit || 'kg'}`,
-      `${cpCurrency} ${unitCost.toLocaleString('en-IN')}`,
-      `${cpCurrency} ${totalCost.toLocaleString('en-IN')}`
+      `${qty} ${itm.unit || 'kg'}`,
+      formatCurrencyValue(unitCost, curr),
+      formatCurrencyValue(totalCost, curr)
     ];
   });
 
+  // Summary Row inside table
+  tableRows.push([
+    '',
+    { content: 'TOTAL ESTIMATED PROCUREMENT VALUE', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [248, 240, 228], textColor: maroonColor } },
+    { content: formatCurrencyValue(grandTotal, curr), styles: { fontStyle: 'bold', halign: 'right', fillColor: [248, 240, 228], textColor: maroonColor } }
+  ]);
+
   renderTable(doc, {
-    head: headers,
-    body: rows.length ? rows : [[1, 'General Provisions', 'Grocery', '1 batch', `${cpCurrency} 0`, `${cpCurrency} 0`]],
-    startY: 70,
+    head: [['#', 'Item / Raw Material', 'Category', 'Required Qty', 'Unit Rate', 'Total Amount']],
+    body: tableRows,
+    startY: 68,
     theme: 'grid',
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    margin: { left: 15, right: 15 },
+    headStyles: {
+      fillColor: maroonColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8.5,
+      halign: 'center'
+    },
+    styles: {
+      font: 'helvetica',
+      fontSize: 8.5,
+      cellPadding: 2.2,
+      lineColor: [225, 225, 225],
+      lineWidth: 0.25,
+      textColor: [30, 30, 30]
+    },
+    alternateRowStyles: {
+      fillColor: [253, 250, 246]
+    },
+    margin: { left: 14, right: 14, bottom: 42 },
     columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 52 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 28, halign: 'center' },
-      4: { cellWidth: 32, halign: 'right' },
-      5: { cellWidth: 35, halign: 'right' }
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 64, halign: 'left', fontStyle: 'bold' },
+      2: { cellWidth: 26, halign: 'center' },
+      3: { cellWidth: 26, halign: 'center' },
+      4: { cellWidth: 26, halign: 'right' },
+      5: { cellWidth: 30, halign: 'right' }
+    },
+    didDrawPage: (data) => {
+      // Running Page Footer
+      const totalPages = doc.internal.getNumberOfPages();
+      const currentPage = data.pageNumber;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(130, 130, 130);
+      doc.text(`Page ${currentPage} of ${totalPages}  |  Purchase Order: ${poNumber}`, pw - 14, ph - 10, { align: 'right' });
+      doc.text(`${cpName}  |  Confidential Procurement Document`, 14, ph - 10);
     }
   });
 
-  const finalY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100) + 8;
-  const grandTotal = safeItems.reduce((s, m) => {
-    const itm = (m && typeof m === 'object') ? m : {};
-    const cost = Number(itm.totalCost !== undefined && itm.totalCost !== null ? itm.totalCost : (itm.costPerUnit || 0) * (itm.requiredQty || 0));
-    return s + (isNaN(cost) ? 0 : cost);
-  }, 0);
+  const lastTableY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100);
+  let afterTableY = lastTableY + 4;
+
+  // Check if we need space for terms and signatures
+  if (afterTableY + 42 > ph - 15) {
+    doc.addPage();
+    afterTableY = 20;
+  }
+
+  // Amount in words
+  const wordsText = numberToWordsIndian(grandTotal);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...maroonColor);
+  doc.text(`Amount in Words: `, 14, afterTableY);
+  doc.setFont('times', 'italic');
+  doc.setTextColor(...charcoalColor);
+  doc.text(`${wordsText}.`, 42, afterTableY);
+  afterTableY += 4.5;
+
+  // Delivery & Quality Instructions Container
+  doc.setFillColor(253, 249, 242);
+  doc.roundedRect(14, afterTableY, pw - 28, 13, 1.5, 1.5, 'F');
+  doc.setDrawColor(220, 200, 165);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(14, afterTableY, pw - 28, 13, 1.5, 1.5, 'D');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(40, 40, 40);
-  doc.text('TOTAL ORDER VALUE:', 115, finalY);
-  doc.setTextColor(...accentColor);
-  doc.text(`${cpCurrency} ${grandTotal.toLocaleString('en-IN')}`, 195, finalY, { align: 'right' });
-
-  // Footer
-  const ph = typeof doc.internal.pageSize.getHeight === 'function'
-    ? doc.internal.pageSize.getHeight()
-    : (doc.internal.pageSize.height || 297);
-  doc.setDrawColor(220, 220, 220);
-  doc.line(15, ph - 22, 195, ph - 22);
-  doc.setTextColor(120, 120, 120);
+  doc.setFontSize(7);
+  doc.setTextColor(...navyColor);
+  doc.text('SUPPLIER PROCUREMENT INSTRUCTIONS:', 18, afterTableY + 3.8);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('Authorized Signature: ____________________', 15, ph - 14);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 150, ph - 14);
-  doc.text(`${cpName} — Catering Management System`, 15, ph - 8);
+  doc.setFontSize(6.8);
+  doc.setTextColor(...charcoalColor);
+  doc.text('1. Delivery must reach the venue at least 4 hours before service.  2. All food ingredients must be fresh and inspected upon arrival.', 18, afterTableY + 7.5);
+  doc.text('3. Weighing verification will be conducted by our storekeeper before unloading. Defective or expired items will be returned.', 18, afterTableY + 10.8);
 
-  const safeSupFilename = supName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+  afterTableY += 17;
+
+  // Three-column Signatures Block
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...charcoalColor);
+
+  // Column 1
+  doc.line(16, afterTableY + 8, 60, afterTableY + 8);
+  doc.text('Prepared By (Store / Ops)', 38, afterTableY + 12, { align: 'center' });
+
+  // Column 2
+  doc.line(85, afterTableY + 8, 125, afterTableY + 8);
+  doc.text('Authorized Signatory', 105, afterTableY + 12, { align: 'center' });
+
+  // Column 3
+  doc.line(150, afterTableY + 8, 194, afterTableY + 8);
+  doc.text('Supplier Acceptance / Stamp', 172, afterTableY + 12, { align: 'center' });
+
   const filename = `PO_${evId}_${safeSupFilename || 'Supplier'}.pdf`;
-  
+
   let blob;
   try {
     blob = doc.output('blob');
@@ -1644,21 +1785,28 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
     doc.text(`Specially Curated for ${clientName}`, 105, 133, { align: 'center' });
   }
 
-  // Date value right next to "Date: " (X = 114 mm, Y = 160.4 mm)
-  doc.setFont('times', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(...navyColor);
-  doc.text(coverDateText, 114, 160.4);
+  // Clear pre-printed centered "Date:" and "VENUE:" labels to ensure unified, centered typography
+  doc.setFillColor(254, 254, 253);
+  doc.rect(75, 154, 60, 24, 'F');
 
-  // Venue value right next to "VENUE: " (X = 118 mm, Y = 171.7 mm)
+  // Centered Date
+  doc.setFont('times', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...maroonColor);
+  doc.text(`Date:  ${coverDateText}`, 105, 161.5, { align: 'center' });
+
+  // Centered Venue
   let dispVenue = venueText;
-  if (doc.getTextWidth(dispVenue) > 78) {
-    doc.setFontSize(9.5);
-    if (doc.getTextWidth(dispVenue) > 78) {
-      dispVenue = doc.splitTextToSize(dispVenue, 76)[0] + '...';
+  if (doc.getTextWidth(`VENUE:  ${dispVenue}`) > 140) {
+    doc.setFontSize(10);
+    if (doc.getTextWidth(`VENUE:  ${dispVenue}`) > 140) {
+      dispVenue = doc.splitTextToSize(dispVenue, 110)[0] + '...';
     }
+  } else {
+    doc.setFontSize(11);
   }
-  doc.text(dispVenue, 118, 171.7);
+  doc.setTextColor(...navyColor);
+  doc.text(`VENUE:  ${dispVenue}`, 105, 172.5, { align: 'center' });
 
   // Helper to map catalog category to clean uppercase header
   const getSectionHeader = (category) => {
@@ -1884,18 +2032,24 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     doc.addImage(coverAsset, 'JPEG', 0, 0, pw, ph);
   }
   doc.setFont('times', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(...navyColor);
-  doc.text(coverDateText, 48.0, 145.8);
+  doc.setFontSize(12.5);
+  // Pure crisp white font for Page 1 cover ONLY to ensure contrast against dark artwork
+  doc.setTextColor(255, 255, 255);
+
+  const coverDateX = isCrimson ? 51.5 : 53.5;
+  const coverDateY = isCrimson ? 143.2 : 150.5;
+  doc.text(coverDateText, coverDateX, coverDateY);
 
   let displayEventTitle = coverEventText.toUpperCase();
   if (doc.getTextWidth(displayEventTitle) > 138) {
-    doc.setFontSize(11.5);
+    doc.setFontSize(11);
     if (doc.getTextWidth(displayEventTitle) > 138) {
       displayEventTitle = doc.splitTextToSize(displayEventTitle, 136)[0] + '...';
     }
   }
-  doc.text(displayEventTitle, 52.0, 160.2);
+  const coverEventX = isCrimson ? 53.5 : 56.5;
+  const coverEventY = isCrimson ? 159.2 : 166.4;
+  doc.text(displayEventTitle, coverEventX, coverEventY);
 
   // PAGE 2: COMPANY CREDENTIALS & ACHIEVEMENTS
   doc.addPage();

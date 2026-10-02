@@ -154,6 +154,14 @@ const VendorManagement = () => {
   const [editingVendorPriceKey, setEditingVendorPriceKey] = useState(null); // `${matId}_${supId}`
   const [editingVendorPriceVal, setEditingVendorPriceVal] = useState('');
 
+  // Multi-Item Supply Modal state
+  const [isMultiLinkModalOpen, setIsMultiLinkModalOpen] = useState(false);
+  const [multiLinkSupplier, setMultiLinkSupplier] = useState(null);
+  const [multiSelectedItems, setMultiSelectedItems] = useState({}); // { [matId]: { selected, price, unit, notes, isExisting } }
+  const [multiMatSearch, setMultiMatSearch] = useState('');
+  const [multiMatCatFilter, setMultiMatCatFilter] = useState('All');
+  const [isSavingBulk, setIsSavingBulk] = useState(false);
+
   useEffect(() => {
     if (events && events.length > 0) {
       if (!selectedEventId || !events.some(e => e.id === selectedEventId)) {
@@ -516,6 +524,72 @@ const VendorManagement = () => {
     };
     await linkSupplierToMaterial(linkForm.materialId, supplierPricing);
     setIsLinkModalOpen(false);
+  };
+
+  const openMultiLinkModal = (supplier) => {
+    setMultiLinkSupplier(supplier);
+    setMultiMatSearch('');
+    setMultiMatCatFilter('All');
+
+    const supId = String(supplier.id || supplier._id);
+    const initialMap = {};
+    rawMaterials.forEach(rm => {
+      const matId = String(rm.id || rm._id);
+      const existingLink = rm.suppliers?.find(sp => String(sp.supplierId) === supId);
+      initialMap[matId] = {
+        selected: !!existingLink,
+        price: existingLink?.price !== undefined ? existingLink.price : (rm.costPerUnit || ''),
+        unit: existingLink?.unit || rm.unit || 'kg',
+        notes: existingLink?.notes || '',
+        isExisting: !!existingLink
+      };
+    });
+    setMultiSelectedItems(initialMap);
+    setIsMultiLinkModalOpen(true);
+  };
+
+  const handleBulkLinkSubmit = async (e) => {
+    e.preventDefault();
+    if (!multiLinkSupplier) return;
+    setIsSavingBulk(true);
+    try {
+      const supId = String(multiLinkSupplier.id || multiLinkSupplier._id);
+      const supName = multiLinkSupplier.name || 'Supplier';
+
+      let countLinked = 0;
+      let countUnlinked = 0;
+
+      for (const rm of rawMaterials) {
+        const matId = String(rm.id || rm._id);
+        const itemState = multiSelectedItems[matId];
+        const existingLink = rm.suppliers?.find(sp => String(sp.supplierId) === supId);
+
+        if (itemState?.selected) {
+          const priceNum = parseFloat(itemState.price);
+          const supplierPricing = {
+            supplierId: supId,
+            supplierName: supName,
+            price: !isNaN(priceNum) && priceNum >= 0 ? priceNum : (rm.costPerUnit || 0),
+            unit: itemState.unit || rm.unit || 'kg',
+            notes: (itemState.notes || '').trim()
+          };
+          await linkSupplierToMaterial(matId, supplierPricing);
+          countLinked++;
+        } else if (existingLink) {
+          await unlinkSupplierFromMaterial(matId, supId);
+          countUnlinked++;
+        }
+      }
+
+      setIsMultiLinkModalOpen(false);
+      setMultiLinkSupplier(null);
+      alert(`Supplier catalog updated for ${supName}! (${countLinked} materials supplied${countUnlinked > 0 ? `, ${countUnlinked} removed` : ''})`);
+    } catch (err) {
+      console.error('Error saving bulk materials:', err);
+      alert('Failed to save some items. Please check network connection.');
+    } finally {
+      setIsSavingBulk(false);
+    }
   };
 
   const handleUnlink = async (materialId, supplierId) => {
@@ -1201,11 +1275,19 @@ const VendorManagement = () => {
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
                               <button
                                 className="btn btn-primary btn-small"
-                                onClick={() => openLinkModal('supplier', s)}
-                                title="Add Material & Pricing to this Vendor"
-                                style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+                                onClick={() => openMultiLinkModal(s)}
+                                title="Supply Multiple Materials under this Vendor (Bulk Assign)"
+                                style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700 }}
                               >
-                                <Plus size={13} /> Material
+                                <Layers size={13} /> Supply Items
+                              </button>
+                              <button
+                                className="btn btn-secondary btn-small"
+                                onClick={() => openLinkModal('supplier', s)}
+                                title="Add Single Material & Pricing"
+                                style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem' }}
+                              >
+                                <Plus size={13} />
                               </button>
                               <button className="btn btn-secondary btn-small" onClick={() => openSupplierForm(s)} title="Edit Supplier">
                                 <Edit2 size={14} />
@@ -1234,14 +1316,25 @@ const VendorManagement = () => {
                                   </p>
                                 </div>
                                 {isOps && (
-                                  <button
-                                    type="button"
-                                    className="btn btn-primary btn-small"
-                                    onClick={() => openLinkModal('supplier', s)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
-                                  >
-                                    <Plus size={14} /> Add Material to {s.name}
-                                  </button>
+                                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary btn-small"
+                                      onClick={() => openMultiLinkModal(s)}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 700 }}
+                                      title="Select multiple materials to assign to this vendor at once"
+                                    >
+                                      <Layers size={14} /> Supply Multiple Items
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-small"
+                                      onClick={() => openLinkModal('supplier', s)}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+                                    >
+                                      <Plus size={14} /> Single Item
+                                    </button>
+                                  </div>
                                 )}
                               </div>
 
@@ -1250,9 +1343,14 @@ const VendorManagement = () => {
                                   <Package size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
                                   <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>No materials are linked to this vendor yet.</p>
                                   {isOps && (
-                                    <button className="btn btn-secondary btn-small" onClick={() => openLinkModal('supplier', s)}>
-                                      <Plus size={13} /> Link First Material
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                      <button className="btn btn-primary btn-small" onClick={() => openMultiLinkModal(s)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}>
+                                        <Layers size={13} /> Supply Multiple Items
+                                      </button>
+                                      <button className="btn btn-secondary btn-small" onClick={() => openLinkModal('supplier', s)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                        <Plus size={13} /> Link Single Material
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               ) : (
@@ -1923,6 +2021,24 @@ const VendorManagement = () => {
               </button>
             </div>
 
+            {linkTarget?.type === 'supplier' && (
+              <div style={{ marginBottom: '0.5rem', padding: '0.65rem 0.85rem', background: 'rgba(156, 21, 25, 0.05)', borderRadius: '8px', border: '1px solid rgba(156, 21, 25, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Want to link multiple catalog items to this vendor at once?</span>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-small"
+                  onClick={() => {
+                    const sup = linkTarget.target;
+                    setIsLinkModalOpen(false);
+                    openMultiLinkModal(sup);
+                  }}
+                  style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
+                >
+                  <Layers size={13} /> Supply Multiple Items
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleLinkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {linkTarget?.type === 'supplier' ? (
                 <div>
@@ -2026,6 +2142,264 @@ const VendorManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Item Supply (Bulk Link) Modal */}
+      {isMultiLinkModalOpen && multiLinkSupplier && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-card" style={{ maxWidth: '880px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(156, 21, 25, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                  <Layers size={22} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800 }}>Supply Multiple Items (Bulk Assign)</h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.15rem 0 0 0' }}>
+                    Configure multiple materials & supply rates for vendor: <strong>{multiLinkSupplier.name}</strong> ({multiLinkSupplier.category || 'General'})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMultiLinkModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.25rem' }}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', flexShrink: 0 }}>
+              <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Search catalog materials..."
+                  value={multiMatSearch}
+                  onChange={(e) => setMultiMatSearch(e.target.value)}
+                  style={{ width: '100%', paddingLeft: '2.2rem', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* Category Filter Pills */}
+              <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.2rem', maxWidth: '100%' }}>
+                {['All', ...Array.from(new Set(rawMaterials.map(m => m.category || 'General')))].map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`btn btn-small ${multiMatCatFilter === cat ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
+                    onClick={() => setMultiMatCatFilter(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selection Status & Quick Toggles */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.02)', padding: '0.5rem 0.75rem', borderRadius: '8px', marginBottom: '0.75rem', fontSize: '0.82rem', flexShrink: 0 }}>
+              <div>
+                <span>Selected: <strong style={{ color: 'var(--color-primary)' }}>{Object.values(multiSelectedItems).filter(i => i.selected).length}</strong> of {rawMaterials.length} materials</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
+                  onClick={() => {
+                    const filtered = rawMaterials.filter(rm => {
+                      const matchSearch = !multiMatSearch || rm.name.toLowerCase().includes(multiMatSearch.toLowerCase()) || (rm.category && rm.category.toLowerCase().includes(multiMatSearch.toLowerCase()));
+                      const matchCat = multiMatCatFilter === 'All' || rm.category === multiMatCatFilter;
+                      return matchSearch && matchCat;
+                    });
+                    setMultiSelectedItems(prev => {
+                      const next = { ...prev };
+                      filtered.forEach(rm => {
+                        const matId = String(rm.id || rm._id);
+                        next[matId] = {
+                          ...(next[matId] || {}),
+                          selected: true,
+                          price: next[matId]?.price !== undefined && next[matId]?.price !== '' ? next[matId].price : (rm.costPerUnit || ''),
+                          unit: next[matId]?.unit || rm.unit || 'kg',
+                          notes: next[matId]?.notes || ''
+                        };
+                      });
+                      return next;
+                    });
+                  }}
+                >
+                  Select All Filtered
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
+                  onClick={() => {
+                    const filtered = rawMaterials.filter(rm => {
+                      const matchSearch = !multiMatSearch || rm.name.toLowerCase().includes(multiMatSearch.toLowerCase()) || (rm.category && rm.category.toLowerCase().includes(multiMatSearch.toLowerCase()));
+                      const matchCat = multiMatCatFilter === 'All' || rm.category === multiMatCatFilter;
+                      return matchSearch && matchCat;
+                    });
+                    setMultiSelectedItems(prev => {
+                      const next = { ...prev };
+                      filtered.forEach(rm => {
+                        const matId = String(rm.id || rm._id);
+                        if (next[matId]) {
+                          next[matId] = { ...next[matId], selected: false };
+                        }
+                      });
+                      return next;
+                    });
+                  }}
+                >
+                  Clear Filtered
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Materials List */}
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px', marginBottom: '1rem', minHeight: '260px', maxHeight: '420px' }}>
+              <table className="custom-table" style={{ margin: 0 }}>
+                <thead>
+                  <tr style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-card)' }}>
+                    <th style={{ width: '45px', textAlign: 'center' }}>Supply?</th>
+                    <th>Material Name</th>
+                    <th>Category</th>
+                    <th style={{ width: '130px' }}>Catalog Base</th>
+                    <th style={{ width: '170px' }}>Vendor Price ({companyProfile?.currency || '₹'})</th>
+                    <th>Terms / Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawMaterials
+                    .filter(rm => {
+                      const matchSearch = !multiMatSearch || rm.name.toLowerCase().includes(multiMatSearch.toLowerCase()) || (rm.category && rm.category.toLowerCase().includes(multiMatSearch.toLowerCase()));
+                      const matchCat = multiMatCatFilter === 'All' || rm.category === multiMatCatFilter;
+                      return matchSearch && matchCat;
+                    })
+                    .map(rm => {
+                      const matId = String(rm.id || rm._id);
+                      const state = multiSelectedItems[matId] || { selected: false, price: rm.costPerUnit || '', unit: rm.unit || 'kg', notes: '' };
+                      const isChecked = !!state.selected;
+
+                      return (
+                        <tr key={matId} style={{ background: isChecked ? 'rgba(156, 21, 25, 0.04)' : 'transparent' }}>
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const val = e.target.checked;
+                                setMultiSelectedItems(prev => ({
+                                  ...prev,
+                                  [matId]: {
+                                    ...state,
+                                    selected: val,
+                                    price: state.price !== '' ? state.price : (rm.costPerUnit || '')
+                                  }
+                                }));
+                              }}
+                              style={{ width: '17px', height: '17px', cursor: 'pointer' }}
+                            />
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{rm.name}</div>
+                            {state.isExisting && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--color-success)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <Check size={11} /> Currently supplied
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
+                              {rm.category || 'General'}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            {formatCurrency(rm.costPerUnit)} / {rm.unit || 'kg'}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder={String(rm.costPerUnit || '0.00')}
+                                value={state.price}
+                                disabled={!isChecked}
+                                onChange={(e) => {
+                                  const p = e.target.value;
+                                  setMultiSelectedItems(prev => ({
+                                    ...prev,
+                                    [matId]: {
+                                      ...state,
+                                      price: p
+                                    }
+                                  }));
+                                }}
+                                style={{ width: '90px', padding: '0.3rem 0.45rem', fontSize: '0.82rem', borderRadius: '4px', border: '1px solid var(--border-color)', opacity: isChecked ? 1 : 0.5 }}
+                              />
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>/{rm.unit || 'kg'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              placeholder="e.g. Bulk 50kg discount, Grade A"
+                              value={state.notes || ''}
+                              disabled={!isChecked}
+                              onChange={(e) => {
+                                const n = e.target.value;
+                                setMultiSelectedItems(prev => ({
+                                  ...prev,
+                                  [matId]: {
+                                    ...state,
+                                    notes: n
+                                  }
+                                }));
+                              }}
+                              style={{ width: '100%', padding: '0.3rem 0.45rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid var(--border-color)', opacity: isChecked ? 1 : 0.5 }}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                <strong>{Object.values(multiSelectedItems).filter(i => i.selected).length}</strong> materials configured for {multiLinkSupplier.name}
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsMultiLinkModalOpen(false)}
+                  disabled={isSavingBulk}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleBulkLinkSubmit}
+                  disabled={isSavingBulk}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                >
+                  <Save size={15} />
+                  {isSavingBulk ? 'Updating Vendor Catalog...' : `Save & Supply ${Object.values(multiSelectedItems).filter(i => i.selected).length} Items`}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

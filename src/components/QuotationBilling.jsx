@@ -1834,9 +1834,9 @@ const QuotationBilling = () => {
                 },
                 {
                   id: 'commercial_quotation',
-                  title: 'Commercial Quotation & Estimate',
-                  badge: '★ Client Cost Estimation',
-                  description: 'Parchment presentation document with complete cost estimation, logistics, transport, porters breakdown, advance payment tracking, and client metadata container.',
+                  title: 'Commercial Quotation & Cost Estimate',
+                  badge: '★ Client Commercial Quotation',
+                  description: 'Official parchment presentation document with complete cost estimation, logistics, transport, porters breakdown, advance payment tracking, and client metadata container.',
                   color: '#17375E',
                   bgTint: 'rgba(23, 55, 94, 0.05)'
                 }

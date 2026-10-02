@@ -112,6 +112,14 @@ const compressImage = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.82, 
   });
 };
 
+const getStorageBadge = (url) => {
+  if (!url || typeof url !== 'string') return 'Cloud Storage';
+  if (url.includes('blob.core.windows.net') || url.includes('azure')) return 'Azure Blob';
+  if (url.includes('cloudinary.com')) return 'Cloudinary';
+  if (url.includes('amazonaws.com') || url.includes('s3.')) return 'AWS S3';
+  return 'Cloud Storage';
+};
+
 const StorageInventory = () => {
   const { vessels, addVessel, updateVessel, deleteVessel, uploadCloudImage, deleteCloudImage, companyProfile, events = [], rawMaterials = [] } = useContext(AppContext);
   const [searchTerm, setSearchTerm] = useState('');
@@ -950,7 +958,7 @@ const StorageInventory = () => {
                 <span className="badge badge-info" style={{ fontSize: '0.72rem', marginTop: '0.2rem' }}>{photoPreviewItem.category}</span>
                 {photoPreviewItem.photo && (photoPreviewItem.photo.startsWith('http://') || photoPreviewItem.photo.startsWith('https://')) && (
                   <span className="badge badge-success" style={{ fontSize: '0.72rem', marginTop: '0.2rem', marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                    <Cloud size={11} /> AWS S3
+                    <Cloud size={11} /> {getStorageBadge(photoPreviewItem.photo)}
                   </span>
                 )}
               </div>
@@ -968,7 +976,7 @@ const StorageInventory = () => {
                 <div style={{ padding: '3rem 1.5rem', color: 'var(--text-secondary)' }}>
                   <div style={{ width: '32px', height: '32px', border: '3px solid rgba(0,0,0,0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.75rem auto' }}></div>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{uploadStatus || 'Optimizing & uploading photo...'}</div>
-                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Cloud Object Storage (AWS S3)</div>
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>Cloud Object Storage (Azure Blob / S3)</div>
                 </div>
               ) : photoPreviewItem.photo && !imgError ? (
                 <img
