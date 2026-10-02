@@ -170,16 +170,25 @@ const MenuPlanning = () => {
     );
   });
 
-  const handleDownloadMenuPdf = (templateId = selectedTemplate, isAllSessions = false) => {
+  const handleDownloadMenuPdf = (templateId = selectedTemplate, isAllSessions = true) => {
     if (!currentEvent) return;
+    const effectiveEvent = {
+      ...currentEvent,
+      subFunctions: (draftSubFunctions && draftSubFunctions.length > 0) ? draftSubFunctions : (currentEvent.subFunctions || [])
+    };
     const subTarget = isAllSessions ? 'all' : selectedSub;
-    const res = generateOccasionMenuPdf(currentEvent, subTarget, companyProfile, templateId, dishes);
+    const res = generateOccasionMenuPdf(effectiveEvent, subTarget, companyProfile, templateId, dishes);
     downloadPdfBlob(res.blob, res.filename);
   };
 
-  const handlePrintMenuPdf = (templateId = selectedTemplate) => {
-    if (!currentEvent || !selectedSub) return;
-    const res = generateOccasionMenuPdf(currentEvent, selectedSub, companyProfile, templateId, dishes);
+  const handlePrintMenuPdf = (templateId = selectedTemplate, isAllSessions = true) => {
+    if (!currentEvent) return;
+    const effectiveEvent = {
+      ...currentEvent,
+      subFunctions: (draftSubFunctions && draftSubFunctions.length > 0) ? draftSubFunctions : (currentEvent.subFunctions || [])
+    };
+    const subTarget = isAllSessions ? 'all' : selectedSub;
+    const res = generateOccasionMenuPdf(effectiveEvent, subTarget, companyProfile, templateId, dishes);
     printPdfBlob(res.blob);
   };
 
@@ -1178,37 +1187,27 @@ const getDiningOrderIndex = (catName) => {
               })}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', alignItems: 'center' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => handlePrintMenuPdf(selectedTemplate)}
+                onClick={() => handlePrintMenuPdf(selectedTemplate, true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                title="Print all sessions in chronological order in a single document"
               >
-                <Printer size={16} /> Print Menu
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  handleDownloadMenuPdf(selectedTemplate, true);
-                  setIsMenuPdfModalOpen(false);
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
-                title="Download complete multi-session presentation proposal or function sheet"
-              >
-                <Download size={16} /> All Sessions Booklet ({draftSubFunctions?.length || 1} Sessions)
+                <Printer size={16} /> Print Full Menu ({draftSubFunctions?.length || 1} Sessions)
               </button>
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
-                  handleDownloadMenuPdf(selectedTemplate, false);
+                  handleDownloadMenuPdf(selectedTemplate, true);
                   setIsMenuPdfModalOpen(false);
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700 }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', fontWeight: 700, padding: '0.65rem 1.4rem' }}
+                title="Download single unified PDF containing all sessions in chronological order"
               >
-                <Download size={16} /> Download Menu PDF ({selectedSub?.name})
+                <Download size={16} /> Download Full Menu PDF ({draftSubFunctions?.length || 1} Sessions in Order)
               </button>
             </div>
           </div>

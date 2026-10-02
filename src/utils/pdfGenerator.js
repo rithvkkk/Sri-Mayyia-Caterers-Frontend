@@ -1458,6 +1458,83 @@ const formatMenuDateDDMMYYYY = (dateStr) => {
  * - Notes & Parcel distribution requirements at the end
  * - Dynamic page breaking when items overflow
  */
+/**
+ * Sorts an array of catering sub-functions / sessions in strict chronological order:
+ * 1. By session date (e.g., 2026-10-02, 2026-10-03)
+ * 2. By session start time (e.g., 07:30 AM, 12:30 PM, 19:30)
+ * 3. By authentic South Indian meal progression rank (Early Morning -> Breakfast -> Lunch -> High Tea -> Dinner)
+ */
+export const sortSubFunctionsChronologically = (subList, defaultDate = '') => {
+  if (!Array.isArray(subList) || subList.length <= 1) return subList || [];
+
+  const mealProgression = [
+    { key: 'early', rank: 10 },
+    { key: 'welcome', rank: 15 },
+    { key: 'coffee', rank: 18 },
+    { key: 'tiffin', rank: 20 },
+    { key: 'breakfast', rank: 25 },
+    { key: 'muhurtham', rank: 30 },
+    { key: 'brunch', rank: 35 },
+    { key: 'lunch', rank: 40 },
+    { key: 'oota', rank: 40 },
+    { key: 'feast', rank: 45 },
+    { key: 'afternoon', rank: 50 },
+    { key: 'tea', rank: 60 },
+    { key: 'snack', rank: 65 },
+    { key: 'high tea', rank: 65 },
+    { key: 'evening', rank: 70 },
+    { key: 'reception', rank: 80 },
+    { key: 'dinner', rank: 85 },
+    { key: 'night', rank: 90 },
+    { key: 'supper', rank: 95 }
+  ];
+
+  const getMealRank = (sub) => {
+    const combined = `${sub.name || ''} ${sub.mealType || ''} ${sub.servingType || ''} ${sub.occasion || ''}`.toLowerCase();
+    for (const item of mealProgression) {
+      if (combined.includes(item.key)) return item.rank;
+    }
+    return 55;
+  };
+
+  const parseTimeMinutes = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return 99999;
+    const match = timeStr.trim().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (!match) return 99999;
+    let h = parseInt(match[1], 10);
+    const m = match[2] ? parseInt(match[2], 10) : 0;
+    const ampm = (match[3] || '').toLowerCase();
+    if (ampm === 'pm' && h < 12) h += 12;
+    if (ampm === 'am' && h === 12) h = 0;
+    return h * 60 + m;
+  };
+
+  return [...subList].sort((a, b) => {
+    // 1. Sort by Date
+    const dateA = a.date || defaultDate || '';
+    const dateB = b.date || defaultDate || '';
+    if (dateA && dateB && dateA !== dateB) {
+      return dateA.localeCompare(dateB);
+    }
+
+    // 2. Sort by Time if present
+    const tA = parseTimeMinutes(a.time);
+    const tB = parseTimeMinutes(b.time);
+    if (tA !== 99999 || tB !== 99999) {
+      if (tA !== tB) return tA - tB;
+    }
+
+    // 3. Sort by Meal Progression
+    const rankA = getMealRank(a);
+    const rankB = getMealRank(b);
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+
+    return 0;
+  });
+};
+
 export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dishesList = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width; // 210 mm
@@ -1482,6 +1559,9 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
   } else {
     subList = [{}];
   }
+
+  // Sort all sessions in strict chronological order
+  subList = sortSubFunctionsChronologically(subList, event?.date);
 
   // Helper to build dishes for a sub-function
   const resolveSubDishes = (sub) => {
@@ -1753,6 +1833,9 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
     subList = [{}];
   }
 
+  // Sort all sessions in strict chronological order
+  subList = sortSubFunctionsChronologically(subList, event?.date);
+
   const rawCoverDate = event?.date || subList[0]?.date || new Date().toISOString().split('T')[0];
   const coverDateText = formatDisplayDate(rawCoverDate) || formatCoverDate(rawCoverDate);
   const coverEventText = (event?.eventType || event?.title || 'GRAND WEDDING SEATED FEAST').toUpperCase();
@@ -2021,6 +2104,9 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   } else {
     subList = [{}];
   }
+
+  // Sort all sessions in strict chronological order
+  subList = sortSubFunctionsChronologically(subList, event?.date);
 
   const rawCoverDate = event?.date || subList[0]?.date || new Date().toISOString().split('T')[0];
   const coverDateText = formatCoverDate(rawCoverDate);

@@ -14,10 +14,15 @@ const compressImage = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.82, 
     if (!file) return reject(new Error('No file provided'));
     const reader = new FileReader();
     reader.onerror = (err) => reject(err);
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const rawDataUrl = e.target.result;
       if (!rawDataUrl || typeof rawDataUrl !== 'string') {
         return reject(new Error('Failed to read file as data URL'));
+      }
+
+      // If file is already under 2.2MB, preserve pristine original bytes and avoid canvas rasterization artifacts
+      if (file.size && file.size <= 2.2 * 1024 * 1024) {
+        return resolve(rawDataUrl);
       }
 
       if (typeof window === 'undefined' || !window.Image) {
@@ -29,9 +34,12 @@ const compressImage = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.82, 
         resolve(rawDataUrl);
       }, 10000);
 
-      img.onload = () => {
+      img.onload = async () => {
         clearTimeout(timeout);
         try {
+          if (typeof img.decode === 'function') {
+            try { await img.decode(); } catch (decErr) {}
+          }
           const width = img.naturalWidth || img.width;
           const height = img.naturalHeight || img.height;
 
@@ -971,7 +979,7 @@ const StorageInventory = () => {
               </button>
             </div>
 
-            <div style={{ margin: '1rem 0', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', minHeight: '220px', maxHeight: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)', position: 'relative' }}>
+            <div style={{ margin: '1rem 0', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', minHeight: '220px', maxHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)', position: 'relative', padding: '0.5rem' }}>
               {isCompressing ? (
                 <div style={{ padding: '3rem 1.5rem', color: 'var(--text-secondary)' }}>
                   <div style={{ width: '32px', height: '32px', border: '3px solid rgba(0,0,0,0.1)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.75rem auto' }}></div>
@@ -984,7 +992,7 @@ const StorageInventory = () => {
                   src={photoPreviewItem.photo}
                   alt={photoPreviewItem.name}
                   onError={() => setImgError(true)}
-                  style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', display: 'block' }}
+                  style={{ maxWidth: '100%', maxHeight: '380px', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto', borderRadius: '6px' }}
                 />
               ) : imgError ? (
                 <div style={{ padding: '2rem 1.5rem', color: 'var(--text-secondary)' }}>
