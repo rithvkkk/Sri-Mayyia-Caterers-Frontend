@@ -1005,7 +1005,11 @@ const StorageInventory = () => {
                     <button
                       type="button"
                       className="btn btn-primary btn-small"
-                      onClick={() => photoFileInputRef.current?.click()}
+                      onClick={() => {
+                        setImgError(false);
+                        if (photoFileInputRef.current) photoFileInputRef.current.value = '';
+                        photoFileInputRef.current?.click();
+                      }}
                       style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
                     >
                       <Upload size={14} /> Upload Fresh Photo
@@ -1032,15 +1036,20 @@ const StorageInventory = () => {
               <input
                 ref={photoFileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,image/*"
                 style={{ display: 'none' }}
+                onClick={e => { e.target.value = ''; }}
                 onChange={e => handlePhotoUpload(e, photoPreviewItem)}
               />
               <button
                 type="button"
                 className="btn btn-secondary"
                 disabled={isCompressing}
-                onClick={() => photoFileInputRef.current?.click()}
+                onClick={() => {
+                  setImgError(false);
+                  if (photoFileInputRef.current) photoFileInputRef.current.value = '';
+                  photoFileInputRef.current?.click();
+                }}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
               >
                 <Upload size={14} /> {photoPreviewItem.photo ? 'Replace Photo' : 'Upload Photo'}
