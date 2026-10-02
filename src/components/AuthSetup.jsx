@@ -1,7 +1,7 @@
 import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
@@ -15,7 +15,7 @@ const AuthSetup = () => {
     agencies, addAgency, updateAgency, deleteAgency,
     companyProfile, setCompanyProfile,
     rbacMatrix, updateRolePermission,
-    menuCategories = [], addMenuCategory, updateMenuCategory, deleteMenuCategory,
+    menuCategories = [], masterMenuCategories = [], liveStationCategories = [], addMenuCategory, updateMenuCategory, deleteMenuCategory,
     vendorCategories = [], addVendorCategory, updateVendorCategory, deleteVendorCategory,
     labourCategories = [], addLabourCategory, updateLabourCategory, deleteLabourCategory
   } = useContext(AppContext);
@@ -25,7 +25,8 @@ const AuthSetup = () => {
   const [activeMasterSubTab, setActiveMasterSubTab] = useState('vendor'); // 'vendor' | 'labour' | 'menu'
 
   // Master Categories Form States
-  const [newMenuCat, setNewMenuCat] = useState({ name: '', code: '' });
+  const [newMenuCat, setNewMenuCat] = useState({ name: '', code: '', type: 'MENU', description: '' });
+  const [menuCategoryTypeFilter, setMenuCategoryTypeFilter] = useState('ALL'); // 'ALL' | 'MENU' | 'LIVE_STATION'
   const [newVendorCat, setNewVendorCat] = useState({ name: '', subCategories: '' });
   const [newLabourCat, setNewLabourCat] = useState({ name: '' });
 
@@ -33,6 +34,9 @@ const AuthSetup = () => {
   const effectiveVendorCategories = (vendorCategories && vendorCategories.length > 0) ? vendorCategories : initialVendorCategories;
   const effectiveLabourCategories = (labourCategories && labourCategories.length > 0) ? labourCategories : initialLabourCategories;
   const effectiveMenuCategories = (menuCategories && menuCategories.length > 0) ? menuCategories : initialMenuCategories;
+  const effectiveMasterMenuCategories = (masterMenuCategories && masterMenuCategories.length > 0)
+    ? masterMenuCategories
+    : effectiveMenuCategories.filter(c => c.type !== 'LIVE_STATION');
 
   // Search & Filter States for Menu Dishes & Recipes
   const [dishSearchTerm, setDishSearchTerm] = useState('');
@@ -128,6 +132,31 @@ const AuthSetup = () => {
     role: 'Sales Executive'
   });
 
+  // Admin password visibility states
+  const isAdmin = currentRole === 'Admin';
+  const [showAllPasswords, setShowAllPasswords] = useState(false);
+  const [visiblePasswordIds, setVisiblePasswordIds] = useState(new Set());
+  const [copiedUserId, setCopiedUserId] = useState(null);
+
+  const togglePasswordVisibility = (userId) => {
+    setVisiblePasswordIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
+  const handleCopyPassword = (userId, pwd) => {
+    if (!pwd || pwd.includes('•')) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedUserId(userId);
+    setTimeout(() => setCopiedUserId(null), 2000);
+  };
+
   // Check role authorization
   if (currentRole !== 'Admin') {
     return (
@@ -215,7 +244,7 @@ const AuthSetup = () => {
     } else if (type === 'material') {
       addRawMaterial({ name: 'New Material', category: 'Grocery', unit: 'kg', costPerUnit: 50 });
     } else if (type === 'dish') {
-      addDish({ name: 'New Dish', category: 'Beverages & Welcome Drinks', subCategory: 'General Items', price: 100, recipe: [], instructions: '' });
+      addDish({ name: 'New Dish', category: 'WELCOME DRINK', subCategory: 'General Items', price: 100, recipe: [], instructions: '' });
     } else if (type === 'supplier') {
       addSupplier({ name: 'New Supplier', category: 'Grocery', contact: 'Name', phone: '+91' });
     } else if (type === 'agency') {
@@ -749,23 +778,12 @@ const AuthSetup = () => {
                     <div className="form-group">
                       <label className="form-label">Category</label>
                       <select className="form-select" value={tempData.category || ''} onChange={e => setTempData({ ...tempData, category: e.target.value })}>
-                        <option value="SHELL BASED FRESH JUICE">SHELL BASED FRESH JUICE</option>
-                        <option value="Mocktails">Mocktails</option>
-                        <option value="Lassi">Lassi</option>
-                        <option value="Starters">Starters</option>
-                        <option value="Soups">Soups</option>
-                        <option value="Chaats">Chaats</option>
-                        <option value="Beverages & Welcome Drinks">Beverages & Welcome Drinks</option>
-                        <option value="Appetizers, Chaats & Street Food">Appetizers, Chaats & Street Food</option>
-                        <option value="Global & Fusion Cuisines">Global & Fusion Cuisines</option>
-                        <option value="South Indian Specialties">South Indian Specialties</option>
-                        <option value="North Indian Specialties">North Indian Specialties</option>
-                        <option value="Sides, Accompaniments & Salads">Sides, Accompaniments & Salads</option>
-                        <option value="Desserts, Sweets & Ice Creams">Desserts, Sweets & Ice Creams</option>
-                        <option value="After-Meal / Traditional Finishers">After-Meal / Traditional Finishers</option>
-                        {Array.from(new Set(dishes.map(d => d.category).filter(Boolean))).map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
+                        {effectiveMasterMenuCategories.map(cat => (
+                          <option key={cat.id || cat._id || cat.name} value={cat.name}>{cat.name}</option>
                         ))}
+                        {tempData.category && !effectiveMasterMenuCategories.some(c => c.name === tempData.category) && (
+                          <option value={tempData.category}>{tempData.category}</option>
+                        )}
                       </select>
                     </div>
                     <div className="form-group">
@@ -994,12 +1012,49 @@ const AuthSetup = () => {
 
       {/* Tab: Users & Passwords */}
       {activeTab === 'users' && (
-        <div className="glass-card" style={{ maxWidth: '800px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2>System Accounts & Passwords</h2>
-            <button className="btn btn-primary btn-small" onClick={() => setIsUserModalOpen(true)}>
-              <Plus size={16} /> Add User
-            </button>
+        <div className="glass-card" style={{ maxWidth: '850px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h2 style={{ margin: 0 }}>System Accounts & Passwords</h2>
+              {isAdmin && (
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Admin Security: Passwords masked by default. Toggle below to reveal plain text.
+                </p>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className={`btn ${showAllPasswords ? 'btn-secondary' : 'btn-outline'}`}
+                  onClick={() => {
+                    const nextVal = !showAllPasswords;
+                    setShowAllPasswords(nextVal);
+                    if (nextVal) {
+                      setVisiblePasswordIds(new Set(users.map(u => u.id)));
+                    } else {
+                      setVisiblePasswordIds(new Set());
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    padding: '0.45rem 0.8rem',
+                    borderRadius: '6px'
+                  }}
+                  title={showAllPasswords ? 'Hide all passwords' : 'Show all passwords for Admin'}
+                >
+                  {showAllPasswords ? <EyeOff size={15} /> : <Eye size={15} />}
+                  <span>{showAllPasswords ? 'Hide Passwords' : 'Show Passwords'}</span>
+                </button>
+              )}
+              <button className="btn btn-primary btn-small" onClick={() => setIsUserModalOpen(true)}>
+                <Plus size={16} /> Add User
+              </button>
+            </div>
           </div>
           <div className="table-container">
             <table className="custom-table">
@@ -1007,13 +1062,50 @@ const AuthSetup = () => {
                 <tr>
                   <th>Username</th>
                   <th>System Role</th>
-                  <th>Account Password</th>
+                  <th>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span>Account Password</span>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextVal = !showAllPasswords;
+                            setShowAllPasswords(nextVal);
+                            if (nextVal) {
+                              setVisiblePasswordIds(new Set(users.map(u => u.id)));
+                            } else {
+                              setVisiblePasswordIds(new Set());
+                            }
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: showAllPasswords ? 'var(--color-primary)' : 'var(--text-secondary)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '2px'
+                          }}
+                          title={showAllPasswords ? 'Hide all passwords' : 'Show all passwords'}
+                        >
+                          {showAllPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      )}
+                    </div>
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => {
                   const isEditing = editingId === u.id;
+                  const isPasswordRevealed = isAdmin && (showAllPasswords || visiblePasswordIds.has(u.id));
+                  const rawPass = u.plainPassword || (u.password && !u.password.includes('•') ? u.password : '');
+                  const displayPassword = isPasswordRevealed
+                    ? (rawPass || '••••••••')
+                    : '••••••••';
+                  const isEncryptedWithoutPlain = isPasswordRevealed && !rawPass;
+
                   return (
                     <tr key={u.id}>
                       <td style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>{u.id}</td>
@@ -1033,9 +1125,73 @@ const AuthSetup = () => {
                             value={tempData.password || ''}
                             onChange={e => setTempData({ ...tempData, password: e.target.value })}
                             style={{ maxWidth: '180px' }}
+                            placeholder="Enter new password"
+                            autoFocus
                           />
                         ) : (
-                          <code style={{ fontSize: '0.95rem', letterSpacing: '0.05em', background: 'rgba(255, 255, 255, 0.5)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>{u.password}</code>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                            <code style={{
+                              fontSize: '0.92rem',
+                              letterSpacing: isPasswordRevealed && rawPass ? '0.02em' : '0.12em',
+                              background: isPasswordRevealed && rawPass ? 'rgba(128, 0, 32, 0.08)' : 'rgba(255, 255, 255, 0.5)',
+                              color: isPasswordRevealed && rawPass ? 'var(--color-primary)' : 'inherit',
+                              fontWeight: isPasswordRevealed && rawPass ? 700 : 500,
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '4px',
+                              fontFamily: 'monospace'
+                            }}>
+                              {displayPassword}
+                            </code>
+
+                            {isEncryptedWithoutPlain && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                (Set via Change Password)
+                              </span>
+                            )}
+
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-small"
+                                style={{
+                                  padding: '0.2rem 0.4rem',
+                                  minWidth: 'auto',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  cursor: 'pointer',
+                                  gap: '0.25rem',
+                                  fontSize: '0.75rem'
+                                }}
+                                onClick={() => togglePasswordVisibility(u.id)}
+                                title={isPasswordRevealed ? 'Hide Password' : 'Show Password (Admin only)'}
+                              >
+                                {isPasswordRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
+                                <span>{isPasswordRevealed ? 'Hide' : 'Show'}</span>
+                              </button>
+                            )}
+
+                            {isAdmin && isPasswordRevealed && rawPass && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-small"
+                                style={{
+                                  padding: '0.2rem 0.4rem',
+                                  minWidth: 'auto',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  color: copiedUserId === u.id ? 'var(--color-success)' : 'inherit',
+                                  cursor: 'pointer',
+                                  gap: '0.25rem',
+                                  fontSize: '0.75rem'
+                                }}
+                                onClick={() => handleCopyPassword(u.id, rawPass)}
+                                title={copiedUserId === u.id ? 'Copied to clipboard!' : 'Copy Password'}
+                              >
+                                {copiedUserId === u.id ? <Check size={13} /> : <Copy size={13} />}
+                                <span>{copiedUserId === u.id ? 'Copied' : 'Copy'}</span>
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td>
@@ -1212,7 +1368,7 @@ const AuthSetup = () => {
               onClick={() => setActiveMasterSubTab('menu')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
             >
-              <Layers size={16} /> Menu Meal Categories ({effectiveMenuCategories.length})
+              <Layers size={16} /> Menu & Live Categories ({effectiveMenuCategories.length})
             </button>
           </div>
 
@@ -1417,41 +1573,81 @@ const AuthSetup = () => {
             </div>
           )}
 
-          {/* Sub-tab 3: Menu Categories */}
+          {/* Sub-tab 3: Menu & Live Station Categories */}
           {activeMasterSubTab === 'menu' && (
             <div className="glass-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Menu Meal Categories</h2>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Menu & Live Station Categories</h2>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
-                    Service time slots and meal classifications (Breakfast, Lunch, Dinner, Snacks, Hi-Tea)
+                    Master Menu Categories (44) for dishes and Live Station Categories (46) for event counter setups
                   </p>
+                </div>
+
+                {/* Filter by Category Type */}
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`btn btn-small ${menuCategoryTypeFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setMenuCategoryTypeFilter('ALL')}
+                    style={{ fontSize: '0.78rem', padding: '0.25rem 0.65rem', borderRadius: '16px' }}
+                  >
+                    All ({effectiveMenuCategories.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-small ${menuCategoryTypeFilter === 'MENU' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setMenuCategoryTypeFilter('MENU')}
+                    style={{ fontSize: '0.78rem', padding: '0.25rem 0.65rem', borderRadius: '16px' }}
+                  >
+                    Master Menu Categories ({effectiveMenuCategories.filter(c => c.type !== 'LIVE_STATION').length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-small ${menuCategoryTypeFilter === 'LIVE_STATION' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setMenuCategoryTypeFilter('LIVE_STATION')}
+                    style={{ fontSize: '0.78rem', padding: '0.25rem 0.65rem', borderRadius: '16px' }}
+                  >
+                    Live Stations ({effectiveMenuCategories.filter(c => c.type === 'LIVE_STATION').length})
+                  </button>
                 </div>
               </div>
 
               {/* Add category form */}
               <div style={{ background: 'rgba(255, 255, 255, 0.55)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 700 }}>Add Menu Meal Category</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem', alignItems: 'flex-end', maxWidth: '600px' }}>
+                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 700 }}>Add Category</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'flex-end', maxWidth: '750px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Category Name</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="e.g. Hi-Tea"
+                      placeholder="e.g. WELCOME DRINK"
                       value={newMenuCat.name}
                       onChange={e => setNewMenuCat({ ...newMenuCat, name: e.target.value })}
                       style={{ padding: '0.45rem', fontSize: '0.85rem' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Code / Identifier</label>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Category Type</label>
+                    <select
+                      className="form-select"
+                      value={newMenuCat.type || 'MENU'}
+                      onChange={e => setNewMenuCat({ ...newMenuCat, type: e.target.value })}
+                      style={{ padding: '0.45rem', fontSize: '0.85rem' }}
+                    >
+                      <option value="MENU">MENU (Master Dish)</option>
+                      <option value="LIVE_STATION">LIVE_STATION (Live Counter)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.25rem' }}>Display Order</label>
                     <input
-                      type="text"
+                      type="number"
                       className="form-input"
-                      placeholder="e.g. hitea"
-                      value={newMenuCat.code}
-                      onChange={e => setNewMenuCat({ ...newMenuCat, code: e.target.value })}
+                      placeholder="e.g. 45"
+                      value={newMenuCat.displayOrder || ''}
+                      onChange={e => setNewMenuCat({ ...newMenuCat, displayOrder: parseInt(e.target.value, 10) || 0 })}
                       style={{ padding: '0.45rem', fontSize: '0.85rem' }}
                     />
                   </div>
@@ -1463,12 +1659,17 @@ const AuthSetup = () => {
                         alert('Please enter a category name');
                         return;
                       }
+                      const cleanName = newMenuCat.name.trim().toUpperCase();
+                      const prefix = (newMenuCat.type || 'MENU') === 'LIVE_STATION' ? 'ls_' : 'mc_';
                       addMenuCategory({
-                        name: newMenuCat.name.trim(),
-                        code: (newMenuCat.code || newMenuCat.name).toLowerCase().replace(/\s+/g, '_'),
+                        id: prefix + Date.now(),
+                        name: cleanName,
+                        type: newMenuCat.type || 'MENU',
+                        description: newMenuCat.description || cleanName,
+                        displayOrder: newMenuCat.displayOrder || (effectiveMenuCategories.length + 1),
                         active: true
                       });
-                      setNewMenuCat({ name: '', code: '' });
+                      setNewMenuCat({ name: '', code: '', type: 'MENU', description: '' });
                     }}
                     style={{ padding: '0.45rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 600 }}
                   >
@@ -1481,37 +1682,60 @@ const AuthSetup = () => {
                 <table className="custom-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '60px' }}>#</th>
-                      <th>Meal Category Name</th>
-                      <th>Code</th>
-                      <th style={{ width: '120px' }}>Status</th>
+                      <th style={{ width: '50px' }}>#</th>
+                      <th>Category Name</th>
+                      <th style={{ width: '150px' }}>Type</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>Order</th>
+                      <th style={{ width: '100px' }}>Status</th>
                       <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {effectiveMenuCategories.map((mc, idx) => (
-                      <tr key={mc.id || idx}>
-                        <td>{idx + 1}</td>
-                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{mc.name}</td>
-                        <td><code>{mc.code || mc.name.toLowerCase()}</code></td>
-                        <td>
-                          <span className={`badge ${mc.active !== false ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
-                            {mc.active !== false ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-small"
-                            onClick={() => deleteMenuCategory(mc.id)}
-                            style={{ color: 'var(--color-danger)' }}
-                            title="Delete Category"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {effectiveMenuCategories
+                      .filter(mc => {
+                        if (menuCategoryTypeFilter === 'MENU') return mc.type !== 'LIVE_STATION';
+                        if (menuCategoryTypeFilter === 'LIVE_STATION') return mc.type === 'LIVE_STATION';
+                        return true;
+                      })
+                      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+                      .map((mc, idx) => (
+                        <tr key={mc.id || mc._id || idx}>
+                          <td>{idx + 1}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{mc.name}</td>
+                          <td>
+                            <span
+                              className={`badge ${mc.type === 'LIVE_STATION' ? 'badge-warning' : 'badge-primary'}`}
+                              style={{
+                                fontSize: '0.72rem',
+                                background: mc.type === 'LIVE_STATION' ? 'rgba(234, 88, 12, 0.15)' : 'rgba(30, 58, 138, 0.1)',
+                                color: mc.type === 'LIVE_STATION' ? '#ea580c' : '#1e3a8a',
+                                border: mc.type === 'LIVE_STATION' ? '1px solid #ea580c' : '1px solid #1e3a8a'
+                              }}
+                            >
+                              {mc.type === 'LIVE_STATION' ? '⚡ LIVE STATION' : '🍽️ MENU'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <code>{mc.displayOrder || (idx + 1)}</code>
+                          </td>
+                          <td>
+                            <span className={`badge ${mc.active !== false ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.72rem' }}>
+                              {mc.active !== false ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-small"
+                              onClick={() => deleteMenuCategory(mc.id || mc._id)}
+                              style={{ color: 'var(--color-danger)' }}
+                              title="Delete Category"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>

@@ -1669,6 +1669,16 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
 
     currentY += 6.5;
 
+    if (Array.isArray(sub.liveStations) && sub.liveStations.length > 0) {
+      checkPageBreak(8);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...navyColor);
+      const lsText = `LIVE COUNTERS: ${sub.liveStations.join(' • ')}`;
+      doc.text(lsText, 24, currentY);
+      currentY += 5;
+    }
+
     const dishes = resolveSubDishes(sub);
 
     let sessionCounter = 1;

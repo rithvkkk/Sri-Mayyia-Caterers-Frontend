@@ -6,6 +6,7 @@ import {
   Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X, Check
 } from 'lucide-react';
 import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
+import { MASTER_MENU_CATEGORIES, LIVE_STATION_CATEGORIES } from '../utils/mockData';
 
 const STARTER_CUISINES = ['South Indian', 'North Indian', 'Asian', 'Continental', 'Chinese', 'Vegan'];
 const SOUP_CUISINES = ['Indian', 'Asian', 'Continental'];
@@ -127,6 +128,8 @@ const MenuPlanning = () => {
     updateEvent,
     dishes,
     menuCategories,
+    masterMenuCategories,
+    liveStationCategories,
     companyProfile,
     refreshEventTotals
   } = useContext(AppContext);
@@ -283,6 +286,23 @@ const MenuPlanning = () => {
     });
   };
 
+  const toggleLiveStation = (stationName) => {
+    if (!isEditable || !selectedSub) return;
+    setDraftSubFunctions(prev => {
+      return prev.map(sf => {
+        if (sf.id === selectedSub.id) {
+          const current = Array.isArray(sf.liveStations) ? sf.liveStations : [];
+          const exists = current.includes(stationName);
+          return {
+            ...sf,
+            liveStations: exists ? current.filter(s => s !== stationName) : [...current, stationName]
+          };
+        }
+        return sf;
+      });
+    });
+  };
+
   const handleUpdateSubNotes = (notes) => {
     if (!isEditable || !selectedSub) return;
     setDraftSubFunctions(prev => {
@@ -409,66 +429,49 @@ const MenuPlanning = () => {
     return true;
   };
 
-// Traditional Indian & Catering Dining Course Order
-const DINING_ORDER = [
-  'SHELL BASED FRESH JUICE',
-  'Welcome Drinks',
-  'Mocktails',
-  'Lassi',
-  'Beverages',
-  'Soups',
-  'Starters',
-  'Appetizers',
-  'Chaats',
-  'South Indian',
-  'North Indian',
-  'Main Course',
-  'Breads & Rotis',
-  'Breads',
-  'Rice & Biryani',
-  'Rice Dishes',
-  'Sambar & Rasam',
-  'Curries & Gravies',
-  'Sides & Poriyal',
-  'Accompaniments',
-  'Salads & Raitha',
-  'Sweets & Desserts',
-  'Desserts',
-  'Ice Creams',
-  'Pan & Beeda',
-  'Others'
-];
-
-const getDiningOrderIndex = (catName) => {
+// Master Dining Course Order based on Master Menu Categories
+const getDiningOrderIndex = (catName, menuCats = []) => {
   if (!catName) return 999;
   const lower = catName.toLowerCase().trim();
-  for (let i = 0; i < DINING_ORDER.length; i++) {
-    const match = DINING_ORDER[i].toLowerCase();
-    if (lower === match || lower.includes(match)) {
-      return i;
-    }
+  // 1. Look up in dynamic menuCategories from DB
+  const found = (menuCats || []).find(c => c && c.name && c.name.toLowerCase().trim() === lower);
+  if (found && typeof found.displayOrder === 'number') {
+    return found.displayOrder;
   }
+  // 2. Look up in MASTER_MENU_CATEGORIES
+  const masterIdx = MASTER_MENU_CATEGORIES.findIndex(m => m.toLowerCase().trim() === lower);
+  if (masterIdx !== -1) return masterIdx + 1;
+
   return 500;
 };
 
   const availableMealCategories = useMemo(() => {
-    const defaultMeals = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
-    if (!Array.isArray(menuCategories) || menuCategories.length === 0) return defaultMeals;
-    const custom = menuCategories.map(c => c.name).filter(Boolean);
-    return Array.from(new Set([...defaultMeals, ...custom]));
-  }, [menuCategories]);
+    return ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+  }, []);
+
+  const effectiveLiveStations = useMemo(() => {
+    if (Array.isArray(liveStationCategories) && liveStationCategories.length > 0) {
+      return liveStationCategories;
+    }
+    return LIVE_STATION_CATEGORIES.map((name, idx) => ({
+      id: `ls_${idx + 1}`,
+      name,
+      type: 'LIVE_STATION',
+      displayOrder: idx + 1
+    }));
+  }, [liveStationCategories]);
 
   // Available unique categories (Sorted according to dining order)
   const dynamicCategories = useMemo(() => {
     if (!Array.isArray(dishes)) return [];
     const unique = Array.from(new Set(dishes.map(d => d.category).filter(Boolean)));
     return unique.sort((a, b) => {
-      const idxA = getDiningOrderIndex(a);
-      const idxB = getDiningOrderIndex(b);
+      const idxA = getDiningOrderIndex(a, menuCategories);
+      const idxB = getDiningOrderIndex(b, menuCategories);
       if (idxA !== idxB) return idxA - idxB;
       return a.localeCompare(b);
     });
-  }, [dishes]);
+  }, [dishes, menuCategories]);
 
   const displayedCategories = selectedCategoryTab === 'All'
     ? dynamicCategories
@@ -837,6 +840,56 @@ const getDiningOrderIndex = (catName) => {
                       padding: '0.6rem 0.8rem'
                     }}
                   />
+                </div>
+              </div>
+
+              {/* Live Station Counters Selection (46 Live Station Categories) */}
+              <div style={{ marginBottom: '1rem', padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Flame size={14} style={{ color: '#ea580c' }} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#000000', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Live Station Counters ({effectiveLiveStations.length} Available)
+                    </span>
+                    {(selectedSub.liveStations || []).length > 0 && (
+                      <span style={{ background: '#ea580c', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '10px', fontWeight: 700 }}>
+                        {(selectedSub.liveStations || []).length} Selected
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    Dedicated live counters &amp; interactive stalls (managed distinctly from dishes)
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', maxHeight: '110px', overflowY: 'auto', padding: '0.2rem 0' }}>
+                  {effectiveLiveStations.map(station => {
+                    const isSelected = (selectedSub.liveStations || []).includes(station.name);
+                    return (
+                      <button
+                        key={station.id || station.name}
+                        type="button"
+                        onClick={() => toggleLiveStation(station.name)}
+                        className={`btn btn-small ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '16px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          background: isSelected ? '#ea580c' : 'rgba(255,255,255,0.85)',
+                          color: isSelected ? '#FFFFFF' : '#000000',
+                          border: isSelected ? '1px solid #ea580c' : '1px solid var(--border-color)',
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: isEditable ? 'pointer' : 'default'
+                        }}
+                      >
+                        {isSelected && <Check size={12} />}
+                        <span>{station.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

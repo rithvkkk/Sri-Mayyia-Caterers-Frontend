@@ -153,7 +153,7 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('cater_current_user') || '';
   });
 
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState(() => getSafeLocal('cater_users', []));
 
   const login = async (username, password) => {
     if (syncStatus !== 'connected') {
@@ -241,9 +241,10 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'Cloud Server Connection Failed' };
     }
 
-    const updatedUser = { ...user, password: newPassword };
+    const updatedUser = { ...user, password: newPassword, plainPassword: newPassword };
     const updatedUsers = users.map(u => u.id.toLowerCase() === username.toLowerCase() ? updatedUser : u);
     setUsers(updatedUsers);
+    try { localStorage.setItem('cater_users', JSON.stringify(updatedUsers)); } catch (e) {}
     return { success: true };
   };
 
@@ -262,8 +263,15 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'Cloud Server Connection Failed' };
     }
 
-    const updatedUsers = [...users, res || newUser];
+    const createdRecord = {
+      ...newUser,
+      ...(res || {}),
+      password: newUser.password,
+      plainPassword: newUser.password
+    };
+    const updatedUsers = [...users, createdRecord];
     setUsers(updatedUsers);
+    try { localStorage.setItem('cater_users', JSON.stringify(updatedUsers)); } catch (e) {}
     return { success: true };
   };
 
@@ -336,6 +344,14 @@ export const AppProvider = ({ children }) => {
   const [vendorCategories, setVendorCategories] = useState(() => getSafeLocal('cater_vendor_categories', initialVendorCategories));
   const [labourCategories, setLabourCategories] = useState(() => getSafeLocal('cater_labour_categories', initialLabourCategories));
 
+  const masterMenuCategories = useMemo(() => {
+    return (menuCategories || []).filter(c => c.type !== 'LIVE_STATION');
+  }, [menuCategories]);
+
+  const liveStationCategories = useMemo(() => {
+    return (menuCategories || []).filter(c => c.type === 'LIVE_STATION');
+  }, [menuCategories]);
+
   const [companyProfile, setCompanyProfile] = useState({
     name: 'Sri Mayyia Caterers',
     tagline: 'Legacy of Royal Flavors Since 1953',
@@ -407,7 +423,7 @@ export const AppProvider = ({ children }) => {
         const normalizedDishes = dList.map(d => ({
           ...d,
           id: d.id || d._id,
-          category: d.category === 'Other Welcome Drinks' ? 'SHELL BASED FRESH JUICE' : d.category,
+          category: d.category || '',
           cuisine: d.cuisine || d.subCategory || ''
         }));
         setDishes(normalizedDishes);
@@ -466,7 +482,22 @@ export const AppProvider = ({ children }) => {
         } catch (e) {}
       }
       if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
-      if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
+      if (Array.isArray(uList) && uList.length > 0) {
+        setUsers(prevUsers => {
+          const prevMap = new Map((prevUsers || []).map(u => [u.id?.toLowerCase(), u]));
+          const mergedUsers = uList.map(su => {
+            const lu = prevMap.get(su.id?.toLowerCase());
+            const plainPass = su.plainPassword || (su.password && !su.password.includes('•') ? su.password : (lu?.plainPassword || (lu?.password && !lu?.password.includes('•') ? lu.password : '')));
+            return {
+              ...su,
+              plainPassword: plainPass,
+              password: plainPass || su.password || '••••••••'
+            };
+          });
+          try { localStorage.setItem('cater_users', JSON.stringify(mergedUsers)); } catch (e) {}
+          return mergedUsers;
+        });
+      }
       if (Array.isArray(vesList)) {
         setVessels(prevVes => {
           const prevMap = new Map((prevVes || []).map(v => [v.id || v._id, v]));
@@ -1647,6 +1678,8 @@ export const AppProvider = ({ children }) => {
       deleteLabourAttendance,
       batchAddLabourAttendance,
       menuCategories,
+      masterMenuCategories,
+      liveStationCategories,
       addMenuCategory,
       updateMenuCategory,
       deleteMenuCategory,
