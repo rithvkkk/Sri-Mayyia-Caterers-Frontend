@@ -1345,18 +1345,19 @@ export const AppProvider = ({ children }) => {
       }
     }
     recalculateEventFinances(updatedEvent);
+    const targetId = String(updatedEvent.id || updatedEvent._id || '');
     // Optimistic update
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+    setEvents(prev => prev.map(e => (String(e.id || e._id) === targetId) ? updatedEvent : e));
     try {
       const stored = JSON.parse(localStorage.getItem('cater_events') || '[]');
       if (Array.isArray(stored)) {
-        localStorage.setItem('cater_events', JSON.stringify(stored.map(e => e.id === updatedEvent.id ? updatedEvent : e)));
+        localStorage.setItem('cater_events', JSON.stringify(stored.map(e => (String(e.id || e._id) === targetId) ? updatedEvent : e)));
       }
     } catch (e) {}
     try {
-      const res = await apiCall(`/events/${updatedEvent.id}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
+      const res = await apiCall(`/events/${encodeURIComponent(targetId)}`, { method: 'PUT', body: JSON.stringify(updatedEvent) });
       if (res) {
-        setEvents(prev => prev.map(e => e.id === updatedEvent.id ? res : e));
+        setEvents(prev => prev.map(e => (String(e.id || e._id) === targetId) ? res : e));
       }
     } catch (err) {
       console.warn('Background updateEvent sync error:', err);

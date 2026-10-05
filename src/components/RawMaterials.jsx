@@ -79,33 +79,49 @@ const RawMaterials = () => {
 
   const handleAddMaterial = () => {
     if (!newMaterial.rawMaterialId || !newMaterial.requiredQty || !newMaterial.supplierId) {
-      alert('Please fill out all fields.');
+      alert('Please fill out all fields: Material, Quantity, and Supplier.');
       return;
     }
-    const rm = rawMaterials.find(r => r.id === newMaterial.rawMaterialId);
-    const sup = suppliers.find(s => s.id === newMaterial.supplierId);
-    if (!rm || !sup) return;
+    const rm = rawMaterials.find(r => String(r.id || r._id) === String(newMaterial.rawMaterialId));
+    const sup = suppliers.find(s => String(s.id || s._id) === String(newMaterial.supplierId));
+    if (!rm) {
+      alert('Selected raw material could not be found.');
+      return;
+    }
+    if (!sup) {
+      alert('Selected supplier could not be found.');
+      return;
+    }
 
-    const totalCost = parseFloat(newMaterial.requiredQty) * rm.costPerUnit;
+    const qty = parseFloat(newMaterial.requiredQty);
+    if (isNaN(qty) || qty <= 0) {
+      alert('Please enter a valid positive quantity.');
+      return;
+    }
+
+    const supPricing = rm.suppliers?.find(sp => String(sp.supplierId) === String(sup.id || sup._id));
+    const unitPrice = supPricing && Number(supPricing.price) > 0 ? Number(supPricing.price) : Number(rm.costPerUnit || 0);
+    const totalCost = Math.round(qty * unitPrice * 100) / 100;
 
     const manualMat = {
       name: rm.name,
       category: rm.category,
-      requiredQty: parseFloat(newMaterial.requiredQty),
-      unit: rm.unit,
-      costPerUnit: rm.costPerUnit,
+      requiredQty: qty,
+      unit: supPricing?.unit || rm.unit || 'kg',
+      costPerUnit: unitPrice,
       totalCost,
       supplier: {
-        _id: sup.id,
+        _id: String(sup.id || sup._id),
         name: sup.name,
         contact: sup.phone || sup.contact || '',
         category: sup.category
       }
     };
 
+    const currentManuals = currentEvent?.manualMaterials || [];
     const updatedEvent = {
       ...currentEvent,
-      manualMaterials: [...materialList, manualMat]
+      manualMaterials: [...currentManuals, manualMat]
     };
     setNewMaterial({ rawMaterialId: '', requiredQty: '', supplierId: '' });
     updateEvent(updatedEvent);
@@ -336,9 +352,12 @@ const RawMaterials = () => {
                           onChange={e => setNewMaterial({...newMaterial, rawMaterialId: e.target.value})}
                         >
                           <option value="">-- Select Material --</option>
-                          {rawMaterials.map(rm => (
-                            <option key={rm.id} value={rm.id}>{rm.name} ({rm.category})</option>
-                          ))}
+                          {rawMaterials.map(rm => {
+                            const mId = rm.id || rm._id;
+                            return (
+                              <option key={mId} value={mId}>{rm.name} ({rm.category})</option>
+                            );
+                          })}
                         </select>
                       </td>
                       <td colSpan="2">
@@ -347,12 +366,14 @@ const RawMaterials = () => {
                             type="number" 
                             className="form-input" 
                             placeholder="Qty" 
+                            min="0.01"
+                            step="any"
                             style={{ padding: '0.3rem', fontSize: '0.8rem', width: '60px' }}
                             value={newMaterial.requiredQty} 
                             onChange={e => setNewMaterial({...newMaterial, requiredQty: e.target.value})}
                           />
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            {newMaterial.rawMaterialId ? rawMaterials.find(r => r.id === newMaterial.rawMaterialId)?.unit : ''}
+                            {newMaterial.rawMaterialId ? rawMaterials.find(r => String(r.id || r._id) === String(newMaterial.rawMaterialId))?.unit : ''}
                           </span>
                         </div>
                       </td>
@@ -364,16 +385,21 @@ const RawMaterials = () => {
                           onChange={e => setNewMaterial({...newMaterial, supplierId: e.target.value})}
                         >
                           <option value="">-- Assign Supplier --</option>
-                          {suppliers.map(s => (
-                            <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
-                          ))}
+                          {suppliers.map(s => {
+                            const sId = s.id || s._id;
+                            return (
+                              <option key={sId} value={sId}>{s.name} ({s.category})</option>
+                            );
+                          })}
                         </select>
                       </td>
                       <td>
                         <button 
+                          type="button"
                           className="btn btn-primary btn-small" 
                           style={{ padding: '0.3rem' }} 
                           onClick={handleAddMaterial}
+                          title="Add Requirement"
                         >
                           <Plus size={14} />
                         </button>
