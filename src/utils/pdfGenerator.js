@@ -57,6 +57,102 @@ const translations = {
 };
 
 /**
+ * Authoritative Venue Resolver:
+ * Resolves the venue string strictly from the event/database.
+ * Returns '' if no venue is selected. NEVER invents or hardcodes a venue.
+ */
+export const resolveEventVenue = (event, venues = []) => {
+  if (!event) return '';
+  if (typeof event.venue === 'string' && event.venue.trim().length > 0) {
+    return event.venue.trim();
+  }
+  if (typeof event.venueName === 'string' && event.venueName.trim().length > 0) {
+    return event.venueName.trim();
+  }
+  const vid = event.venueId;
+  if (!vid || typeof vid !== 'string' || vid.trim().length === 0) {
+    return '';
+  }
+  const cleanVid = vid.trim();
+  const lowerVid = cleanVid.toLowerCase();
+  if (['unassigned', 'none', 'tbd', 'null', 'undefined', 'to be decided', 'n/a', 'na', 'tba'].includes(lowerVid)) {
+    return '';
+  }
+  if (Array.isArray(venues) && venues.length > 0) {
+    const matched = venues.find(v => String(v.id || v._id) === cleanVid || (v.name && v.name.toLowerCase() === lowerVid));
+    if (matched && matched.name) {
+      return matched.name.trim();
+    }
+  }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const cached = JSON.parse(localStorage.getItem('cater_venues') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) {
+        const m = cached.find(v => String(v.id || v._id) === cleanVid || (v.name && v.name.toLowerCase() === lowerVid));
+        if (m && m.name) return m.name.trim();
+      }
+    }
+  } catch (e) {}
+
+  const isInternalIdPattern = /^v\d+$/i.test(cleanVid) || /^v_\d+$/i.test(cleanVid) || /^[0-9a-fA-F]{24}$/.test(cleanVid);
+  if (!isInternalIdPattern) {
+    return cleanVid;
+  }
+  return '';
+};
+
+/**
+ * Authoritative Instruction Collector:
+ * Collects all explicit instructions from quotation, event, billing, and session client notes.
+ */
+export const collectEventInstructions = (event, subFunction = null) => {
+  const instructions = [];
+
+  if (event?.instructions && typeof event.instructions === 'string' && event.instructions.trim()) {
+    instructions.push({
+      title: 'Quotation & Service Instructions',
+      text: event.instructions.trim()
+    });
+  }
+  if (event?.billing?.instructions && typeof event.billing.instructions === 'string' && event.billing.instructions.trim()) {
+    if (event.billing.instructions.trim() !== event?.instructions?.trim()) {
+      instructions.push({
+        title: 'Billing Instructions',
+        text: event.billing.instructions.trim()
+      });
+    }
+  }
+  if (event?.menuNotes && typeof event.menuNotes === 'string' && event.menuNotes.trim()) {
+    if (event.menuNotes.trim() !== event?.instructions?.trim()) {
+      instructions.push({
+        title: 'Menu & Kitchen Directives',
+        text: event.menuNotes.trim()
+      });
+    }
+  }
+
+  if (subFunction && typeof subFunction === 'object') {
+    if (subFunction.clientNotes && typeof subFunction.clientNotes === 'string' && subFunction.clientNotes.trim()) {
+      instructions.push({
+        title: `${subFunction.name || 'Session'} Instructions`,
+        text: subFunction.clientNotes.trim()
+      });
+    }
+  } else if (Array.isArray(event?.subFunctions)) {
+    event.subFunctions.forEach(sf => {
+      if (sf?.clientNotes && typeof sf.clientNotes === 'string' && sf.clientNotes.trim()) {
+        instructions.push({
+          title: `${sf.name || 'Session'} Instructions`,
+          text: sf.clientNotes.trim()
+        });
+      }
+    });
+  }
+
+  return instructions;
+};
+
+/**
  * Converts numeric amount into Indian currency words representation.
  * e.g., 750750 -> "Seven Lakh Fifty Thousand Seven Hundred Fifty Rupees only"
  */
@@ -233,10 +329,11 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   doc.setFont('times', 'bold');
   doc.setFontSize(9);
   doc.text(`Event Date : ${evDateFormatted}`, 135, 85);
-  if (ev.venue) {
+  const resolvedVenue = resolveEventVenue(ev, options.venues || []);
+  if (resolvedVenue) {
     doc.setFont('times', 'normal');
     doc.setFontSize(8);
-    const venueLines = doc.splitTextToSize(`Venue: ${ev.venue}`, 62);
+    const venueLines = doc.splitTextToSize(`Venue: ${resolvedVenue}`, 62);
     venueLines.forEach((vl, idx) => {
       doc.text(vl, 135, 90 + (idx * 4));
     });
@@ -301,9 +398,27 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   const explicitSubtotal = Number(ev.billing?.subtotal || ev.billing?.totalAmount || 0);
   const subtotal = explicitSubtotal > 0 ? explicitSubtotal : calculatedSubtotal;
 
-  const cgstAmount = subtotal * 0.025;
-  const sgstAmount = subtotal * 0.025;
-  const grandTotal = subtotal + cgstAmount + sgstAmount;
+  const isGst = ev.billing?.taxType !== 'NON_GST';
+  const taxRate = isGst ? (ev.billing?.taxRate !== undefined && !isNaN(Number(ev.billing.taxRate)) ? Math.max(0, Number(ev.billing.taxRate)) : 0) : 0;
+  const isInterState = Boolean(ev.billing?.isInterState);
+
+  let cgstAmount = 0;
+  let sgstAmount = 0;
+  let igstAmount = 0;
+  let totalTax = 0;
+
+  if (isGst && taxRate > 0) {
+    if (isInterState) {
+      igstAmount = Math.round((subtotal * taxRate / 100) * 100) / 100;
+      totalTax = igstAmount;
+    } else {
+      const halfRate = taxRate / 2;
+      cgstAmount = Math.round((subtotal * halfRate / 100) * 100) / 100;
+      sgstAmount = Math.round((subtotal * halfRate / 100) * 100) / 100;
+      totalTax = cgstAmount + sgstAmount;
+    }
+  }
+  const grandTotal = subtotal + totalTax;
 
   // Add Summary Rows
   tableRows.push([
@@ -311,16 +426,41 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
     { content: 'SUB TOTAL', styles: { fontStyle: 'bold', halign: 'right' } },
     { content: subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
   ]);
-  tableRows.push([
-    '', '', '', '',
-    { content: 'CGST @ 2.5 %', styles: { fontStyle: 'bold', halign: 'right' } },
-    { content: cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
-  ]);
-  tableRows.push([
-    '', '', '', '',
-    { content: 'SGST @ 2.5 %', styles: { fontStyle: 'bold', halign: 'right' } },
-    { content: sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
-  ]);
+
+  if (isGst && taxRate > 0) {
+    if (isInterState) {
+      tableRows.push([
+        '', '', '', '',
+        { content: `IGST @ ${taxRate} %`, styles: { fontStyle: 'bold', halign: 'right' } },
+        { content: igstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+      ]);
+    } else {
+      const halfRateStr = (taxRate / 2).toString();
+      tableRows.push([
+        '', '', '', '',
+        { content: `CGST @ ${halfRateStr} %`, styles: { fontStyle: 'bold', halign: 'right' } },
+        { content: cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+      ]);
+      tableRows.push([
+        '', '', '', '',
+        { content: `SGST @ ${halfRateStr} %`, styles: { fontStyle: 'bold', halign: 'right' } },
+        { content: sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: 'bold', halign: 'right' } }
+      ]);
+    }
+  } else if (!isGst) {
+    tableRows.push([
+      '', '', '', '',
+      { content: 'TAXATION (Non-GST / Commercial Quote)', styles: { fontStyle: 'bold', halign: 'right' } },
+      { content: '0.00', styles: { fontStyle: 'bold', halign: 'right' } }
+    ]);
+  } else {
+    tableRows.push([
+      '', '', '', '',
+      { content: 'GST @ 0 % (Exempted)', styles: { fontStyle: 'bold', halign: 'right' } },
+      { content: '0.00', styles: { fontStyle: 'bold', halign: 'right' } }
+    ]);
+  }
+
   tableRows.push([
     '', '', '', '',
     { content: 'TOTAL', styles: { fontStyle: 'bold', halign: 'right' } },
@@ -373,21 +513,77 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   doc.text(`Amount in words: ${numberToWordsIndian(grandTotal)}`, 14, wordsY);
 
   // 7. Instructions & Payment Details (Left) + Authorized Signature (Right)
-  const instY = wordsY + 8;
+  const allInstructions = collectEventInstructions(ev);
+  let curLeftY = wordsY + 7;
+
+  // Check if we need space or if page break is needed
+  const instLines = [];
+  allInstructions.forEach(inst => {
+    if (allInstructions.length > 1) {
+      instLines.push({ type: 'header', text: `${inst.title}:` });
+    }
+    const rawLines = inst.text.split('\n');
+    rawLines.forEach(rl => {
+      const wrapped = doc.splitTextToSize(rl, 110);
+      wrapped.forEach(wl => instLines.push({ type: 'line', text: wl }));
+    });
+  });
+
+  const instHeight = instLines.length > 0 ? (instLines.length * 3.8) + 8 : 0;
+  const totalLeftHeight = instHeight + 35; // inst + bank details
+
+  if (curLeftY + totalLeftHeight > 255) {
+    // If overflowing, add page
+    doc.addPage();
+    curLeftY = 25;
+  }
+
+  if (instLines.length > 0) {
+    doc.setFont('times', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Instructions:', 14, curLeftY);
+    curLeftY += 4.5;
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(8);
+    instLines.forEach(l => {
+      if (l.type === 'header') {
+        doc.setFont('times', 'bold');
+        doc.text(l.text, 14, curLeftY);
+        doc.setFont('times', 'normal');
+      } else {
+        doc.text(l.text, 14, curLeftY);
+      }
+      curLeftY += 3.8;
+    });
+    curLeftY += 3;
+  }
+
+  // Bank & Payment Details
   doc.setFont('times', 'bold');
   doc.setFontSize(8.5);
-  doc.text('Instructions:', 14, instY);
-  doc.text('Account Name :- SRI MAYYIA CATERERS', 14, instY + 4.5);
-  doc.text('Account Number: 1304013000000051', 14, instY + 9);
-  doc.text('IFSC CODE :- KVBL0001304', 14, instY + 13.5);
-  doc.text('BANK :- KARUR VYSYA BANK', 14, instY + 18);
-  doc.text('BRANCH :- HALASURU', 14, instY + 22.5);
-  doc.text('BRANCH CODE :- 1304', 14, instY + 27);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Bank & Payment Details:', 14, curLeftY);
+  curLeftY += 4.5;
+
+  doc.setFont('times', 'normal');
+  doc.setFontSize(8);
+  doc.text('Account Name :- SRI MAYYIA CATERERS', 14, curLeftY); curLeftY += 4;
+  doc.text('Account Number: 1304013000000051', 14, curLeftY); curLeftY += 4;
+  doc.text('IFSC CODE :- KVBL0001304', 14, curLeftY); curLeftY += 4;
+  doc.text('BANK :- KARUR VYSYA BANK', 14, curLeftY); curLeftY += 4;
+  doc.text('BRANCH :- HALASURU', 14, curLeftY); curLeftY += 4;
+  doc.text('BRANCH CODE :- 1304', 14, curLeftY); curLeftY += 4;
 
   // Authorized Signatory
-  doc.text('FOR SRI MAYYIA CATERERS', 135, instY);
+  const sigY = wordsY + 7;
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text('FOR SRI MAYYIA CATERERS', 135, sigY);
   doc.setFont('times', 'normal');
-  doc.text('Authorized Signature', 140, instY + 20);
+  doc.text('Authorized Signature', 140, sigY + 20);
 
   // 8. Corporate Footer Image at bottom right
   if (menuTemplateAssets.invoiceFooter) {
@@ -483,13 +679,16 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const evId = ev.id || ev._id || '';
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
   const evType = ev.eventType || '';
+  const resolvedVenue = resolveEventVenue(ev);
+  const hasVenue = Boolean(resolvedVenue);
+  const cardHeight = hasVenue ? 28 : 22;
 
-  // Soft Glassmorphic Card Container for Client Info (y=58 to y=80)
+  // Soft Glassmorphic Card Container for Client Info
   doc.setFillColor(253, 248, 237);
-  doc.roundedRect(15, 58, 180, 22, 2, 2, 'F');
+  doc.roundedRect(15, 58, 180, cardHeight, 2, 2, 'F');
   doc.setDrawColor(210, 180, 130);
   doc.setLineWidth(0.3);
-  doc.roundedRect(15, 58, 180, 22, 2, 2, 'D');
+  doc.roundedRect(15, 58, 180, cardHeight, 2, 2, 'D');
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
@@ -520,6 +719,15 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   doc.setTextColor(30, 30, 30);
   doc.text(evType, 148, 73);
 
+  if (hasVenue) {
+    doc.setTextColor(...navyColor);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Execution Venue:', 19, 81);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text(resolvedVenue, 52, 81);
+  }
+
   // Table Generation based on report type
   if (type === 'invoice') {
     // Invoice details table
@@ -545,7 +753,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody,
-      startY: 85,
+      startY: hasVenue ? 91 : 85,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
       styles: { fontSize: 9, cellPadding: 3.5, textColor: [30, 30, 30] },
@@ -567,28 +775,31 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const boxStartY = finalY + 4;
     let currentY = boxStartY + 6.5;
 
-    const isGst = ev.billing?.taxType !== 'NON_GST' && Number(ev.billing?.taxRate) !== 0;
+    const isGst = ev.billing?.taxType !== 'NON_GST';
     const isInter = Boolean(ev.billing?.isInterState);
-    const taxRate = isGst ? (ev.billing?.taxRate !== undefined ? Number(ev.billing.taxRate) : 5) : 0;
+    const taxRate = isGst ? (ev.billing?.taxRate !== undefined && !isNaN(Number(ev.billing.taxRate)) ? Math.max(0, Number(ev.billing.taxRate)) : 0) : 0;
     const totalPax = subFunctions.reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || 225;
     const subtotalAmt = ev.billing?.subtotal || (totalPax * (ev.billing?.pricePerPlate || 975));
-    const taxAmt = isGst ? (subtotalAmt * (taxRate / 100)) : 0;
+    const taxAmt = isGst ? Math.round((subtotalAmt * (taxRate / 100)) * 100) / 100 : 0;
     const grandAmt = subtotalAmt + taxAmt;
-    const balAmt = grandAmt - (ev.billing?.advancePaid || 0);
+    const balAmt = grandAmt - (parseFloat(ev.billing?.advancePaid) || 0);
 
     const rows = [
       { label: t.subtotal || 'Subtotal Amount:', val: subtotalAmt }
     ];
 
-    if (isGst) {
+    if (isGst && taxRate > 0) {
       if (!isInter) {
-        rows.push({ label: `CGST (${(taxRate / 2).toFixed(1)}%):`, val: taxAmt / 2 });
-        rows.push({ label: `SGST (${(taxRate / 2).toFixed(1)}%):`, val: taxAmt / 2 });
+        const halfRateStr = (taxRate / 2).toString();
+        rows.push({ label: `CGST (${halfRateStr}%):`, val: taxAmt / 2 });
+        rows.push({ label: `SGST (${halfRateStr}%):`, val: taxAmt / 2 });
       } else {
         rows.push({ label: `IGST (${taxRate}%):`, val: taxAmt });
       }
+    } else if (!isGst) {
+      rows.push({ label: 'Taxation Mode:', val: 'Non-GST Commercial (0%)', isRawText: true });
     } else {
-      rows.push({ label: 'Taxation Mode:', val: 'Non-GST (0%)', isRawText: true });
+      rows.push({ label: 'GST Mode:', val: '0% (Exempted)', isRawText: true });
     }
     rows.push({ label: t.grandTotal || 'Grand Invoice Total:', val: grandAmt, highlight: true });
     rows.push({ label: t.advance || 'Advance Deposited:', val: ev.billing?.advancePaid || 0 });
@@ -626,18 +837,75 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.text(formatCurrencyValue(balAmt, curr), 190, currentY, { align: 'right' });
     currentY += 6.5;
 
+    // Instructions Card (Dynamic, wrapping, multiple instructions, preserving line breaks)
+    const allInstructions = collectEventInstructions(ev);
+    let nextY = Math.max(currentY + 4, boxStartY + boxHeight + 4);
+
+    if (allInstructions.length > 0) {
+      const instLines = [];
+      allInstructions.forEach(inst => {
+        if (allInstructions.length > 1) {
+          instLines.push({ type: 'header', text: `${inst.title}:` });
+        }
+        const rawLines = inst.text.split('\n');
+        rawLines.forEach(rl => {
+          const wrapped = doc.splitTextToSize(rl, 170);
+          wrapped.forEach(wl => instLines.push({ type: 'line', text: wl }));
+        });
+      });
+
+      const instBoxHeight = (instLines.length * 4.2) + 10;
+      if (nextY + instBoxHeight > 270) {
+        doc.addPage();
+        nextY = 25;
+      }
+
+      doc.setFillColor(253, 248, 237);
+      doc.roundedRect(15, nextY, 180, instBoxHeight, 2, 2, 'F');
+      doc.setDrawColor(210, 180, 130);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(15, nextY, 180, instBoxHeight, 2, 2, 'D');
+
+      let instCursorY = nextY + 5.5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...maroonColor);
+      doc.text('SPECIAL INSTRUCTIONS & EVENT REQUIREMENTS:', 19, instCursorY);
+      instCursorY += 4.5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+
+      instLines.forEach(l => {
+        if (l.type === 'header') {
+          doc.setFont('helvetica', 'bold');
+          doc.text(l.text, 19, instCursorY);
+          doc.setFont('helvetica', 'normal');
+        } else {
+          doc.text(l.text, 19, instCursorY);
+        }
+        instCursorY += 4.2;
+      });
+
+      nextY += instBoxHeight + 4;
+    }
+
     // Highlighted Yellow Note Box (Matching Estimation Reference)
-    const noteY = Math.max(currentY + 6, finalY + 52);
+    if (nextY + 12 > 280) {
+      doc.addPage();
+      nextY = 25;
+    }
     doc.setFillColor(255, 253, 200);
-    doc.roundedRect(15, noteY, 180, 8.5, 1.5, 1.5, 'F');
+    doc.roundedRect(15, nextY, 180, 8.5, 1.5, 1.5, 'F');
     doc.setDrawColor(210, 180, 0);
     doc.setLineWidth(0.3);
-    doc.roundedRect(15, noteY, 180, 8.5, 1.5, 1.5, 'D');
+    doc.roundedRect(15, nextY, 180, 8.5, 1.5, 1.5, 'D');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(180, 0, 0);
-    doc.text('NOTE : GAS, VESSELS & CLEANERS ARE NOT INCLUDED IN THE ABOVE QUOTE', 105, noteY + 5.5, { align: 'center' });
+    doc.text('NOTE : GAS, VESSELS & CLEANERS ARE NOT INCLUDED IN THE ABOVE QUOTE', 105, nextY + 5.5, { align: 'center' });
 
   } else {
     // Materials requirements table
@@ -728,11 +996,18 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
       pdfBlob = new Blob([doc.output()], { type: 'application/pdf' });
     }
   }
-  const blobUrl = URL.createObjectURL(pdfBlob);
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(pdfBlob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
   
   // IF requested to just return the blob (for preview modal)
   if (returnBlob) {
-    return { blob: pdfBlob, blobUrl, filename };
+    return { blob: pdfBlob, blobUrl, filename, doc };
   }
 
   const file = new File([pdfBlob], filename, { type: 'application/pdf' });
@@ -799,7 +1074,7 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   const evId = ev.id || ev._id || 'PO-REQ';
   const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || 'Valued Client';
   const evDate = ev.date || (ev.dates && ev.dates[0]) || new Date().toISOString().split('T')[0];
-  const evVenue = ev.venue || 'Sri Mayyia Heritage Convention Center';
+  const evVenue = resolveEventVenue(ev) || 'Central Production Kitchen';
   const poDateFormatted = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
   const safeSupFilename = supName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
   const poNumber = `PO-${String(evId).replace(/[^a-zA-Z0-9]/g, '')}-${String(sup.id || sup._id || 'V').slice(-4).toUpperCase()}`;
@@ -1614,7 +1889,7 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
   // 3. Centered Event Date & Venue/Client (underlined)
   const rawCoverDate = event?.date || subList[0]?.date || new Date().toISOString().split('T')[0];
   const dateHeading = formatCoverDate(rawCoverDate).toUpperCase();
-  const venueHeading = (event?.venue || event?.hall || event?.location || event?.customer?.name || event?.eventType || 'GRAND BANQUET').toUpperCase();
+  const resolvedVenue = resolveEventVenue(event);
 
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
@@ -1627,14 +1902,16 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
   doc.setLineWidth(0.3);
   doc.line(pw / 2 - dateWidth / 2, currentY + 1, pw / 2 + dateWidth / 2, currentY + 1);
 
-  currentY += 6;
-
-  // Venue heading with underline
-  doc.text(venueHeading, pw / 2, currentY, { align: 'center' });
-  const venueWidth = doc.getTextWidth(venueHeading);
-  doc.line(pw / 2 - venueWidth / 2, currentY + 1, pw / 2 + venueWidth / 2, currentY + 1);
-
-  currentY += 12;
+  if (resolvedVenue) {
+    currentY += 6;
+    const venueHeading = resolvedVenue.toUpperCase();
+    doc.text(venueHeading, pw / 2, currentY, { align: 'center' });
+    const venueWidth = doc.getTextWidth(venueHeading);
+    doc.line(pw / 2 - venueWidth / 2, currentY + 1, pw / 2 + venueWidth / 2, currentY + 1);
+    currentY += 12;
+  } else {
+    currentY += 10;
+  }
 
   // Helper for pagination
   const checkPageBreak = (neededHeight = 12) => {
@@ -1736,6 +2013,12 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
   if (event?.serviceInstructions) {
     notesList.push(event.serviceInstructions);
   }
+  const collectedInst = collectEventInstructions(event);
+  collectedInst.forEach(ci => {
+    if (ci.text && !notesList.some(n => String(n).includes(ci.text))) {
+      notesList.push(`${ci.title}: ${ci.text}`);
+    }
+  });
 
   if (notesList.length > 0) {
     checkPageBreak(20);
@@ -1850,7 +2133,7 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
   const coverDateText = formatDisplayDate(rawCoverDate) || formatCoverDate(rawCoverDate);
   const coverEventText = (event?.eventType || event?.title || 'GRAND WEDDING SEATED FEAST').toUpperCase();
   const clientName = (event?.customer && typeof event.customer === 'object' ? event.customer.name : event?.customer) || '';
-  const venueText = event?.venue || 'Sri Mayyia Heritage Convention Center';
+  const venueText = resolveEventVenue(event);
 
   // PAGE 1: FESTIVE GOLD COVER
   if (menuTemplateAssets.goldPage1Cover) {
@@ -1873,7 +2156,7 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
   // Dedicated Client sub-line if available
   if (clientName) {
     doc.setFont('times', 'italic');
-    doc.setFontSize(10);
+    doc.setFontSize(10.5);
     doc.setTextColor(...goldColor);
     doc.text(`Specially Curated for ${clientName}`, 105, 133, { align: 'center' });
   }
@@ -1882,24 +2165,28 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
   doc.setFillColor(254, 254, 253);
   doc.rect(75, 154, 60, 24, 'F');
 
-  // Centered Date
+  // Centered Date & Venue
   doc.setFont('times', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(...maroonColor);
-  doc.text(`Date:  ${coverDateText}`, 105, 161.5, { align: 'center' });
 
-  // Centered Venue
-  let dispVenue = venueText;
-  if (doc.getTextWidth(`VENUE:  ${dispVenue}`) > 140) {
-    doc.setFontSize(10);
+  if (venueText) {
+    doc.text(`Date:  ${coverDateText}`, 105, 161.5, { align: 'center' });
+    let dispVenue = venueText;
     if (doc.getTextWidth(`VENUE:  ${dispVenue}`) > 140) {
-      dispVenue = doc.splitTextToSize(dispVenue, 110)[0] + '...';
+      doc.setFontSize(10);
+      if (doc.getTextWidth(`VENUE:  ${dispVenue}`) > 140) {
+        dispVenue = doc.splitTextToSize(dispVenue, 130)[0] + '...';
+      }
+    } else {
+      doc.setFontSize(11);
     }
+    doc.setTextColor(...navyColor);
+    doc.text(`VENUE:  ${dispVenue}`, 105, 172.5, { align: 'center' });
   } else {
-    doc.setFontSize(11);
+    // No venue selected in software -> DO NOT invent or display any venue!
+    doc.text(`Date:  ${coverDateText}`, 105, 166, { align: 'center' });
   }
-  doc.setTextColor(...navyColor);
-  doc.text(`VENUE:  ${dispVenue}`, 105, 172.5, { align: 'center' });
 
   // Helper to map catalog category to clean uppercase header
   const getSectionHeader = (category) => {
@@ -1913,7 +2200,7 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
     return String(category).toUpperCase();
   };
 
-  // Helper to build sections
+  // Helper to build sections with rich dish items
   const buildMenuSections = (sub) => {
     const rawItemIds = Array.isArray(sub?.menuItems) ? sub.menuItems : [];
     const menuDishIds = rawItemIds.map(item => (typeof item === 'object' && item !== null ? (item.dishId || item.id) : item));
@@ -1938,7 +2225,12 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
     allDishes.forEach(d => {
       const header = getSectionHeader(d.category);
       if (!sectionMap.has(header)) sectionMap.set(header, []);
-      sectionMap.get(header).push((d.name || '').toUpperCase());
+      sectionMap.get(header).push({
+        name: (d.name || '').toUpperCase(),
+        description: d.description || d.desc || '',
+        instructions: d.instructions || d.specialInstructions || '',
+        price: d.price || null
+      });
     });
 
     const sections = [];
@@ -1948,7 +2240,7 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
     return sections;
   };
 
-  // PAGES 2..N: INNER FESTIVE MENU
+  // PAGES 2..N: INNER FESTIVE MENU WITH LARGER FONTS & DYNAMIC PAGINATION
   subList.forEach(sub => {
     const rawSubDate = sub.date || event?.date || new Date().toISOString().split('T')[0];
     const dateText = formatMenuDateDDMMYYYY(rawSubDate);
@@ -1957,76 +2249,206 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
     const paxCount = sub.guestCount || event?.guestCount || 200;
 
     const sections = buildMenuSections(sub);
-    const renderLines = [];
-    sections.forEach(s => {
-      if (s.category) {
-        renderLines.push({ type: 'category', text: s.category });
-      }
-      s.items.forEach(item => {
-        renderLines.push({ type: 'item', text: item });
-      });
-    });
+    const totalItemsCount = sections.reduce((acc, s) => acc + s.items.length, 0);
+    const isSmallMenu = totalItemsCount > 0 && totalItemsCount <= 8;
 
-    const MAX_LINES_PER_PAGE = 18;
-    const pageChunks = [];
-    for (let i = 0; i < renderLines.length; i += MAX_LINES_PER_PAGE) {
-      pageChunks.push(renderLines.slice(i, i + MAX_LINES_PER_PAGE));
-    }
-    if (pageChunks.length === 0) pageChunks.push([]);
+    let pageIdx = 1;
+    const startMenuY = 53;
+    const maxPageY = 268; // Safe margin above bottom decorative frame
+    let curY = startMenuY;
 
-    pageChunks.forEach((chunk, chunkIdx) => {
+    // Helper to start a fresh menu page with background and headers
+    const addNewMenuPage = (isContinuation = false) => {
       doc.addPage();
       if (menuTemplateAssets.goldPage2Menu) {
         doc.addImage(menuTemplateAssets.goldPage2Menu, 'JPEG', 0, 0, pw, ph);
       }
 
-      // Session Header under FOOD MENU pill badge (Y = 38 to 44 mm)
+      // Session Header under FOOD MENU pill badge (Y = 36 to 43 mm)
+      doc.setFont('times', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(...maroonColor);
+      const headerSuffix = isContinuation ? ' (CONTD.)' : '';
+      doc.text(`${subCleanName}${headerSuffix}`, 105, 36, { align: 'center' });
+
+      doc.setFont('times', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      const pageInfo = isContinuation ? `   •   PAGE ${pageIdx}` : '';
+      doc.text(`${dateText}   •   ${servingText.toUpperCase()}   •   ${paxCount} PAX${pageInfo}`, 105, 42.5, { align: 'center' });
+
+      // Ornamental gold separator
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.4);
+      doc.line(70, 45.5, 140, 45.5);
+
+      curY = startMenuY;
+    };
+
+    // Initialize first menu page for this subfunction
+    addNewMenuPage(false);
+
+    // Spacing factors
+    const itemSpacing = isSmallMenu ? 5.5 : 3.8;
+    const catSpacingBefore = isSmallMenu ? 7.5 : 5.5;
+    const catSpacingAfter = isSmallMenu ? 5.0 : 4.0;
+
+    // Helper to check page break
+    const ensureSpace = (neededHeight) => {
+      if (curY + neededHeight > maxPageY) {
+        pageIdx++;
+        addNewMenuPage(true);
+      }
+    };
+
+    // Render sections and items
+    sections.forEach((sec, secIdx) => {
+      if (sec.items.length === 0) return;
+
+      // Estimate category heading height + first item height to prevent orphan headings
+      const sampleItemHeight = 8;
+      const catNeededHeight = catSpacingBefore + 7 + catSpacingAfter + sampleItemHeight;
+      ensureSpace(catNeededHeight);
+
+      if (secIdx > 0 && curY > startMenuY) {
+        curY += catSpacingBefore;
+      }
+
+      // Render Category Heading: bold, readable 13pt maroon
       doc.setFont('times', 'bold');
       doc.setFontSize(13);
       doc.setTextColor(...maroonColor);
-      const headerSuffix = chunkIdx > 0 ? ' (CONTD.)' : '';
-      doc.text(`${subCleanName}${headerSuffix}`, 105, 38, { align: 'center' });
+      doc.text(`—  ${sec.category}  —`, 105, curY, { align: 'center' });
+      curY += catSpacingAfter;
 
-      doc.setFont('times', 'italic');
-      doc.setFontSize(9.5);
-      doc.setTextColor(110, 110, 110);
-      doc.text(`${dateText}   •   ${servingText.toUpperCase()}   •   ${paxCount} PAX`, 105, 44, { align: 'center' });
+      // Render Items in Category
+      sec.items.forEach(dish => {
+        // Measure item name lines (wrapped within 145mm, larger readable 11.5pt font)
+        doc.setFont('times', 'bold');
+        doc.setFontSize(11.5);
+        const nameLines = doc.splitTextToSize(dish.name, 145);
+        const nameHeight = nameLines.length * 5.2;
 
-      // Ornamental separator
-      doc.setDrawColor(212, 175, 55); // Gold line
-      doc.setLineWidth(0.4);
-      doc.line(75, 47, 135, 47);
-
-      // Distribute lines within available height Y = 56 to 265 mm
-      const availableHeight = 265 - 56;
-      const stepY = Math.min(8.5, Math.max(6.0, availableHeight / (chunk.length + 1)));
-      let curY = 56 + stepY;
-
-      chunk.forEach(entry => {
-        if (entry.type === 'category') {
-          curY += stepY * 0.25;
-          doc.setFont('times', 'bold');
-          doc.setFontSize(10.5);
-          doc.setTextColor(...maroonColor);
-          doc.text(`—  ${entry.text}  —`, 105, curY, { align: 'center' });
-          curY += stepY;
-        } else {
-          doc.setFont('times', 'bold');
+        // Measure description lines if present
+        let descLines = [];
+        if (dish.description) {
+          doc.setFont('times', 'italic');
           doc.setFontSize(9.5);
-          doc.setTextColor(...navyColor);
-
-          let displayName = entry.text;
-          if (doc.getTextWidth(displayName) > 130) {
-            doc.setFontSize(8.5);
-            if (doc.getTextWidth(displayName) > 130) {
-              displayName = doc.splitTextToSize(displayName, 128)[0] + '...';
-            }
-          }
-          doc.text(displayName, 105, curY, { align: 'center' });
-          curY += stepY;
+          descLines = doc.splitTextToSize(dish.description, 135);
         }
+        const descHeight = descLines.length * 4.2;
+
+        // Measure dish instruction lines if present
+        let instLines = [];
+        if (dish.instructions) {
+          doc.setFont('times', 'italic');
+          doc.setFontSize(9.0);
+          instLines = doc.splitTextToSize(`Chef Note: ${dish.instructions}`, 135);
+        }
+        const instHeight = instLines.length * 4.0;
+
+        const totalItemBlockHeight = nameHeight + descHeight + instHeight + itemSpacing;
+        ensureSpace(totalItemBlockHeight);
+
+        // Draw dish name (bold, navy, properly wrapped and centered)
+        doc.setFont('times', 'bold');
+        doc.setFontSize(11.5);
+        doc.setTextColor(...navyColor);
+        nameLines.forEach(nl => {
+          doc.text(nl, 105, curY, { align: 'center' });
+          curY += 5.2;
+        });
+
+        // Draw dish description (italic, charcoal, centered)
+        if (descLines.length > 0) {
+          doc.setFont('times', 'italic');
+          doc.setFontSize(9.5);
+          doc.setTextColor(75, 75, 75);
+          descLines.forEach(dl => {
+            doc.text(dl, 105, curY, { align: 'center' });
+            curY += 4.2;
+          });
+        }
+
+        // Draw dish instruction (italic, maroon accent, centered)
+        if (instLines.length > 0) {
+          doc.setFont('times', 'italic');
+          doc.setFontSize(9.0);
+          doc.setTextColor(...maroonColor);
+          instLines.forEach(il => {
+            doc.text(il, 105, curY, { align: 'center' });
+            curY += 4.0;
+          });
+        }
+
+        curY += itemSpacing;
       });
     });
+
+    // Check for Instructions entered for this session or event
+    const sessionInstructions = [];
+    if (sub.clientNotes && typeof sub.clientNotes === 'string' && sub.clientNotes.trim()) {
+      sessionInstructions.push({ title: `${sub.name || 'Session'} Directives`, text: sub.clientNotes.trim() });
+    }
+    if (event?.menuNotes && typeof event.menuNotes === 'string' && event.menuNotes.trim()) {
+      if (!sessionInstructions.some(i => i.text === event.menuNotes.trim())) {
+        sessionInstructions.push({ title: 'Kitchen Directives', text: event.menuNotes.trim() });
+      }
+    }
+    if (event?.instructions && typeof event.instructions === 'string' && event.instructions.trim()) {
+      if (!sessionInstructions.some(i => i.text === event.instructions.trim())) {
+        sessionInstructions.push({ title: 'Special Service Instructions', text: event.instructions.trim() });
+      }
+    }
+
+    if (sessionInstructions.length > 0) {
+      const flattenedLines = [];
+      sessionInstructions.forEach(inst => {
+        if (sessionInstructions.length > 1) {
+          flattenedLines.push({ type: 'header', text: `${inst.title}:` });
+        }
+        const rawLines = inst.text.split('\n');
+        rawLines.forEach(rl => {
+          const wrapped = doc.splitTextToSize(rl, 140);
+          wrapped.forEach(wl => flattenedLines.push({ type: 'line', text: wl }));
+        });
+      });
+
+      const boxHeight = (flattenedLines.length * 4.4) + 12;
+      ensureSpace(boxHeight + 6);
+
+      curY += 4;
+      const boxStartY = curY;
+      doc.setFillColor(254, 250, 240); // Warm ivory gold card
+      doc.roundedRect(30, boxStartY, 150, boxHeight, 2, 2, 'F');
+      doc.setDrawColor(212, 175, 55); // Gold line
+      doc.setLineWidth(0.35);
+      doc.roundedRect(30, boxStartY, 150, boxHeight, 2, 2, 'D');
+
+      let textCursorY = boxStartY + 5.5;
+      doc.setFont('times', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...maroonColor);
+      doc.text('— SPECIAL INSTRUCTIONS & DIETARY DIRECTIVES —', 105, textCursorY, { align: 'center' });
+      textCursorY += 4.8;
+
+      doc.setFont('times', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(40, 40, 40);
+
+      flattenedLines.forEach(l => {
+        if (l.type === 'header') {
+          doc.setFont('times', 'bold');
+          doc.text(l.text, 36, textCursorY);
+          doc.setFont('times', 'normal');
+        } else {
+          doc.text(l.text, 36, textCursorY);
+        }
+        textCursorY += 4.4;
+      });
+
+      curY = boxStartY + boxHeight + 6;
+    }
   });
 
   // LAST PAGE: FESTIVE GOLD BACK COVER

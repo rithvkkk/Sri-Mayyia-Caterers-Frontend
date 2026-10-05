@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
-import { calculatePdfReport, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
+import { calculatePdfReport, printPdfBlob, downloadPdfBlob, resolveEventVenue } from '../utils/pdfGenerator';
 import {
   IndianRupee, FileText, CheckCircle2, AlertCircle, Share2, ShieldAlert,
   Sliders, Eye, Download, X, Lock, Printer, Truck, UserCheck, Plus, Trash2,
@@ -88,11 +88,14 @@ const QuotationBilling = () => {
   const handleBillingChange = (field, value) => {
     if (!currentEvent) return;
     let val = value;
-    if (field === 'pricePerPlate' || field === 'advancePaid' || field === 'taxRate') {
+    if (field === 'pricePerPlate' || field === 'advancePaid') {
       val = parseFloat(value) || 0;
     }
     if (field === 'commissionRate') {
       val = Math.max(0, Math.min(100, parseFloat(value) || 0));
+    }
+    if (field === 'taxRate') {
+      val = value === '' ? 0 : Math.max(0, Math.min(100, parseFloat(value) || 0));
     }
     
     const updatedBilling = {
@@ -114,10 +117,14 @@ const QuotationBilling = () => {
         updatedBilling.taxRate = 0;
       } else {
         updatedBilling.taxType = 'GST';
-        if (!updatedBilling.taxRate || Number(updatedBilling.taxRate) === 0) {
-          updatedBilling.taxRate = 5;
+        if (updatedBilling.taxRate === undefined || updatedBilling.taxRate === null) {
+          updatedBilling.taxRate = 18;
         }
       }
+    }
+
+    if (field === 'taxRate' && Number(val) > 0) {
+      updatedBilling.taxType = 'GST';
     }
     
     const updatedEvent = {
@@ -396,7 +403,7 @@ const QuotationBilling = () => {
   // Invoice & Billing Computed Values
   const advancePaid = currentEvent?.billing?.advancePaid || 0;
   const isGstEnabled = currentEvent?.billing?.taxType !== 'NON_GST';
-  const taxRate = isGstEnabled ? (currentEvent?.billing?.taxRate !== undefined ? currentEvent.billing.taxRate : 5) : 0;
+  const taxRate = isGstEnabled ? ((currentEvent?.billing?.taxRate !== undefined && currentEvent?.billing?.taxRate !== null && !isNaN(Number(currentEvent?.billing?.taxRate))) ? Number(currentEvent.billing.taxRate) : 0) : 0;
   const isInterState = Boolean(currentEvent?.billing?.isInterState);
   const taxAmount = isGstEnabled ? (revenue * (taxRate / 100)) : 0;
   const cgstAmount = isGstEnabled && !isInterState ? (taxAmount / 2) : 0;
@@ -475,7 +482,18 @@ const QuotationBilling = () => {
     }
     setIsGeneratingPdf(true);
     try {
-      const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true, templateId);
+      const resolvedVenue = resolveEventVenue(currentEvent, venues);
+      const effectiveEvent = {
+        ...currentEvent,
+        venue: resolvedVenue || currentEvent.venue || '',
+        venueName: resolvedVenue || currentEvent.venueName || '',
+        instructions: currentEvent.billing?.instructions || currentEvent.instructions || '',
+        billing: {
+          ...(currentEvent.billing || {}),
+          instructions: currentEvent.billing?.instructions || currentEvent.instructions || ''
+        }
+      };
+      const result = await calculatePdfReport(effectiveEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true, templateId);
       if (result && result.blobUrl) {
         setInvoicePreview(result);
       } else {
@@ -501,7 +519,18 @@ const QuotationBilling = () => {
       if (data && (data.blob || data.blobUrl)) {
         downloadPdfBlob(data.blob || data.blobUrl, data.filename || `Invoice_${currentEvent?.id || 'doc'}.pdf`);
       } else {
-        const result = await calculatePdfReport(currentEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true, templateId);
+        const resolvedVenue = resolveEventVenue(currentEvent, venues);
+        const effectiveEvent = {
+          ...currentEvent,
+          venue: resolvedVenue || currentEvent.venue || '',
+          venueName: resolvedVenue || currentEvent.venueName || '',
+          instructions: currentEvent.billing?.instructions || currentEvent.instructions || '',
+          billing: {
+            ...(currentEvent.billing || {}),
+            instructions: currentEvent.billing?.instructions || currentEvent.instructions || ''
+          }
+        };
+        const result = await calculatePdfReport(effectiveEvent, rawMaterialList, companyProfile, 'EN', 'invoice', true, templateId);
         if (result && (result.blob || result.blobUrl)) {
           downloadPdfBlob(result.blob || result.blobUrl, result.filename || `Invoice_${currentEvent.id}.pdf`);
         } else {
@@ -835,7 +864,7 @@ const QuotationBilling = () => {
                     {isGstEnabled ? (
                       <div className="form-group" style={{ margin: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                          <label className="form-label" style={{ margin: 0 }}>GST Rate (%)</label>
+                          <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>GST Rate (%)</label>
                           <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                             <input
                               type="checkbox"
@@ -846,17 +875,31 @@ const QuotationBilling = () => {
                             Inter-State (IGST)
                           </label>
                         </div>
-                        <select
-                          className="form-select"
-                          value={taxRate}
-                          onChange={e => handleBillingChange('taxRate', parseFloat(e.target.value))}
-                          disabled={!isFinance}
-                        >
-                          <option value="5">5% GST (Standard Catering)</option>
-                          <option value="12">12% GST (Corporate Dining)</option>
-                          <option value="18">18% GST (Luxury Full Service)</option>
-                          <option value="0">0% GST (Exempted)</option>
-                        </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="any"
+                            className="form-input"
+                            value={currentEvent.billing?.taxRate !== undefined && currentEvent.billing?.taxRate !== null ? currentEvent.billing.taxRate : ''}
+                            onChange={e => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                handleBillingChange('taxRate', '');
+                              } else {
+                                const num = parseFloat(v);
+                                if (!isNaN(num) && num >= 0 && num <= 100) {
+                                  handleBillingChange('taxRate', num);
+                                }
+                              }
+                            }}
+                            placeholder="Enter GST % (e.g. 18)"
+                            disabled={!isFinance}
+                            style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                          />
+                          <span style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '1rem' }}>%</span>
+                        </div>
                       </div>
                     ) : (
                       <div className="form-group" style={{ margin: 0 }}>
@@ -916,6 +959,36 @@ const QuotationBilling = () => {
                     disabled={!isFinance}
                     placeholder="Log venue overheads, generator fuel, etc."
                   />
+                </div>
+
+                {/* Quotation & Invoice Special Instructions */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Quotation & Invoice Special Instructions
+                  </label>
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    value={currentEvent.billing?.instructions !== undefined ? currentEvent.billing.instructions : (currentEvent.instructions || '')}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const updatedEvent = {
+                        ...currentEvent,
+                        instructions: val,
+                        billing: {
+                          ...(currentEvent.billing || {}),
+                          instructions: val
+                        }
+                      };
+                      updateEvent(updatedEvent);
+                    }}
+                    placeholder="Enter quotation directives, delivery instructions, payment terms, or client requests..."
+                    disabled={!isFinance}
+                    style={{ resize: 'vertical', fontSize: '0.85rem' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    These instructions appear automatically on Quotation & Tax Invoice PDFs.
+                  </span>
                 </div>
 
               </div>
@@ -1287,6 +1360,9 @@ const QuotationBilling = () => {
                   <div><strong>Event File ID:</strong> {currentEvent.id}</div>
                   <div><strong>Execution Date:</strong> {currentEvent.date}</div>
                   <div><strong>Event Occasion:</strong> {currentEvent.eventType}</div>
+                  {resolveEventVenue(currentEvent, venues) && (
+                    <div><strong>Execution Venue:</strong> {resolveEventVenue(currentEvent, venues)}</div>
+                  )}
                 </div>
               </div>
 
@@ -1323,17 +1399,17 @@ const QuotationBilling = () => {
                     {!isInterState ? (
                       <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                          <span>• CGST Central Tax ({(taxRate / 2).toFixed(1)}%):</span>
+                          <span>• CGST Central Tax ({Number((taxRate / 2).toFixed(2))}%):</span>
                           <span>{formatCurrency(cgstAmount)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                          <span>• SGST State Tax ({(taxRate / 2).toFixed(1)}%):</span>
+                          <span>• SGST State Tax ({Number((taxRate / 2).toFixed(2))}%):</span>
                           <span>{formatCurrency(sgstAmount)}</span>
                         </div>
                       </>
                     ) : (
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                        <span>• IGST Integrated Tax ({taxRate}%):</span>
+                        <span>• IGST Integrated Tax ({Number(taxRate.toFixed(2))}%):</span>
                         <span>{formatCurrency(igstAmount)}</span>
                       </div>
                     )}
@@ -1369,6 +1445,18 @@ const QuotationBilling = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
                     <span>Customer Credit / Excess Advance:</span>
                     <span>{formatCurrency(advancePaid - grandTotal)}</span>
+                  </div>
+                )}
+
+                {/* Special Instructions & Terms Preview on Bill Sheet */}
+                {(currentEvent.billing?.instructions || currentEvent.instructions) && (
+                  <div style={{ marginTop: '0.85rem', padding: '0.65rem 0.85rem', background: 'rgba(253, 248, 237, 0.85)', borderRadius: '6px', border: '1px solid rgba(210, 180, 130, 0.6)', fontSize: '0.78rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--color-primary)', marginBottom: '0.2rem' }}>
+                      Instructions & Special Terms:
+                    </div>
+                    <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                      {currentEvent.billing?.instructions || currentEvent.instructions}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1828,7 +1916,7 @@ const QuotationBilling = () => {
                   id: 'official_tax_invoice',
                   title: 'Official Sri Mayyia Tax Invoice',
                   badge: '★ Statutory Tax Invoice (Karur Vysya Bank)',
-                  description: 'Official template with centered brand logo, Govardhanagiri corporate address, Halasuru branch payment instructions (IFSC KVBL0001304), CGST @ 2.5%, SGST @ 2.5%, amount in words, and authorized signatory.',
+                  description: 'Official template with centered brand logo, Govardhanagiri corporate address, Halasuru branch payment instructions (IFSC KVBL0001304), dynamic GST calculation (CGST/SGST/IGST/0%), amount in words, special instructions, and authorized signatory.',
                   color: '#9C1519',
                   bgTint: 'rgba(156, 21, 25, 0.05)'
                 },

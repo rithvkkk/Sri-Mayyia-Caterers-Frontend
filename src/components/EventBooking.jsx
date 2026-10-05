@@ -52,6 +52,7 @@ const EventBooking = () => {
   const [newDateInput, setNewDateInput] = useState('');
   const [pricePerPlate, setPricePerPlate] = useState('');
   const [commissionRate, setCommissionRate] = useState('');
+  const [eventInstructions, setEventInstructions] = useState('');
   
   // Subfunctions builder in form
   const [subFunctionsList, setSubFunctionsList] = useState([
@@ -202,6 +203,7 @@ const EventBooking = () => {
       : [selectedEvent.date || ''];
 
     const currentVenueObj = venues.find(v => v.id === selectedEvent.venueId);
+    const resolvedVenueName = currentVenueObj ? currentVenueObj.name : (selectedEvent.venueName || selectedEvent.venue || selectedEvent.venueId || '');
 
     setEditDraft({
       name: selectedEvent.customer.name,
@@ -209,7 +211,8 @@ const EventBooking = () => {
       email: selectedEvent.customer.email || '',
       eventType: selectedEvent.eventType || '',
       venueId: selectedEvent.venueId || '',
-      venueName: currentVenueObj ? currentVenueObj.name : (selectedEvent.venueId || ''),
+      venueName: selectedEvent.venueId ? resolvedVenueName : '',
+      instructions: selectedEvent.instructions || selectedEvent.billing?.instructions || '',
       date: selectedEvent.date || allDates[0] || '',
       dates: allDates,
       newDateToAdd: '',
@@ -235,11 +238,23 @@ const EventBooking = () => {
       }
     }
 
+    const matchedVenue = venues.find(v => v.id === editDraft.venueId || (v.name && v.name.toLowerCase() === (editDraft.venueName || '').toLowerCase()));
+    const chosenVenueName = matchedVenue ? matchedVenue.name : (editDraft.venueName && editDraft.venueName.trim() ? editDraft.venueName.trim() : '');
+    const finalVenueId = editDraft.venueId ? (matchedVenue ? matchedVenue.id : editDraft.venueId) : '';
+    const finalVenueStr = finalVenueId ? chosenVenueName : '';
+
     const updated = {
       ...selectedEvent,
       customer: { ...selectedEvent.customer, name: editDraft.name, phone: editDraft.phone, email: editDraft.email },
       eventType: editDraft.eventType,
-      venueId: editDraft.venueId,
+      venueId: finalVenueId,
+      venueName: finalVenueStr,
+      venue: finalVenueStr,
+      instructions: editDraft.instructions !== undefined ? editDraft.instructions : (selectedEvent.instructions || ''),
+      billing: {
+        ...(selectedEvent.billing || {}),
+        instructions: editDraft.instructions !== undefined ? editDraft.instructions : (selectedEvent.billing?.instructions || selectedEvent.instructions || '')
+      },
       date: finalDate,
       dates: cleanedDates.length > 0 ? cleanedDates : [finalDate],
       status: editDraft.status
@@ -311,18 +326,26 @@ const EventBooking = () => {
     setIsSubmitting(true);
     try {
       const allDates = Array.from(new Set([primaryDate, ...additionalDates])).filter(Boolean).sort();
+      const matchedVenue = venues.find(v => v.id === venueId || (v.name && v.name.toLowerCase() === (venueSearchInput || '').toLowerCase()));
+      const chosenVenueName = matchedVenue ? matchedVenue.name : (venueSearchInput && venueSearchInput.trim() ? venueSearchInput.trim() : '');
+      const finalVenueId = venueId ? (matchedVenue ? matchedVenue.id : venueId) : (chosenVenueName ? chosenVenueName : '');
+      const finalVenueStr = finalVenueId ? chosenVenueName : '';
 
       const payload = {
         customer: { name: clientName.trim(), phone: clientPhone.trim(), email: clientEmail.trim() },
         eventType: eventType || 'Wedding Reception',
-        venueId: venueId || '',
+        venueId: finalVenueId,
+        venueName: finalVenueStr,
+        venue: finalVenueStr,
+        instructions: eventInstructions.trim(),
         date: primaryDate,
         dates: allDates,
         pricePerPlate: parseFloat(pricePerPlate) || 800,
         billing: {
           pricePerPlate: parseFloat(pricePerPlate) || 800,
           commissionRate: Math.max(0, Math.min(100, parseFloat(commissionRate) || 0)),
-          commissionAmount: 0
+          commissionAmount: 0,
+          instructions: eventInstructions.trim()
         },
         reminders: [],
         subFunctions: subFunctionsList.map((sf, idx) => ({
@@ -344,6 +367,7 @@ const EventBooking = () => {
       setEventType('');
       setVenueId('');
       setVenueSearchInput('');
+      setEventInstructions('');
       setPrimaryDate('');
       setAdditionalDates([]);
       setNewDateInput('');
@@ -870,7 +894,7 @@ const EventBooking = () => {
                           setEditDraft(d => ({
                             ...d,
                             venueName: val,
-                            venueId: matched ? matched.id : val
+                            venueId: matched ? matched.id : (val ? val : '')
                           }));
                         }}
                       />
@@ -879,6 +903,18 @@ const EventBooking = () => {
                           <option key={v.id} value={v.name}>{v.name} (Max {v.capacity} Pax · ₹{v.price.toLocaleString('en-IN')})</option>
                         ))}
                       </datalist>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Special Instructions & Client Directives</label>
+                      <textarea
+                        className="form-input"
+                        rows={2}
+                        placeholder="Quotation notes, client directives, special requirements..."
+                        value={editDraft.instructions !== undefined ? editDraft.instructions : ''}
+                        onChange={e => setEditDraft(d => ({ ...d, instructions: e.target.value }))}
+                        style={{ fontSize: '0.82rem', resize: 'vertical' }}
+                      />
                     </div>
 
                     {/* Multi-Date Manager in Edit Mode */}
@@ -958,8 +994,14 @@ const EventBooking = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
                       <MapPin size={14} />
-                      <span>{venues.find(v => v.id === selectedEvent.venueId)?.name || 'Venue to be finalized'}</span>
+                      <span>{selectedEvent.venueName || selectedEvent.venue || venues.find(v => v.id === selectedEvent.venueId)?.name || 'No venue selected'}</span>
                     </div>
+                    {(selectedEvent.instructions || selectedEvent.billing?.instructions) && (
+                      <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: 'rgba(253, 248, 237, 0.7)', borderRadius: '6px', border: '1px solid rgba(210, 180, 130, 0.4)', fontSize: '0.8rem' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>Instructions: </span>
+                        <span>{selectedEvent.instructions || selectedEvent.billing?.instructions}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1450,6 +1492,19 @@ const EventBooking = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Event Instructions / Directives */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Special Event Instructions & Directives</label>
+                <textarea
+                  className="form-input"
+                  rows={2}
+                  value={eventInstructions}
+                  onChange={e => setEventInstructions(e.target.value)}
+                  placeholder="Special dietary guidelines, delivery timings, VIP requirements, payment directives..."
+                  style={{ fontSize: '0.82rem', resize: 'vertical' }}
+                />
               </div>
 
             </div>

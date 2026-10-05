@@ -5,7 +5,7 @@ import {
   HelpCircle, Save, MessageSquare, Tag, Sparkles, AlertCircle, 
   Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X, Check
 } from 'lucide-react';
-import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob } from '../utils/pdfGenerator';
+import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob, resolveEventVenue } from '../utils/pdfGenerator';
 import { MASTER_MENU_CATEGORIES, LIVE_STATION_CATEGORIES } from '../utils/mockData';
 
 const STARTER_CUISINES = ['South Indian', 'North Indian', 'Asian', 'Continental', 'Chinese', 'Vegan'];
@@ -131,6 +131,7 @@ const MenuPlanning = () => {
     masterMenuCategories,
     liveStationCategories,
     companyProfile,
+    venues,
     refreshEventTotals
   } = useContext(AppContext);
 
@@ -175,8 +176,11 @@ const MenuPlanning = () => {
 
   const handleDownloadMenuPdf = (templateId = selectedTemplate, isAllSessions = true) => {
     if (!currentEvent) return;
+    const resolvedVenue = resolveEventVenue(currentEvent, venues);
     const effectiveEvent = {
       ...currentEvent,
+      venue: resolvedVenue || currentEvent.venue || '',
+      venueName: resolvedVenue || currentEvent.venueName || '',
       subFunctions: (draftSubFunctions && draftSubFunctions.length > 0) ? draftSubFunctions : (currentEvent.subFunctions || [])
     };
     const subTarget = isAllSessions ? 'all' : selectedSub;
@@ -186,8 +190,11 @@ const MenuPlanning = () => {
 
   const handlePrintMenuPdf = (templateId = selectedTemplate, isAllSessions = true) => {
     if (!currentEvent) return;
+    const resolvedVenue = resolveEventVenue(currentEvent, venues);
     const effectiveEvent = {
       ...currentEvent,
+      venue: resolvedVenue || currentEvent.venue || '',
+      venueName: resolvedVenue || currentEvent.venueName || '',
       subFunctions: (draftSubFunctions && draftSubFunctions.length > 0) ? draftSubFunctions : (currentEvent.subFunctions || [])
     };
     const subTarget = isAllSessions ? 'all' : selectedSub;

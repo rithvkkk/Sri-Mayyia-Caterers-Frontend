@@ -1250,6 +1250,9 @@ export const AppProvider = ({ children }) => {
       createdByName: currentUser || currentRole || 'admin',
       salesExecutive: currentUser || currentRole || 'admin',
       venueId: eventDetails.venueId || '',
+      venueName: eventDetails.venueName || (venues.find(v => v.id === eventDetails.venueId)?.name || (eventDetails.venueId || '')),
+      venue: eventDetails.venue || eventDetails.venueName || (venues.find(v => v.id === eventDetails.venueId)?.name || (eventDetails.venueId || '')),
+      instructions: eventDetails.instructions || eventDetails.billing?.instructions || '',
       date: primaryDate,
       dates: eventDates,
       status: eventDetails.status || 'Inquiry',
@@ -1285,12 +1288,13 @@ export const AppProvider = ({ children }) => {
         taxType: eventDetails.billing?.taxType || 'GST',
         isInterState: !!eventDetails.billing?.isInterState,
         subtotal: 0,
-        taxRate: eventDetails.billing?.taxType === 'NON_GST' ? 0 : (companyProfile?.defaultTaxRate || 5),
+        taxRate: eventDetails.billing?.taxType === 'NON_GST' ? 0 : (eventDetails.billing?.taxRate !== undefined && !isNaN(eventDetails.billing.taxRate) ? parseFloat(eventDetails.billing.taxRate) : (companyProfile?.defaultTaxRate || 0)),
         taxAmount: 0,
         totalAmount: 0,
         advancePaid: 0,
         balanceDue: 0,
         status: 'Unpaid',
+        instructions: eventDetails.billing?.instructions || eventDetails.instructions || '',
         ...(eventDetails.billing || {})
       },
       createdAt: new Date().toISOString()
@@ -1496,8 +1500,8 @@ export const AppProvider = ({ children }) => {
     const commissionRate = Math.max(0, parseFloat(event.billing?.commissionRate) || 0);
     const commissionAmount = parseFloat(((subtotal * commissionRate) / 100).toFixed(2));
 
-    const isNonGst = event.billing?.taxType === 'NON_GST' || Number(event.billing?.taxRate) === 0;
-    const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? parseFloat(event.billing.taxRate) : (companyProfile?.defaultTaxRate || 5));
+    const isNonGst = event.billing?.taxType === 'NON_GST';
+    const taxRate = isNonGst ? 0 : (event.billing?.taxRate !== undefined && !isNaN(event.billing.taxRate) ? Math.max(0, parseFloat(event.billing.taxRate)) : 0);
     const taxAmount = isNonGst ? 0 : (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
     
