@@ -1092,39 +1092,56 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
     doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 14, 8, 20, 20);
   }
 
+  // Document Type Badge (Top Right)
+  const badgeW = 54;
+  const badgeH = 17.5;
+  const badgeX = pw - 14 - badgeW; // 210 - 14 - 54 = 142 mm
+  const badgeY = 8.5;
+  const badgeCenterX = badgeX + (badgeW / 2); // 169 mm
+
+  doc.setFillColor(...maroonColor);
+  doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('PURCHASE ORDER', badgeCenterX, badgeY + 7, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text(`PO Ref: ${poNumber}`, badgeCenterX, badgeY + 12.5, { align: 'center' });
+
   // Company Name & Credential Details (Left-aligned next to logo)
   const headerTextX = menuTemplateAssets.invoiceLogo ? 38 : 14;
+  const maxCompanyWidth = Math.min(92, badgeX - headerTextX - 6); // Up to 92 mm, cleanly wraps address and guarantees 16mm+ space before badge
+
   doc.setFont('times', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(15.5);
   doc.setTextColor(...maroonColor);
-  doc.text(cpName.toUpperCase(), headerTextX, 15);
+  doc.text(cpName.toUpperCase(), headerTextX, 14);
 
   doc.setFont('times', 'italic');
   doc.setFontSize(8.5);
   doc.setTextColor(...goldColor);
-  doc.text(cpTagline, headerTextX, 20);
+  doc.text(cpTagline, headerTextX, 18.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...charcoalColor);
-  doc.text(`${cpAddress}`, headerTextX, 24.5);
-  doc.text(`Phone: ${cpPhone}  |  GSTIN: ${cpGstin}`, headerTextX, 28.5);
 
-  // Document Type Badge (Top Right)
-  doc.setFillColor(...maroonColor);
-  doc.roundedRect(134, 9, 62, 17, 2, 2, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('PURCHASE ORDER', 165, 16.5, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text(`PO Ref: ${poNumber}`, 165, 22, { align: 'center' });
+  // Address lines wrapped dynamically to prevent collision with right badge
+  const addressLines = doc.splitTextToSize(cpAddress, maxCompanyWidth);
+  let compY = 22.5;
+  addressLines.forEach(line => {
+    doc.text(line, headerTextX, compY);
+    compY += 3.5;
+  });
 
-  // Divider Line
+  doc.text(`Phone: ${cpPhone}  |  GSTIN: ${cpGstin}`, headerTextX, compY);
+
+  // Divider Line cleanly spaced below header details
+  const dividerY = Math.max(32.5, compY + 3.8);
   doc.setDrawColor(...goldColor);
   doc.setLineWidth(0.5);
-  doc.line(14, 32, pw - 14, 32);
+  doc.line(14, dividerY, pw - 14, dividerY);
 
   // 2. TWO-COLUMN STRUCTURED METADATA CARDS (Y = 35 to 64)
   const cardW = 88;
@@ -2753,6 +2770,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     const dateText = formatMenuDateDDMMYYYY(rawSubDate);
     const occasionText = sub.occasion || sub.name || event?.eventType || 'Banquet';
     const servingText = sub.servingType || sub.mealType || event?.serviceStyle || 'Buffet';
+    const subCleanName = sub.name ? sub.name.toUpperCase().replace(/^MENU\s+FOR\s+/i, '') : 'BANQUET';
 
     // Centered Dishes in Item Column
     const sections = buildMenuSections(sub);
@@ -2774,6 +2792,55 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     }
     if (pageChunks.length === 0) pageChunks.push([]);
 
+    // Collect session instructions strictly belonging to this session or event
+    const sessionInstructions = [];
+    if (sub.clientNotes && typeof sub.clientNotes === 'string' && sub.clientNotes.trim()) {
+      sessionInstructions.push({ title: `${subCleanName} Directives`, text: sub.clientNotes.trim() });
+    }
+    if (event?.menuNotes && typeof event.menuNotes === 'string' && event.menuNotes.trim()) {
+      const trimmedNotes = event.menuNotes.trim();
+      if (!sessionInstructions.some(i => i.text === trimmedNotes)) {
+        sessionInstructions.push({ title: 'Kitchen Directives', text: trimmedNotes });
+      }
+    }
+    if (event?.instructions && typeof event.instructions === 'string' && event.instructions.trim()) {
+      const trimmedInst = event.instructions.trim();
+      if (!sessionInstructions.some(i => i.text === trimmedInst)) {
+        sessionInstructions.push({ title: 'Special Service Instructions', text: trimmedInst });
+      }
+    }
+
+    // Format & pre-wrap instruction lines for the pre-printed "Instructions" Table Column
+    // Table Instructions column spans X = 160.3 to 195.5 mm (width = 35.2 mm)
+    const instColX = 163.0; // Left padding inside Instructions column
+    const instColWidth = 29.5;
+    const formattedInstLines = [];
+
+    sessionInstructions.forEach((inst, sIdx) => {
+      if (sessionInstructions.length > 1 || inst.title) {
+        formattedInstLines.push({ type: 'header', text: `${inst.title}:` });
+      }
+      const rawLines = inst.text.split('\n');
+      rawLines.forEach(rl => {
+        const trimmed = rl.trim();
+        if (!trimmed) return;
+        const wrapped = doc.splitTextToSize(trimmed, instColWidth);
+        wrapped.forEach((wl, wIdx) => {
+          // If first line of a bullet item, prefix bullet if not already present
+          const lineText = (wIdx === 0 && !trimmed.startsWith('•') && !trimmed.startsWith('-') && !trimmed.startsWith('[') && !trimmed.startsWith('*'))
+            ? `• ${wl}`
+            : wl;
+          formattedInstLines.push({ type: 'text', text: lineText });
+        });
+      });
+      if (sIdx < sessionInstructions.length - 1) {
+        formattedInstLines.push({ type: 'spacer', text: '' });
+      }
+    });
+
+    let instLineIdx = 0;
+    let sessionItemNum = 0;
+
     pageChunks.forEach((chunk, chunkIdx) => {
       doc.addPage();
       if (menuAsset) {
@@ -2794,7 +2861,6 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
 
       // 2. Table Merged Bar: "MENU for <NAME>"
-      const subCleanName = sub.name ? sub.name.toUpperCase().replace(/^MENU\s+FOR\s+/i, '') : 'BANQUET';
       const headerSuffix = chunkIdx > 0 ? ' (CONTD.)' : '';
       doc.setFont('times', 'bold');
       doc.setFontSize(11.5);
@@ -2822,6 +2888,14 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           doc.text(entry.text, centerX, curY, { align: 'center' });
           curY += stepY;
         } else {
+          sessionItemNum++;
+          // Column 1: SL NO (center X = 21.05 mm)
+          doc.setFont('times', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(...primaryColor);
+          doc.text(String(sessionItemNum), 21.05, curY, { align: 'center' });
+
+          // Column 2: Item Name (center X = 94.0 mm)
           doc.setFont('times', 'bold');
           doc.setFontSize(9.5);
           doc.setTextColor(...navyColor);
@@ -2841,86 +2915,73 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
         }
       });
 
-      // Render Instructions strictly belonging to this session or event
-      if (chunkIdx === pageChunks.length - 1) {
-        const sessionInstructions = [];
-        if (sub.clientNotes && typeof sub.clientNotes === 'string' && sub.clientNotes.trim()) {
-          sessionInstructions.push({ title: `${subCleanName} Directives`, text: sub.clientNotes.trim() });
-        }
-        if (event?.menuNotes && typeof event.menuNotes === 'string' && event.menuNotes.trim()) {
-          if (!sessionInstructions.some(i => i.text === event.menuNotes.trim())) {
-            sessionInstructions.push({ title: 'Kitchen Directives', text: event.menuNotes.trim() });
-          }
-        }
-        if (event?.instructions && typeof event.instructions === 'string' && event.instructions.trim()) {
-          if (!sessionInstructions.some(i => i.text === event.instructions.trim())) {
-            sessionInstructions.push({ title: 'Special Service Instructions', text: event.instructions.trim() });
-          }
-        }
-
-        if (sessionInstructions.length > 0) {
-          const flattenedLines = [];
-          sessionInstructions.forEach(inst => {
-            if (sessionInstructions.length > 1) {
-              flattenedLines.push({ type: 'header', text: `${inst.title}:` });
-            }
-            const rawLines = inst.text.split('\n');
-            rawLines.forEach(rl => {
-              const wrapped = doc.splitTextToSize(rl, 136);
-              wrapped.forEach(wl => flattenedLines.push({ type: 'line', text: wl }));
-            });
-          });
-
-          const boxHeight = (flattenedLines.length * 4.2) + 12;
-
-          if (curY + boxHeight + 4 > 265) {
-            // Need continuation page for instructions
-            doc.addPage();
-            if (menuAsset) {
-              doc.addImage(menuAsset, 'JPEG', 0, 0, pw, ph);
-            }
-            doc.setFont('times', 'bold');
-            doc.setFontSize(11.5);
-            doc.setTextColor(...primaryColor);
-            doc.text(`MENU for ${subCleanName} (CONTD.)`, centerX, 60.5, { align: 'center' });
-            curY = 82;
-          } else {
-            curY += 4;
-          }
-
-          const boxStartY = curY;
-          doc.setFillColor(254, 250, 240); // Warm ivory gold card
-          doc.roundedRect(24, boxStartY, 146, boxHeight, 2, 2, 'F');
-          doc.setDrawColor(...primaryColor);
-          doc.setLineWidth(0.35);
-          doc.roundedRect(24, boxStartY, 146, boxHeight, 2, 2, 'D');
-
-          let textCursorY = boxStartY + 5.2;
+      // Render Instructions directly inside the pre-printed "Instructions" Table Column (Column 3)
+      let instY = 78.0;
+      while (instLineIdx < formattedInstLines.length && instY <= 272) {
+        const lineObj = formattedInstLines[instLineIdx];
+        if (lineObj.type === 'header') {
           doc.setFont('times', 'bold');
-          doc.setFontSize(9.5);
+          doc.setFontSize(8);
           doc.setTextColor(...primaryColor);
-          doc.text('— SPECIAL INSTRUCTIONS & DIETARY DIRECTIVES —', centerX, textCursorY, { align: 'center' });
-          textCursorY += 4.5;
-
+          doc.text(lineObj.text, instColX, instY);
+          instY += 3.8;
+        } else if (lineObj.type === 'spacer') {
+          instY += 2.0;
+        } else {
           doc.setFont('times', 'normal');
-          doc.setFontSize(8.5);
+          doc.setFontSize(7.5);
           doc.setTextColor(40, 40, 40);
-
-          flattenedLines.forEach(l => {
-            if (l.type === 'header') {
-              doc.setFont('times', 'bold');
-              doc.text(l.text, 30, textCursorY);
-              doc.setFont('times', 'normal');
-            } else {
-              doc.text(l.text, 30, textCursorY);
-            }
-            textCursorY += 4.0;
-          });
-
-          curY = boxStartY + boxHeight + 4;
+          doc.text(lineObj.text, instColX, instY);
+          instY += 3.4;
         }
+        instLineIdx++;
       }
     });
+
+    // If there are still instructions remaining after all dish page chunks, add continuation page
+    while (instLineIdx < formattedInstLines.length) {
+      doc.addPage();
+      if (menuAsset) {
+        doc.addImage(menuAsset, 'JPEG', 0, 0, pw, ph);
+      }
+      const occasionVal = (sub.occasion || (sub.name && sub.name.toUpperCase() !== occasionText.toUpperCase() ? occasionText : '') || event?.eventType || '').toUpperCase();
+      let servingVal = servingText.toUpperCase();
+
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...primaryColor);
+      doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
+      doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
+      doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
+
+      doc.setFontSize(11.5);
+      doc.text(`MENU for ${subCleanName} (CONTD.)`, 94.0, 60.5, { align: 'center' });
+
+      const paxCount = sub.guestCount || event?.guestCount || 200;
+      doc.setFontSize(10.5);
+      doc.text(String(paxCount), 126.0, 70.3);
+
+      let contInstY = 78.0;
+      while (instLineIdx < formattedInstLines.length && contInstY <= 272) {
+        const lineObj = formattedInstLines[instLineIdx];
+        if (lineObj.type === 'header') {
+          doc.setFont('times', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(...primaryColor);
+          doc.text(lineObj.text, instColX, contInstY);
+          contInstY += 3.8;
+        } else if (lineObj.type === 'spacer') {
+          contInstY += 2.0;
+        } else {
+          doc.setFont('times', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(40, 40, 40);
+          doc.text(lineObj.text, instColX, contInstY);
+          contInstY += 3.4;
+        }
+        instLineIdx++;
+      }
+    }
   });
 
   // SECOND-TO-LAST PAGE: SERVICE TERMS

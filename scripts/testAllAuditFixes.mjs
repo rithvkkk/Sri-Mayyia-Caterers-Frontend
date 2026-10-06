@@ -143,10 +143,14 @@ const eventWithInstructions = {
 // Olive proposal booklet with instructions
 const resOlive = generateOccasionMenuPdf(eventWithInstructions, 'all', mockCompanyProfile, 'olive', mockDishes);
 assert(resOlive && resOlive.doc, 'Olive Green proposal generated with instructions');
+const oliveText = resOlive.doc.internal.pages.map(p => Array.isArray(p) ? p.join(' ') : String(p)).join(' ');
+assert(oliveText.includes('welcome drinks') && oliveText.includes('Directives'), 'Olive Green proposal renders session notes in Instructions column');
 
 // Crimson proposal booklet with instructions
 const resCrimson = generateOccasionMenuPdf(eventWithInstructions, 'all', mockCompanyProfile, 'crimson', mockDishes);
 assert(resCrimson && resCrimson.doc, 'Royal Crimson proposal generated with instructions');
+const crimsonText = resCrimson.doc.internal.pages.map(p => Array.isArray(p) ? p.join(' ') : String(p)).join(' ');
+assert(crimsonText.includes('welcome drinks') && crimsonText.includes('Directives'), 'Royal Crimson proposal renders session notes in Instructions column');
 
 // Traditional Festive Gold with instructions
 const resGold = generateOccasionMenuPdf(eventWithInstructions, 'all', mockCompanyProfile, 'gold', mockDishes);
@@ -244,6 +248,16 @@ for (let i = 1; i <= 35; i++) {
 const resLongPO = generateSupplierPO(mockSuppliers[0], longAllocations, mockEventForPO, mockCompanyProfile);
 const longPoPages = resLongPO.doc.internal.getNumberOfPages();
 assert(longPoPages >= 2, `Large PO cleanly paginated across ${longPoPages} pages without crashing`);
+
+// Test PO Header alignment with actual long address from database
+const longAddressProfile = {
+  ...mockCompanyProfile,
+  address: '#39/2 , C/2 , Goverdhanagiri , Banashankari , 1st Stage , Bengaluru , Karnataka 560050'
+};
+const resPOLongAddress = generateSupplierPO(mockSuppliers[0], mockAllocations, mockEventForPO, longAddressProfile);
+const poLongAddrText = resPOLongAddress.doc.internal.pages.map(p => Array.isArray(p) ? p.join(' ') : String(p)).join(' ');
+assert(poLongAddrText.includes('Karnataka 560050'), 'PO with long address wraps properly without clipping zip code');
+assert(poLongAddrText.includes('PURCHASE ORDER'), 'PO contains properly aligned PURCHASE ORDER badge');
 
 // -------------------------------------------------------------
 // TEST 6: Official Tax Invoice PDF & Manual GST
