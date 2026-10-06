@@ -1443,6 +1443,11 @@ const getDishInstruction = (dish) => {
  * Returns { blobUrl, blob, filename, doc }
  */
 export const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'baleyele', dishesList = []) => {
+  // If baleyele requested, use the authentic 5-page uploaded template
+  if (templateId === 'baleyele' || templateId === 'royal_baleyele') {
+    return generateOccasionMenuPdf(event, subFunction, companyProfile, 'baleyele', dishesList);
+  }
+
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width;
   const ph = doc.internal.pageSize.height;
@@ -2622,30 +2627,34 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     return generateGoldMenuPdf(event, subFunction, companyProfile, dishesList);
   }
 
-  // If traditional vector / baleyele grand feast menu requested, route to generateVectorOccasionMenuPdf
-  if (templateId === 'baleyele' || templateId === 'vector' || templateId === 'wedding' || templateId === 'pooja' || templateId === 'gala') {
+  // If custom occasion vector themes requested (wedding, pooja, gala)
+  if (templateId === 'wedding' || templateId === 'pooja' || templateId === 'gala') {
     return generateVectorOccasionMenuPdf(event, subFunction, companyProfile, templateId, dishesList);
   }
 
   // Choose Theme Assets based on templateId
   const isCrimson = templateId === 'crimson' || templateId === 'official';
-  const coverAsset = isCrimson
-    ? (menuTemplateAssets.crimsonPage1Cover || menuTemplateAssets.page1Cover)
-    : (menuTemplateAssets.olivePage1Cover || menuTemplateAssets.page1Cover);
-  const aboutAsset = isCrimson
-    ? (menuTemplateAssets.crimsonPage2About || menuTemplateAssets.page3About)
-    : (menuTemplateAssets.olivePage2About || menuTemplateAssets.page3About);
-  const menuAsset = isCrimson
-    ? (menuTemplateAssets.crimsonPage3Menu || menuTemplateAssets.page2MenuBg)
-    : (menuTemplateAssets.olivePage3Menu || menuTemplateAssets.page2MenuBg);
-  const termsAsset = isCrimson
-    ? (menuTemplateAssets.crimsonPage4Terms || menuTemplateAssets.page4Terms)
-    : (menuTemplateAssets.olivePage4Terms || menuTemplateAssets.page4Terms);
-  const backAsset = isCrimson
-    ? (menuTemplateAssets.crimsonPage5Back || menuTemplateAssets.page5Back)
-    : (menuTemplateAssets.olivePage5Back || menuTemplateAssets.page5Back);
+  const isBaleyele = templateId === 'baleyele' || templateId === 'royal_baleyele' || templateId === 'heritage' || templateId === 'vector';
 
-  const primaryColor = isCrimson ? [192, 0, 0] : [74, 93, 35]; // Crimson Red #C00000 vs Deep Olive #4A5D23
+  const coverAsset = isBaleyele
+    ? (menuTemplateAssets.baleyelePage1Cover || menuTemplateAssets.page1Cover)
+    : (isCrimson ? (menuTemplateAssets.crimsonPage1Cover || menuTemplateAssets.page1Cover) : (menuTemplateAssets.olivePage1Cover || menuTemplateAssets.page1Cover));
+  const aboutAsset = isBaleyele
+    ? (menuTemplateAssets.baleyelePage2About || menuTemplateAssets.page3About)
+    : (isCrimson ? (menuTemplateAssets.crimsonPage2About || menuTemplateAssets.page3About) : (menuTemplateAssets.olivePage2About || menuTemplateAssets.page3About));
+  const menuAsset = isBaleyele
+    ? (menuTemplateAssets.baleyelePage3Menu || menuTemplateAssets.page2MenuBg)
+    : (isCrimson ? (menuTemplateAssets.crimsonPage3Menu || menuTemplateAssets.page2MenuBg) : (menuTemplateAssets.olivePage3Menu || menuTemplateAssets.page2MenuBg));
+  const termsAsset = isBaleyele
+    ? (menuTemplateAssets.baleyelePage4Terms || menuTemplateAssets.page4Terms)
+    : (isCrimson ? (menuTemplateAssets.crimsonPage4Terms || menuTemplateAssets.page4Terms) : (menuTemplateAssets.olivePage4Terms || menuTemplateAssets.page4Terms));
+  const backAsset = isBaleyele
+    ? (menuTemplateAssets.baleyelePage5Back || menuTemplateAssets.page5Back)
+    : (isCrimson ? (menuTemplateAssets.crimsonPage5Back || menuTemplateAssets.page5Back) : (menuTemplateAssets.olivePage5Back || menuTemplateAssets.page5Back));
+
+  const primaryColor = isBaleyele
+    ? [156, 21, 25]  // Royal Crimson / Maroon #9C1519 for Baleyele
+    : (isCrimson ? [192, 0, 0] : [74, 93, 35]); // Crimson Red #C00000 vs Deep Olive #4A5D23
   const navyColor = [23, 55, 94];     // Deep royal navy #17375E
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -2679,14 +2688,6 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   if (coverAsset) {
     doc.addImage(coverAsset, 'JPEG', 0, 0, pw, ph);
   }
-  doc.setFont('times', 'bold');
-  doc.setFontSize(12.5);
-  // Pure crisp white font for Page 1 cover ONLY to ensure contrast against dark artwork
-  doc.setTextColor(255, 255, 255);
-
-  const coverDateX = isCrimson ? 51.5 : 53.5;
-  const coverDateY = isCrimson ? 143.2 : 150.5;
-  doc.text(coverDateText, coverDateX, coverDateY);
 
   let displayEventTitle = coverEventText.toUpperCase();
   if (doc.getTextWidth(displayEventTitle) > 138) {
@@ -2695,9 +2696,40 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       displayEventTitle = doc.splitTextToSize(displayEventTitle, 136)[0] + '...';
     }
   }
-  const coverEventX = isCrimson ? 53.5 : 56.5;
-  const coverEventY = isCrimson ? 159.2 : 166.4;
-  doc.text(displayEventTitle, coverEventX, coverEventY);
+
+  if (isBaleyele) {
+    // Elegant royal styling on warm parchment cover
+    doc.setFont('times', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(156, 21, 25);
+    doc.text(displayEventTitle, 105, 142, { align: 'center' });
+
+    doc.setFont('times', 'italic');
+    doc.setFontSize(12.5);
+    doc.setTextColor(184, 134, 11);
+    doc.text(coverDateText, 105, 153, { align: 'center' });
+
+    const resolvedVenue = resolveEventVenue(event);
+    if (resolvedVenue) {
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10.5);
+      doc.setTextColor(60, 60, 60);
+      doc.text(resolvedVenue, 105, 163, { align: 'center' });
+    }
+  } else {
+    doc.setFont('times', 'bold');
+    doc.setFontSize(12.5);
+    // Pure crisp white font for Page 1 cover ONLY to ensure contrast against dark artwork
+    doc.setTextColor(255, 255, 255);
+
+    const coverDateX = isCrimson ? 51.5 : 53.5;
+    const coverDateY = isCrimson ? 143.2 : 150.5;
+    doc.text(coverDateText, coverDateX, coverDateY);
+
+    const coverEventX = isCrimson ? 53.5 : 56.5;
+    const coverEventY = isCrimson ? 159.2 : 166.4;
+    doc.text(displayEventTitle, coverEventX, coverEventY);
+  }
 
   // PAGE 2: COMPANY CREDENTIALS & ACHIEVEMENTS
   doc.addPage();
@@ -2855,10 +2887,17 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFontSize(9.5);
       doc.setTextColor(...primaryColor);
 
-      // Above the table (Y = 48 mm)
-      doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
-      doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
-      doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
+      if (isBaleyele) {
+        // Pre-printed labels on page2_menu_bg.jpg: Occasion (Y=20-24), Date (Y=31-35), Serving (Y=42-46)
+        doc.text(occasionVal || 'BANQUET', 42, 23.5);
+        doc.text(dateText, 32, 34.5);
+        doc.text(servingVal, 39, 45.5);
+      } else {
+        // Above the table (Y = 48 mm) for Olive & Crimson
+        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
+        doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
+        doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
+      }
 
       // 2. Table Merged Bar: "MENU for <NAME>"
       const headerSuffix = chunkIdx > 0 ? ' (CONTD.)' : '';
@@ -2872,7 +2911,8 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFont('times', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(...primaryColor);
-      doc.text(String(paxCount), 126.0, 70.3);
+      const paxX = isBaleyele ? 116.0 : 126.0;
+      doc.text(String(paxCount), paxX, 70.3);
 
       const availableHeight = 270 - 77; // 193 mm
       const stepY = Math.min(8.0, Math.max(5.8, availableHeight / (chunk.length + 1)));
@@ -2889,11 +2929,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           curY += stepY;
         } else {
           sessionItemNum++;
-          // Column 1: SL NO (center X = 21.05 mm)
+          // Column 1: SL NO (center X = 22.3 mm for Baleyele, 21.05 mm for Olive/Crimson)
+          const slColX = isBaleyele ? 22.3 : 21.05;
           doc.setFont('times', 'bold');
           doc.setFontSize(8.5);
           doc.setTextColor(...primaryColor);
-          doc.text(String(sessionItemNum), 21.05, curY, { align: 'center' });
+          doc.text(String(sessionItemNum), slColX, curY, { align: 'center' });
 
           // Column 2: Item Name (center X = 94.0 mm)
           doc.setFont('times', 'bold');
@@ -2950,16 +2991,23 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFont('times', 'bold');
       doc.setFontSize(9.5);
       doc.setTextColor(...primaryColor);
-      doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
-      doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
-      doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
+      if (isBaleyele) {
+        doc.text(occasionVal || 'BANQUET', 42, 23.5);
+        doc.text(dateText, 32, 34.5);
+        doc.text(servingVal, 39, 45.5);
+      } else {
+        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
+        doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
+        doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
+      }
 
       doc.setFontSize(11.5);
       doc.text(`MENU for ${subCleanName} (CONTD.)`, 94.0, 60.5, { align: 'center' });
 
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFontSize(10.5);
-      doc.text(String(paxCount), 126.0, 70.3);
+      const paxX = isBaleyele ? 116.0 : 126.0;
+      doc.text(String(paxCount), paxX, 70.3);
 
       let contInstY = 78.0;
       while (instLineIdx < formattedInstLines.length && contInstY <= 272) {
@@ -3000,7 +3048,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   const safeSubName = isAllSessions
     ? 'Full_Event_Proposal'
     : (subList[0]?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const themePrefix = isCrimson ? 'Crimson_Proposal' : 'Olive_Proposal';
+  const themePrefix = isBaleyele ? 'Baleyele_Proposal' : (isCrimson ? 'Crimson_Proposal' : 'Olive_Proposal');
   const filename = `Sri_Mayyia_${themePrefix}_${safeEventId}_${safeSubName}.pdf`;
 
   const blob = doc.output('blob');

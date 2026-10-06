@@ -1241,8 +1241,8 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                 {
                   id: 'baleyele',
                   title: 'Royal Baleyele Grand Feast Menu',
-                  badge: '★ Plantain Leaf Banquet (Vector Ornate)',
-                  description: 'Traditional plantain-leaf seated feast menu with ceremonial maroon & gold double borders, sacred invocations, dining-order course categorization, and authentic Udupi & Mysuru gastronomy branding.',
+                  badge: '★ Traditional Plantain Leaf Feast (5 Pages Uploaded Artwork)',
+                  description: 'Authentic 5-page royal feast presentation using the uploaded artwork templates: parchment cover, company credentials & achievements, Hampi chariot background menu with tabular course layout, brass thali service terms, and Mysore palace Baleyele feast back cover.',
                   color: '#9C1519',
                   bgTint: 'rgba(156, 21, 25, 0.06)'
                 },
