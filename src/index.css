@@ -103,10 +103,14 @@ body {
 .main-content {
   flex-grow: 1;
   margin-left: 0;
-  padding: 1.5rem;
-  padding-top: 5rem;
-  padding-bottom: 5rem;
+  padding: 1.25rem 1rem;
+  padding-top: 4.75rem;
+  padding-bottom: 5.5rem;
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
   transition: margin-left var(--transition-normal);
 }
 
@@ -116,7 +120,31 @@ body {
     padding: 2rem;
     padding-top: 2rem;
     padding-bottom: 2rem;
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
   }
+}
+
+/* Common Page Header Alignment System */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-header-title {
+  font-size: 2.2rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.page-header-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
 }
 
 /* Glassmorphism Cards */
@@ -661,9 +689,30 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .mobile-header {
     display: flex;
+  }
+  .sidebar.open {
+    display: flex;
+    transform: translateX(0);
+    z-index: 250;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.25);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 240;
+    animation: fadeIn 0.2s ease-out;
   }
 }
 

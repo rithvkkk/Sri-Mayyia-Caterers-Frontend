@@ -63,21 +63,24 @@ const translations = {
  */
 export const resolveEventVenue = (event, venues = []) => {
   if (!event) return '';
-  if (typeof event.venue === 'string' && event.venue.trim().length > 0) {
+  const isPlaceholder = (val) => {
+    if (!val || typeof val !== 'string') return true;
+    const lower = val.trim().toLowerCase();
+    return ['unassigned', 'none', 'tbd', 'null', 'undefined', 'to be decided', 'n/a', 'na', 'tba', '-'].includes(lower);
+  };
+
+  if (typeof event.venue === 'string' && event.venue.trim().length > 0 && !isPlaceholder(event.venue)) {
     return event.venue.trim();
   }
-  if (typeof event.venueName === 'string' && event.venueName.trim().length > 0) {
+  if (typeof event.venueName === 'string' && event.venueName.trim().length > 0 && !isPlaceholder(event.venueName)) {
     return event.venueName.trim();
   }
   const vid = event.venueId;
-  if (!vid || typeof vid !== 'string' || vid.trim().length === 0) {
+  if (!vid || typeof vid !== 'string' || vid.trim().length === 0 || isPlaceholder(vid)) {
     return '';
   }
   const cleanVid = vid.trim();
   const lowerVid = cleanVid.toLowerCase();
-  if (['unassigned', 'none', 'tbd', 'null', 'undefined', 'to be decided', 'n/a', 'na', 'tba'].includes(lowerVid)) {
-    return '';
-  }
   if (Array.isArray(venues) && venues.length > 0) {
     const matched = venues.find(v => String(v.id || v._id) === cleanVid || (v.name && v.name.toLowerCase() === lowerVid));
     if (matched && matched.name) {
@@ -1209,22 +1212,28 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
 
   // Summary Row inside table
   tableRows.push([
-    '',
-    { content: 'TOTAL ESTIMATED PROCUREMENT VALUE', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [248, 240, 228], textColor: maroonColor } },
+    { content: 'TOTAL ESTIMATED PROCUREMENT VALUE', colSpan: 5, styles: { fontStyle: 'bold', halign: 'right', fillColor: [248, 240, 228], textColor: maroonColor } },
     { content: formatCurrencyValue(grandTotal, curr), styles: { fontStyle: 'bold', halign: 'right', fillColor: [248, 240, 228], textColor: maroonColor } }
   ]);
 
   renderTable(doc, {
-    head: [['#', 'Item / Raw Material', 'Category', 'Required Qty', 'Unit Rate', 'Total Amount']],
+    head: [[
+      { content: '#', styles: { halign: 'center' } },
+      { content: 'Item / Raw Material', styles: { halign: 'left' } },
+      { content: 'Category', styles: { halign: 'center' } },
+      { content: 'Required Qty', styles: { halign: 'right' } },
+      { content: 'Unit Rate', styles: { halign: 'right' } },
+      { content: 'Total Amount', styles: { halign: 'right' } }
+    ]],
     body: tableRows,
     startY: 68,
+    showHead: 'everyPage',
     theme: 'grid',
     headStyles: {
       fillColor: maroonColor,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 8.5,
-      halign: 'center'
+      fontSize: 8.5
     },
     styles: {
       font: 'helvetica',
@@ -1232,39 +1241,30 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
       cellPadding: 2.2,
       lineColor: [225, 225, 225],
       lineWidth: 0.25,
-      textColor: [30, 30, 30]
+      textColor: [30, 30, 30],
+      overflow: 'linebreak'
     },
     alternateRowStyles: {
       fillColor: [253, 250, 246]
     },
-    margin: { left: 14, right: 14, bottom: 42 },
+    margin: { left: 14, right: 14, top: 22, bottom: 25 },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 64, halign: 'left', fontStyle: 'bold' },
       2: { cellWidth: 26, halign: 'center' },
-      3: { cellWidth: 26, halign: 'center' },
+      3: { cellWidth: 26, halign: 'right' },
       4: { cellWidth: 26, halign: 'right' },
       5: { cellWidth: 30, halign: 'right' }
-    },
-    didDrawPage: (data) => {
-      // Running Page Footer
-      const totalPages = doc.internal.getNumberOfPages();
-      const currentPage = data.pageNumber;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(130, 130, 130);
-      doc.text(`Page ${currentPage} of ${totalPages}  |  Purchase Order: ${poNumber}`, pw - 14, ph - 10, { align: 'right' });
-      doc.text(`${cpName}  |  Confidential Procurement Document`, 14, ph - 10);
     }
   });
 
   const lastTableY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100);
   let afterTableY = lastTableY + 4;
 
-  // Check if we need space for terms and signatures
-  if (afterTableY + 42 > ph - 15) {
+  // Check if we need space for terms and signatures (needs ~46mm, leave 24mm at bottom for footer/margins)
+  if (afterTableY + 46 > ph - 24) {
     doc.addPage();
-    afterTableY = 20;
+    afterTableY = 22;
   }
 
   // Amount in words
@@ -1314,6 +1314,17 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.line(150, afterTableY + 8, 194, afterTableY + 8);
   doc.text('Supplier Acceptance / Stamp', 172, afterTableY + 12, { align: 'center' });
 
+  // Multi-page running footer pass (guarantees accurate "Page X of Y" across all pages)
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(130, 130, 130);
+    doc.text(`Page ${p} of ${totalPages}  |  Purchase Order: ${poNumber}`, pw - 14, ph - 10, { align: 'right' });
+    doc.text(`${cpName}  |  Confidential Procurement Document`, 14, ph - 10);
+  }
+
   const filename = `PO_${evId}_${safeSupFilename || 'Supplier'}.pdf`;
 
   let blob;
@@ -1322,8 +1333,15 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   } catch (e) {
     blob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
   }
-  const blobUrl = URL.createObjectURL(blob);
-  return { blobUrl, blob, filename };
+  let blobUrl = '';
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      blobUrl = URL.createObjectURL(blob);
+    }
+  } catch (e) {
+    blobUrl = '';
+  }
+  return { blobUrl, blob, filename, doc };
 };
 
 /**
@@ -1398,9 +1416,16 @@ const getDishInstruction = (dish) => {
 };
 
 /**
- * Legacy vector-drawn Indian occasion menu PDF generator
+ * Royal Baleyele & Vector-drawn Indian occasion menu PDF generator
+ * Supports:
+ * - 'baleyele': Royal South Indian Baleyele Banquet (Plantain Leaf Seated Feast)
+ * - 'wedding': Grand Wedding & Sangeet Banquet
+ * - 'pooja': Sattvic Prasadam & Udupam Banquet
+ * - 'gala': Grand Corporate Gala Menu
+ * 
+ * Returns { blobUrl, blob, filename, doc }
  */
-const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'baleyele', dishesList = []) => {
+export const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'baleyele', dishesList = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width;
   const ph = doc.internal.pageSize.height;
@@ -1409,97 +1434,50 @@ const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templ
   const gold = [210, 172, 103];
   const darkCharcoal = [43, 10, 12];
 
-  // Ornate Double Border Frame
-  doc.setLineWidth(1.2);
-  doc.setDrawColor(...maroon);
-  doc.rect(8, 8, pw - 16, ph - 16);
-
-  doc.setLineWidth(0.5);
-  doc.setDrawColor(...gold);
-  doc.rect(10.5, 10.5, pw - 21, ph - 21);
-
-  // Decorative Corner Accents
-  const drawCornerAccent = (x, y, flipX = 1, flipY = 1) => {
-    doc.setDrawColor(...gold);
-    doc.setLineWidth(0.8);
-    doc.line(x, y, x + (12 * flipX), y);
-    doc.line(x, y, x, y + (12 * flipY));
-    doc.circle(x + (3 * flipX), y + (3 * flipY), 1, 'F');
-  };
-  drawCornerAccent(12, 12, 1, 1);
-  drawCornerAccent(pw - 12, 12, -1, 1);
-  drawCornerAccent(12, ph - 12, 1, -1);
-  drawCornerAccent(pw - 12, ph - 12, -1, -1);
-
-  // Header Banner
-  doc.setFillColor(...maroon);
-  doc.rect(11, 11, pw - 22, 36, 'F');
-
-  doc.setDrawColor(...gold);
-  doc.setLineWidth(0.6);
-  doc.rect(13, 13, pw - 26, 32);
-
-  let auspiciousText = '|| SHREE GANESHAYA NAMAH ||';
-  let templateTitle = 'ROYAL BALEYELE GRAND FEAST MENU';
-  if (templateId === 'wedding') {
-    auspiciousText = '|| SHREE LAKSHMI VENKATESHWARA PRASANNA ||';
-    templateTitle = 'GRAND WEDDING & SANGEET BANQUET';
-  } else if (templateId === 'pooja') {
-    auspiciousText = '|| SATTVIC PRASADAM & UDUPAM BANQUET ||';
-    templateTitle = 'GRUPRAPRAVESHAM & SACRED POOJA MENU';
-  } else if (templateId === 'gala') {
-    auspiciousText = '|| FESTIVE CELEBRATIONS & GASTRONOMY ||';
-    templateTitle = 'GRAND CORPORATE GALA MENU';
+  // Resolve sub-functions to render
+  let subList = [];
+  const isAllSessions = subFunction === 'all' || subFunction?.all === true;
+  if (isAllSessions) {
+    subList = Array.isArray(event?.subFunctions) && event.subFunctions.length > 0
+      ? event.subFunctions
+      : (subFunction && typeof subFunction === 'object' ? [subFunction] : [{}]);
+  } else if (subFunction && typeof subFunction === 'object') {
+    subList = [subFunction];
+  } else if (Array.isArray(event?.subFunctions) && event.subFunctions.length > 0) {
+    subList = event.subFunctions;
+  } else {
+    subList = [{}];
   }
 
-  doc.setTextColor(...gold);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(auspiciousText, pw / 2, 19, { align: 'center' });
+  // Sort sessions chronologically
+  subList = sortSubFunctionsChronologically(subList, event?.date);
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text(companyProfile?.name ? companyProfile.name.toUpperCase() : 'SRI MAYYIA CATERERS', pw / 2, 27, { align: 'center' });
+  const resolvedVenue = resolveEventVenue(event);
 
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(...gold);
-  doc.text(templateTitle, pw / 2, 34, { align: 'center' });
+  // Helper to draw ornate double border and corner accents
+  const drawOrnateBorder = () => {
+    doc.setLineWidth(1.2);
+    doc.setDrawColor(...maroon);
+    doc.rect(8, 8, pw - 16, ph - 16);
 
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(235, 235, 235);
-  doc.text(`Phone: ${companyProfile?.phone || '+91 98450 38235'} | GSTIN: ${companyProfile?.gstin || '29AABCS1429B1Z8'}`, pw / 2, 40, { align: 'center' });
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(...gold);
+    doc.rect(10.5, 10.5, pw - 21, ph - 21);
 
-  // Metadata Box
-  doc.setFillColor(247, 242, 232);
-  doc.rect(15, 52, pw - 30, 20, 'F');
-  doc.setDrawColor(...gold);
-  doc.setLineWidth(0.4);
-  doc.rect(15, 52, pw - 30, 20);
+    const drawCornerAccent = (x, y, flipX = 1, flipY = 1) => {
+      doc.setDrawColor(...gold);
+      doc.setLineWidth(0.8);
+      doc.line(x, y, x + (12 * flipX), y);
+      doc.line(x, y, x, y + (12 * flipY));
+      doc.circle(x + (3 * flipX), y + (3 * flipY), 1, 'F');
+    };
+    drawCornerAccent(12, 12, 1, 1);
+    drawCornerAccent(pw - 12, 12, -1, 1);
+    drawCornerAccent(12, ph - 12, 1, -1);
+    drawCornerAccent(pw - 12, ph - 12, -1, -1);
+  };
 
-  doc.setTextColor(...darkCharcoal);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text(`Customer: ${event?.customer?.name || 'Valued Guest'}`, 20, 59);
-  doc.text(`Occasion: ${subFunction?.name || event?.eventType || 'Banquet'}`, 20, 66);
-
-  doc.text(`Date: ${subFunction?.date || event?.date || ''}`, 130, 59);
-  doc.text(`Pax Headcount: ${subFunction?.guestCount || 100} Guests`, 130, 66);
-
-  let y = 80;
-  doc.setDrawColor(...maroon);
-  doc.setLineWidth(0.8);
-  doc.line(20, y, pw - 20, y);
-  doc.setFillColor(...maroon);
-  doc.circle(pw / 2, y, 2.5, 'F');
-  y += 8;
-
-  // Group dishes by category according to traditional dining order
-  const menuDishIds = subFunction?.menuItems || [];
-  const selectedDishes = dishesList.filter(d => menuDishIds.includes(d.id));
-
+  // Traditional Dining Order Course Sequence
   const DINING_ORDER = [
     'SHELL BASED FRESH JUICE',
     'Welcome Drinks',
@@ -1541,136 +1519,264 @@ const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile, templ
     return 500;
   };
 
-  const rawCategories = Array.from(new Set(selectedDishes.map(d => d.category).filter(Boolean)));
-  const uniqueCategories = rawCategories.sort((a, b) => {
-    const idxA = getDiningOrderIdx(a);
-    const idxB = getDiningOrderIdx(b);
-    if (idxA !== idxB) return idxA - idxB;
-    return a.localeCompare(b);
-  });
+  let auspiciousText = '|| SHREE GANESHAYA NAMAH ||';
+  let templateTitle = 'ROYAL BALEYELE GRAND FEAST MENU';
+  if (templateId === 'wedding') {
+    auspiciousText = '|| SHREE LAKSHMI VENKATESHWARA PRASANNA ||';
+    templateTitle = 'GRAND WEDDING & SANGEET BANQUET';
+  } else if (templateId === 'pooja') {
+    auspiciousText = '|| SATTVIC PRASADAM & UDUPAM BANQUET ||';
+    templateTitle = 'GRUPRAPRAVESHAM & SACRED POOJA MENU';
+  } else if (templateId === 'gala') {
+    auspiciousText = '|| FESTIVE CELEBRATIONS & GASTRONOMY ||';
+    templateTitle = 'GRAND CORPORATE GALA MENU';
+  }
 
-  const grouped = {};
-  uniqueCategories.forEach(cat => {
-    const matches = selectedDishes
-      .filter(d => (d.category || '').toLowerCase() === cat.toLowerCase())
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    if (matches.length > 0) {
-      grouped[cat] = matches;
-    }
-  });
-
-  uniqueCategories.forEach(cat => {
-    const items = grouped[cat];
-    if (!items || items.length === 0) return;
-
-    if (y > ph - 35) {
+  // Iterate through sessions
+  subList.forEach((sub, subIdx) => {
+    if (subIdx > 0) {
       doc.addPage();
-      doc.setLineWidth(1.2);
-      doc.setDrawColor(...maroon);
-      doc.rect(8, 8, pw - 16, ph - 16);
-      doc.setLineWidth(0.5);
-      doc.setDrawColor(...gold);
-      doc.rect(10.5, 10.5, pw - 21, ph - 21);
-      y = 20;
     }
 
+    drawOrnateBorder();
+
+    // 1. Header Banner
     doc.setFillColor(...maroon);
-    doc.rect(18, y, pw - 36, 7, 'F');
+    doc.rect(11, 11, pw - 22, 36, 'F');
+
+    doc.setDrawColor(...gold);
+    doc.setLineWidth(0.6);
+    doc.rect(13, 13, pw - 26, 32);
+
+    doc.setTextColor(...gold);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(auspiciousText, pw / 2, 19, { align: 'center' });
+
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text(companyProfile?.name ? companyProfile.name.toUpperCase() : 'SRI MAYYIA CATERERS', pw / 2, 27, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...gold);
+    doc.text(templateTitle, pw / 2, 34, { align: 'center' });
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(235, 235, 235);
+    doc.text(`Phone: ${companyProfile?.phone || '+91 98450 38235'} | GSTIN: ${companyProfile?.gstin || '29AABCS1429B1Z8'}`, pw / 2, 40, { align: 'center' });
+
+    // 2. Metadata Box
+    const metaHeight = resolvedVenue ? 24 : 18;
+    const metaStartY = 51;
+    doc.setFillColor(247, 242, 232);
+    doc.rect(15, metaStartY, pw - 30, metaHeight, 'F');
+    doc.setDrawColor(...gold);
+    doc.setLineWidth(0.4);
+    doc.rect(15, metaStartY, pw - 30, metaHeight);
+
+    doc.setTextColor(...darkCharcoal);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
-    doc.text(cat.toUpperCase(), pw / 2, y + 5, { align: 'center' });
-    y += 11;
+    const subCleanName = sub.name ? sub.name.toUpperCase().replace(/^MENU\s+FOR\s+/i, '') : (event?.eventType || 'BANQUET');
+    const displayDate = sub.date || event?.date || '';
+    const displayPax = sub.guestCount || event?.guestCount || 100;
 
-    const col1X = 22;
-    const col2X = 112;
+    doc.text(`Customer: ${event?.customer?.name || 'Valued Guest'}`, 20, metaStartY + 6);
+    doc.text(`Occasion: ${subCleanName}`, 20, metaStartY + 12);
+    if (resolvedVenue) {
+      doc.text(`Venue: ${resolvedVenue}`, 20, metaStartY + 18);
+    }
 
-    items.forEach((dish, idx) => {
-      if (y > ph - 25) {
-        doc.addPage();
-        doc.setLineWidth(1.2);
-        doc.setDrawColor(...maroon);
-        doc.rect(8, 8, pw - 16, ph - 16);
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(...gold);
-        doc.rect(10.5, 10.5, pw - 21, ph - 21);
-        y = 20;
-      }
+    doc.text(`Date: ${displayDate}`, 130, metaStartY + 6);
+    doc.text(`Pax Headcount: ${displayPax} Guests`, 130, metaStartY + 12);
 
-      const isCol2 = idx % 2 === 1;
-      const curX = isCol2 ? col2X : col1X;
+    let y = metaStartY + metaHeight + 7;
+    doc.setDrawColor(...maroon);
+    doc.setLineWidth(0.8);
+    doc.line(20, y, pw - 20, y);
+    doc.setFillColor(...maroon);
+    doc.circle(pw / 2, y, 2.5, 'F');
+    y += 7;
 
-      doc.setFillColor(...gold);
-      doc.circle(curX, y - 1, 1.2, 'F');
+    // 3. Resolve and group dishes
+    const rawItemIds = Array.isArray(sub?.menuItems) ? sub.menuItems : [];
+    const menuDishIds = rawItemIds.map(item => (typeof item === 'object' && item !== null ? (item.dishId || item.id) : item));
 
-      doc.setTextColor(0, 0, 0);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text(dish.name, curX + 3.5, y);
+    let selectedDishes = dishesList.filter(d => menuDishIds.includes(d.id));
+    if (selectedDishes.length === 0 && rawItemIds.length > 0) {
+      selectedDishes = rawItemIds.filter(item => typeof item === 'object' && item !== null && item.name);
+    }
 
-      if (dish.type) {
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7.5);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`(${dish.type})`, curX + 3.5 + doc.getTextWidth(dish.name) + 2, y);
-      }
+    const rawCategories = Array.from(new Set(selectedDishes.map(d => d.category).filter(Boolean)));
+    const uniqueCategories = rawCategories.sort((a, b) => {
+      const idxA = getDiningOrderIdx(a);
+      const idxB = getDiningOrderIdx(b);
+      if (idxA !== idxB) return idxA - idxB;
+      return a.localeCompare(b);
+    });
 
-      if (isCol2 || idx === items.length - 1) {
-        y += 6.5;
+    const grouped = {};
+    uniqueCategories.forEach(cat => {
+      const matches = selectedDishes
+        .filter(d => (d.category || '').toLowerCase() === cat.toLowerCase())
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      if (matches.length > 0) {
+        grouped[cat] = matches;
       }
     });
 
-    y += 4;
-  });
+    // 4. Render categories and items in 2 columns
+    uniqueCategories.forEach(cat => {
+      const items = grouped[cat];
+      if (!items || items.length === 0) return;
 
-  if (subFunction?.clientNotes) {
-    if (y > ph - 45) {
-      doc.addPage();
-      doc.setLineWidth(1.2);
-      doc.setDrawColor(...maroon);
-      doc.rect(8, 8, pw - 16, ph - 16);
-      doc.setLineWidth(0.5);
-      doc.setDrawColor(...gold);
-      doc.rect(10.5, 10.5, pw - 21, ph - 21);
-      y = 20;
+      if (y > ph - 35) {
+        doc.addPage();
+        drawOrnateBorder();
+        y = 20;
+      }
+
+      doc.setFillColor(...maroon);
+      doc.rect(18, y, pw - 36, 7, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(cat.toUpperCase(), pw / 2, y + 5, { align: 'center' });
+      y += 11;
+
+      const col1X = 22;
+      const col2X = 112;
+
+      items.forEach((dish, idx) => {
+        if (y > ph - 25) {
+          doc.addPage();
+          drawOrnateBorder();
+          y = 20;
+        }
+
+        const isCol2 = idx % 2 === 1;
+        const curX = isCol2 ? col2X : col1X;
+
+        doc.setFillColor(...gold);
+        doc.circle(curX, y - 1, 1.2, 'F');
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(dish.name, curX + 3.5, y);
+
+        if (dish.type) {
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`(${dish.type})`, curX + 3.5 + doc.getTextWidth(dish.name) + 2, y);
+        }
+
+        if (isCol2 || idx === items.length - 1) {
+          y += 6.5;
+        }
+      });
+
+      y += 4;
+    });
+
+    // 5. Special Instructions & Dietary Directives (strictly scoped to this session & event)
+    const sessionInstructions = [];
+    if (sub.clientNotes && typeof sub.clientNotes === 'string' && sub.clientNotes.trim()) {
+      sessionInstructions.push({ title: `${subCleanName} Directives`, text: sub.clientNotes.trim() });
+    }
+    if (event?.menuNotes && typeof event.menuNotes === 'string' && event.menuNotes.trim()) {
+      if (!sessionInstructions.some(i => i.text === event.menuNotes.trim())) {
+        sessionInstructions.push({ title: 'Kitchen Directives', text: event.menuNotes.trim() });
+      }
+    }
+    if (event?.instructions && typeof event.instructions === 'string' && event.instructions.trim()) {
+      if (!sessionInstructions.some(i => i.text === event.instructions.trim())) {
+        sessionInstructions.push({ title: 'Special Service Instructions', text: event.instructions.trim() });
+      }
     }
 
-    doc.setFillColor(247, 242, 232);
-    doc.rect(15, y, pw - 30, 18, 'F');
+    if (sessionInstructions.length > 0) {
+      const flattenedLines = [];
+      sessionInstructions.forEach(inst => {
+        if (sessionInstructions.length > 1) {
+          flattenedLines.push({ type: 'header', text: `${inst.title}:` });
+        }
+        const rawLines = inst.text.split('\n');
+        rawLines.forEach(rl => {
+          const wrapped = doc.splitTextToSize(rl, pw - 46);
+          wrapped.forEach(wl => flattenedLines.push({ type: 'line', text: wl }));
+        });
+      });
+
+      const instBoxHeight = (flattenedLines.length * 4.4) + 14;
+
+      if (y + instBoxHeight > ph - 25) {
+        doc.addPage();
+        drawOrnateBorder();
+        y = 20;
+      }
+
+      doc.setFillColor(254, 250, 240); // Warm ivory gold card
+      doc.roundedRect(15, y, pw - 30, instBoxHeight, 2, 2, 'F');
+      doc.setDrawColor(...gold);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(15, y, pw - 30, instBoxHeight, 2, 2, 'D');
+
+      let textCursorY = y + 5.5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...maroon);
+      doc.text('— SPECIAL INSTRUCTIONS & DIETARY DIRECTIVES —', pw / 2, textCursorY, { align: 'center' });
+      textCursorY += 4.5;
+
+      flattenedLines.forEach(l => {
+        if (l.type === 'header') {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(...maroon);
+          doc.text(l.text, 20, textCursorY);
+        } else {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(40, 40, 40);
+          doc.text(l.text, 20, textCursorY);
+        }
+        textCursorY += 4.2;
+      });
+
+      y += instBoxHeight + 6;
+    }
+  });
+
+  // 6. Running Footer across all pages
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
     doc.setDrawColor(...gold);
-    doc.rect(15, y, pw - 30, 18);
+    doc.setLineWidth(0.5);
+    doc.line(15, ph - 16, pw - 15, ph - 16);
 
     doc.setTextColor(...maroon);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text('KITCHEN DIRECTIVES & SPECIAL CLIENT INSTRUCTIONS:', 18, y + 5);
+    doc.text('SHREE MAYYIA CATERERS — SWASTIK TRADITIONAL GASTRONOMY', pw / 2, ph - 11, { align: 'center' });
 
-    doc.setTextColor(40, 40, 40);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    const splitNotes = doc.splitTextToSize(subFunction.clientNotes, pw - 40);
-    doc.text(splitNotes, 18, y + 10);
-    y += 22;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 100, 100);
+    const pageStr = totalPages > 1 ? ` | Page ${p} of ${totalPages}` : '';
+    doc.text(`Authentic Udupi & Mysuru Ceremonial Feast Specialists | Contact: ${companyProfile?.phone || '+91 98450 38235'}${pageStr}`, pw / 2, ph - 6.5, { align: 'center' });
   }
 
-  // Footer
-  doc.setDrawColor(...gold);
-  doc.setLineWidth(0.5);
-  doc.line(15, ph - 18, pw - 15, ph - 18);
-
-  doc.setTextColor(...maroon);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('SHREE MAYYIA CATERERS — SWASTIK TRADITIONAL GASTRONOMY', pw / 2, ph - 12, { align: 'center' });
-
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text('Authentic Udupi & Mysuru Ceremonial Feast Specialists | Contact: ' + (companyProfile?.phone || '+91 98450 38235'), pw / 2, ph - 7, { align: 'center' });
-
   const safeEventId = (event?.id || 'EVT').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const safeSubName = (subFunction?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `${safeEventId}_${safeSubName}_${templateId.toUpperCase()}_MENU.pdf`;
+  const safeSubName = isAllSessions
+    ? 'Full_Event_Baleyele_Menu'
+    : (subList[0]?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Sri_Mayyia_Baleyele_Menu_${safeEventId}_${safeSubName}.pdf`;
   const blob = doc.output('blob');
   let blobUrl = '';
   try {
@@ -2029,13 +2135,14 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
     currentY += 5.5;
 
     notesList.forEach((n, idx) => {
-      checkPageBreak(7);
+      const splitLines = doc.splitTextToSize(String(n).toUpperCase(), 148);
+      checkPageBreak(splitLines.length * 5 + 3);
       doc.setFont('times', 'bold');
       doc.setFontSize(9.5);
       doc.setTextColor(...blackColor);
       doc.text(`${idx + 1}.`, 32, currentY, { align: 'right' });
-      doc.text(String(n).toUpperCase(), 36, currentY);
-      currentY += 5.5;
+      doc.text(splitLines, 36, currentY);
+      currentY += (splitLines.length * 5) + 1;
     });
     currentY += 4;
   }
@@ -2059,13 +2166,14 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
     currentY += 5.5;
 
     parcelList.forEach((p, idx) => {
-      checkPageBreak(7);
+      const splitLines = doc.splitTextToSize(String(p).toUpperCase(), 148);
+      checkPageBreak(splitLines.length * 5 + 3);
       doc.setFont('times', 'bold');
       doc.setFontSize(9.5);
       doc.setTextColor(...blackColor);
       doc.text(`${idx + 1}.`, 32, currentY, { align: 'right' });
-      doc.text(String(p).toUpperCase(), 36, currentY);
-      currentY += 5.5;
+      doc.text(splitLines, 36, currentY);
+      currentY += (splitLines.length * 5) + 1;
     });
   }
 
@@ -2497,6 +2605,11 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     return generateGoldMenuPdf(event, subFunction, companyProfile, dishesList);
   }
 
+  // If traditional vector / baleyele grand feast menu requested, route to generateVectorOccasionMenuPdf
+  if (templateId === 'baleyele' || templateId === 'vector' || templateId === 'wedding' || templateId === 'pooja' || templateId === 'gala') {
+    return generateVectorOccasionMenuPdf(event, subFunction, companyProfile, templateId, dishesList);
+  }
+
   // Choose Theme Assets based on templateId
   const isCrimson = templateId === 'crimson' || templateId === 'official';
   const coverAsset = isCrimson
@@ -2727,6 +2840,86 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           curY += stepY;
         }
       });
+
+      // Render Instructions strictly belonging to this session or event
+      if (chunkIdx === pageChunks.length - 1) {
+        const sessionInstructions = [];
+        if (sub.clientNotes && typeof sub.clientNotes === 'string' && sub.clientNotes.trim()) {
+          sessionInstructions.push({ title: `${subCleanName} Directives`, text: sub.clientNotes.trim() });
+        }
+        if (event?.menuNotes && typeof event.menuNotes === 'string' && event.menuNotes.trim()) {
+          if (!sessionInstructions.some(i => i.text === event.menuNotes.trim())) {
+            sessionInstructions.push({ title: 'Kitchen Directives', text: event.menuNotes.trim() });
+          }
+        }
+        if (event?.instructions && typeof event.instructions === 'string' && event.instructions.trim()) {
+          if (!sessionInstructions.some(i => i.text === event.instructions.trim())) {
+            sessionInstructions.push({ title: 'Special Service Instructions', text: event.instructions.trim() });
+          }
+        }
+
+        if (sessionInstructions.length > 0) {
+          const flattenedLines = [];
+          sessionInstructions.forEach(inst => {
+            if (sessionInstructions.length > 1) {
+              flattenedLines.push({ type: 'header', text: `${inst.title}:` });
+            }
+            const rawLines = inst.text.split('\n');
+            rawLines.forEach(rl => {
+              const wrapped = doc.splitTextToSize(rl, 136);
+              wrapped.forEach(wl => flattenedLines.push({ type: 'line', text: wl }));
+            });
+          });
+
+          const boxHeight = (flattenedLines.length * 4.2) + 12;
+
+          if (curY + boxHeight + 4 > 265) {
+            // Need continuation page for instructions
+            doc.addPage();
+            if (menuAsset) {
+              doc.addImage(menuAsset, 'JPEG', 0, 0, pw, ph);
+            }
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11.5);
+            doc.setTextColor(...primaryColor);
+            doc.text(`MENU for ${subCleanName} (CONTD.)`, centerX, 60.5, { align: 'center' });
+            curY = 82;
+          } else {
+            curY += 4;
+          }
+
+          const boxStartY = curY;
+          doc.setFillColor(254, 250, 240); // Warm ivory gold card
+          doc.roundedRect(24, boxStartY, 146, boxHeight, 2, 2, 'F');
+          doc.setDrawColor(...primaryColor);
+          doc.setLineWidth(0.35);
+          doc.roundedRect(24, boxStartY, 146, boxHeight, 2, 2, 'D');
+
+          let textCursorY = boxStartY + 5.2;
+          doc.setFont('times', 'bold');
+          doc.setFontSize(9.5);
+          doc.setTextColor(...primaryColor);
+          doc.text('— SPECIAL INSTRUCTIONS & DIETARY DIRECTIVES —', centerX, textCursorY, { align: 'center' });
+          textCursorY += 4.5;
+
+          doc.setFont('times', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(40, 40, 40);
+
+          flattenedLines.forEach(l => {
+            if (l.type === 'header') {
+              doc.setFont('times', 'bold');
+              doc.text(l.text, 30, textCursorY);
+              doc.setFont('times', 'normal');
+            } else {
+              doc.text(l.text, 30, textCursorY);
+            }
+            textCursorY += 4.0;
+          });
+
+          curY = boxStartY + boxHeight + 4;
+        }
+      }
     });
   });
 

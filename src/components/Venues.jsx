@@ -182,22 +182,15 @@ const Venues = () => {
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div>
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
+      <div className="page-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Building2 style={{ color: 'var(--brand-primary, #9C1519)' }} />
-            Venues & Banquet Halls
+          <h1 className="gradient-text" style={{ fontSize: '2.2rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Building2 size={28} style={{ color: 'var(--color-primary)' }} />
+            <span>Venues & Banquet Halls</span>
           </h1>
-          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
             {isSalesPerson
               ? 'Showing venues assigned to ' + (currentUser || 'you') + ' and open banquet halls.'
               : 'Complete directory of banquets, lawns, and convention halls.'}
@@ -206,52 +199,36 @@ const Venues = () => {
 
         <button
           onClick={handleOpenAdd}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'var(--brand-primary, #9C1519)',
-            color: '#fff',
-            border: 'none',
-            padding: '10px 18px',
-            borderRadius: '8px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(156, 21, 25, 0.2)'
-          }}
+          className="btn btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}
         >
           <Plus size={18} />
-          Add Venue
+          <span>Add Venue</span>
         </button>
       </div>
 
       {/* Control Bar: Search & Filters */}
-      <div style={{
-        background: 'var(--bg-surface, #fff)',
-        padding: '16px',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color, #E5E7EB)',
-        marginBottom: '24px',
+      <div className="glass-card" style={{
+        padding: '1rem',
+        marginBottom: '1.5rem',
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '0.75rem',
         alignItems: 'center'
       }}>
         <div style={{ flex: '1 1 280px', position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
           <input
             type="text"
+            className="form-input"
             placeholder="Search by venue name, code, contact or address..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '9px 36px 9px 38px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color, #D1D5DB)',
-              background: 'var(--bg-input, #F9FAFB)',
-              color: 'var(--text-primary)',
-              fontSize: '14px'
+              paddingLeft: '38px',
+              paddingRight: searchTerm ? '36px' : '14px',
+              fontSize: '0.88rem'
             }}
           />
           {searchTerm && (
@@ -266,7 +243,7 @@ const Venues = () => {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--text-secondary, #9CA3AF)',
+                color: 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '2px'
@@ -278,18 +255,12 @@ const Venues = () => {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <select
+            className="form-select"
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            style={{
-              padding: '9px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color, #D1D5DB)',
-              background: 'var(--bg-input, #fff)',
-              color: 'var(--text-primary)',
-              fontSize: '13px'
-            }}
+            style={{ fontSize: '0.85rem', minWidth: '130px' }}
           >
             <option value="ALL">All Types</option>
             <option value="Banquet Hall">Banquet Hall</option>
@@ -301,16 +272,10 @@ const Venues = () => {
           </select>
 
           <select
+            className="form-select"
             value={filterCapacity}
             onChange={e => setFilterCapacity(e.target.value)}
-            style={{
-              padding: '9px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color, #D1D5DB)',
-              background: 'var(--bg-input, #fff)',
-              color: 'var(--text-primary)',
-              fontSize: '13px'
-            }}
+            style={{ fontSize: '0.85rem', minWidth: '130px' }}
           >
             <option value="ALL">All Capacities</option>
             <option value="SMALL">&lt; 200 Pax</option>
@@ -319,16 +284,10 @@ const Venues = () => {
           </select>
 
           <select
+            className="form-select"
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            style={{
-              padding: '9px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color, #D1D5DB)',
-              background: 'var(--bg-input, #fff)',
-              color: 'var(--text-primary)',
-              fontSize: '13px'
-            }}
+            style={{ fontSize: '0.85rem', minWidth: '120px' }}
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active Only</option>

@@ -181,6 +181,7 @@ const MenuPlanning = () => {
       ...currentEvent,
       venue: resolvedVenue || currentEvent.venue || '',
       venueName: resolvedVenue || currentEvent.venueName || '',
+      menuNotes: eventMenuNotes !== undefined ? eventMenuNotes : (currentEvent.menuNotes || ''),
       subFunctions: (draftSubFunctions && draftSubFunctions.length > 0) ? draftSubFunctions : (currentEvent.subFunctions || [])
     };
     const subTarget = isAllSessions ? 'all' : selectedSub;
@@ -195,6 +196,7 @@ const MenuPlanning = () => {
       ...currentEvent,
       venue: resolvedVenue || currentEvent.venue || '',
       venueName: resolvedVenue || currentEvent.venueName || '',
+      menuNotes: eventMenuNotes !== undefined ? eventMenuNotes : (currentEvent.menuNotes || ''),
       subFunctions: (draftSubFunctions && draftSubFunctions.length > 0) ? draftSubFunctions : (currentEvent.subFunctions || [])
     };
     const subTarget = isAllSessions ? 'all' : selectedSub;
@@ -568,9 +570,39 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                 ))}
               </select>
             </div>
+
+            {currentEvent && (
+              <div className="form-group" style={{ marginTop: '0.65rem' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <MessageSquare size={13} style={{ color: 'var(--color-primary)' }} />
+                  <span>Event-Wide Kitchen & Service Instructions</span>
+                </label>
+                <textarea
+                  className="form-input"
+                  rows={2}
+                  placeholder="Directives for entire event (e.g., 'VIP guest arrival at 11 AM, no plastic bottles, ensure pure ghee sweets')..."
+                  value={eventMenuNotes}
+                  onChange={e => {
+                    setEventMenuNotes(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  disabled={!isEditable}
+                  style={{
+                    fontSize: '0.82rem',
+                    lineHeight: '1.4',
+                    background: 'rgba(255, 255, 255, 0.75)',
+                    color: '#000000',
+                    fontWeight: 600,
+                    border: '1px solid rgba(0,0,0,0.18)',
+                    borderRadius: '8px',
+                    padding: '0.5rem 0.7rem'
+                  }}
+                />
+              </div>
+            )}
             
             {currentEvent && (
-              <div className="form-group" style={{ marginTop: '0.5rem' }}>
+              <div className="form-group" style={{ marginTop: '0.65rem' }}>
                 <label className="form-label">Select Sub-Function Course Instance</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                   {draftSubFunctions?.map(sf => (
@@ -1205,6 +1237,14 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                   description: 'Ceremonial 3-page South Indian festive menu with sacred Kalasha & banana plants cover, gold floral inner course menu, and 25000+ events heritage stats back cover.',
                   color: '#B8860B',
                   bgTint: 'rgba(184, 134, 11, 0.06)'
+                },
+                {
+                  id: 'baleyele',
+                  title: 'Royal Baleyele Grand Feast Menu',
+                  badge: '★ Plantain Leaf Banquet (Vector Ornate)',
+                  description: 'Traditional plantain-leaf seated feast menu with ceremonial maroon & gold double borders, sacred invocations, dining-order course categorization, and authentic Udupi & Mysuru gastronomy branding.',
+                  color: '#9C1519',
+                  bgTint: 'rgba(156, 21, 25, 0.06)'
                 },
                 {
                   id: 'executive',
