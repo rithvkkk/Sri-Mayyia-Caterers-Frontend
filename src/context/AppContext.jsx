@@ -229,17 +229,24 @@ export const AppProvider = ({ children }) => {
     };
   }, [currentRole]);
 
-  const updateUserPassword = async (username, newPassword) => {
+  const updateUser = async (userId, updateData) => {
     if (syncStatus !== 'connected') {
       alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
       return { success: false, message: 'Cloud Server Connection Failed' };
     }
-    const user = users.find(u => u.id.toLowerCase() === username.toLowerCase());
+    const cleanId = String(userId || '').trim().toLowerCase();
+    const user = users.find(u => u.id.toLowerCase() === cleanId);
     if (!user) return { success: false, message: 'User account not found' };
+
+    const payload = {
+      role: updateData.role !== undefined ? updateData.role : user.role,
+      name: updateData.name !== undefined ? updateData.name : user.name,
+      password: updateData.password
+    };
 
     const res = await apiCall(`/users/${user.id}`, {
       method: 'PUT',
-      body: JSON.stringify({ password: newPassword, role: user.role })
+      body: JSON.stringify(payload)
     });
 
     if (!res) {
@@ -247,11 +254,23 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'Cloud Server Connection Failed' };
     }
 
-    const updatedUser = { ...user, password: newPassword, plainPassword: newPassword };
-    const updatedUsers = users.map(u => u.id.toLowerCase() === username.toLowerCase() ? updatedUser : u);
+    const updatedUser = {
+      ...user,
+      ...res,
+      id: user.id,
+      role: payload.role,
+      name: payload.name || user.name || '',
+      password: (payload.password && !payload.password.includes('•')) ? payload.password : (user.plainPassword || user.password),
+      plainPassword: (payload.password && !payload.password.includes('•')) ? payload.password : (user.plainPassword || '')
+    };
+    const updatedUsers = users.map(u => u.id.toLowerCase() === cleanId ? updatedUser : u);
     setUsers(updatedUsers);
     try { localStorage.setItem('cater_users', JSON.stringify(updatedUsers)); } catch (e) {}
-    return { success: true };
+    return { success: true, user: updatedUser };
+  };
+
+  const updateUserPassword = async (username, newPassword) => {
+    return updateUser(username, { password: newPassword });
   };
 
   const addUser = async (newUser) => {
@@ -259,9 +278,16 @@ export const AppProvider = ({ children }) => {
       alert('Cloud Server Connection Failed. Changes cannot be saved until MongoDB is connected.');
       return { success: false, message: 'Cloud Server Connection Failed' };
     }
+    const cleanId = String(newUser.id || newUser.username || '').trim().toLowerCase();
+    if (!cleanId) return { success: false, message: 'Username is required' };
+    if (users.some(u => u.id.toLowerCase() === cleanId)) {
+      alert('Username already exists!');
+      return { success: false, message: 'Username already exists' };
+    }
+
     const res = await apiCall('/users', {
       method: 'POST',
-      body: JSON.stringify(newUser)
+      body: JSON.stringify({ ...newUser, id: cleanId })
     });
 
     if (!res) {
@@ -272,13 +298,16 @@ export const AppProvider = ({ children }) => {
     const createdRecord = {
       ...newUser,
       ...(res || {}),
+      id: cleanId,
+      name: newUser.name || cleanId,
+      role: newUser.role || 'Sales Executive',
       password: newUser.password,
       plainPassword: newUser.password
     };
-    const updatedUsers = [...users, createdRecord];
+    const updatedUsers = [...users.filter(u => u.id.toLowerCase() !== cleanId), createdRecord];
     setUsers(updatedUsers);
     try { localStorage.setItem('cater_users', JSON.stringify(updatedUsers)); } catch (e) {}
-    return { success: true };
+    return { success: true, user: createdRecord };
   };
 
   const deleteUser = async (userId) => {
@@ -485,19 +514,26 @@ export const AppProvider = ({ children }) => {
           eventType: e.eventType === 'Micro Home Event' ? 'Micro Event' : (e.eventType || 'Wedding Reception')
         }));
 
-        // Deduplicate in memory
-        const uniqueEventsMap = new Map();
-        normalizedList.forEach(e => {
-          if (!uniqueEventsMap.has(e.id)) {
-            uniqueEventsMap.set(e.id, e);
-          }
+        setEvents(prevEvents => {
+          const uniqueEventsMap = new Map();
+          normalizedList.forEach(e => {
+            if (!uniqueEventsMap.has(e.id)) {
+              uniqueEventsMap.set(e.id, e);
+            }
+          });
+          // Preserve any local events that are active and not in deletedIds
+          (prevEvents || []).forEach(pe => {
+            const peId = pe?.id || pe?._id;
+            if (peId && !deletedIds.has(peId) && !uniqueEventsMap.has(peId)) {
+              uniqueEventsMap.set(peId, pe);
+            }
+          });
+          const finalEvents = Array.from(uniqueEventsMap.values());
+          try {
+            localStorage.setItem('cater_events', JSON.stringify(finalEvents));
+          } catch (e) {}
+          return finalEvents;
         });
-        const finalEvents = Array.from(uniqueEventsMap.values());
-
-        setEvents(finalEvents);
-        try {
-          localStorage.setItem('cater_events', JSON.stringify(finalEvents));
-        } catch (e) {}
       }
       if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
       if (Array.isArray(uList) && uList.length > 0) {
@@ -710,6 +746,22 @@ export const AppProvider = ({ children }) => {
         [module]: level
       }
     };
+    // Keep aliases synced with their primary roles
+    if (role === 'HR Manager' || role === 'HR') {
+      updated['HR Manager'] = { ...(updated['HR Manager'] || {}), [module]: level };
+      updated['HR'] = { ...(updated['HR'] || {}), [module]: level };
+    } else if (role === 'Accountant' || role === 'Accounts Manager') {
+      updated['Accountant'] = { ...(updated['Accountant'] || {}), [module]: level };
+      updated['Accounts Manager'] = { ...(updated['Accounts Manager'] || {}), [module]: level };
+    } else if (role === 'Store Incharge' || role.includes('Inventory')) {
+      updated['Store Incharge'] = { ...(updated['Store Incharge'] || {}), [module]: level };
+      updated['Inhouse Inventory Manager'] = { ...(updated['Inhouse Inventory Manager'] || {}), [module]: level };
+      updated['Inhouse Provision Manager'] = { ...(updated['Inhouse Provision Manager'] || {}), [module]: level };
+      updated['Inhouse Storage Manager'] = { ...(updated['Inhouse Storage Manager'] || {}), [module]: level };
+    } else if (role === 'Sales Executive' || role === 'Sales') {
+      updated['Sales Executive'] = { ...(updated['Sales Executive'] || {}), [module]: level };
+      updated['Sales'] = { ...(updated['Sales'] || {}), [module]: level };
+    }
     setRbacMatrix(updated);
     localStorage.setItem('cater_rbac_matrix', JSON.stringify(updated));
     await apiCall('/rbac-matrix', { method: 'POST', body: JSON.stringify(updated) }).catch(() => {});
@@ -1291,8 +1343,12 @@ export const AppProvider = ({ children }) => {
       },
       eventType: resolvedEventType,
       createdBy: currentUser || currentRole || 'admin',
-      createdByName: currentUser || currentRole || 'admin',
-      salesExecutive: currentUser || currentRole || 'admin',
+      createdByName: (users.find(u => u.id?.toLowerCase() === (currentUser || '').toLowerCase())?.name) || currentUser || currentRole || 'Admin',
+      salesExecutive: (users.find(u => u.id?.toLowerCase() === (currentUser || '').toLowerCase())?.name) || currentUser || currentRole || 'Admin',
+      createdAt: new Date().toISOString(),
+      updatedBy: currentUser || currentRole || 'admin',
+      updatedByName: (users.find(u => u.id?.toLowerCase() === (currentUser || '').toLowerCase())?.name) || currentUser || currentRole || 'Admin',
+      updatedAt: new Date().toISOString(),
       venueId: eventDetails.venueId || '',
       venueName: eventDetails.venueName || (venues.find(v => v.id === eventDetails.venueId)?.name || (eventDetails.venueId || '')),
       venue: eventDetails.venue || eventDetails.venueName || (venues.find(v => v.id === eventDetails.venueId)?.name || (eventDetails.venueId || '')),
@@ -1366,8 +1422,7 @@ export const AppProvider = ({ children }) => {
         status: 'Unpaid',
         instructions: eventDetails.billing?.instructions || eventDetails.instructions || '',
         ...(eventDetails.billing || {})
-      },
-      createdAt: new Date().toISOString()
+      }
     };
 
     recalculateEventFinances(newEvent);
@@ -1388,9 +1443,11 @@ export const AppProvider = ({ children }) => {
     // Background sync to MongoDB API
     try {
       const res = await apiCall('/events', { method: 'POST', body: JSON.stringify(newEvent) });
-      if (res && res.id) {
-        setEvents(prev => prev.map(e => e.id === newId || e.id === res.id ? res : e));
-        return res.id;
+      if (res && (res.id || res._id)) {
+        const canonicalId = res.id || res._id;
+        const canonicalRecord = { ...res, id: canonicalId, _id: canonicalId };
+        setEvents(prev => prev.map(e => (e.id === newId || e.id === canonicalId || e._id === canonicalId) ? canonicalRecord : e));
+        return canonicalId;
       }
     } catch (err) {
       console.warn('Background event sync error:', err);
@@ -1423,10 +1480,12 @@ export const AppProvider = ({ children }) => {
       updatedEvent.salesExecutive = prev.salesExecutive || prev.createdByName || updatedEvent.salesExecutive || 'Not recorded';
       updatedEvent.createdAt = prev.createdAt || updatedEvent.createdAt;
     }
+    const currentUserName = (users.find(u => u.id?.toLowerCase() === (currentUser || '').toLowerCase())?.name) || currentUser || currentRole || 'Admin';
     updatedEvent.updatedBy = currentUser || currentRole || 'admin';
-    updatedEvent.updatedByName = currentUser || currentRole || 'Admin';
+    updatedEvent.updatedByName = currentUserName;
+    updatedEvent.updatedAt = new Date().toISOString();
     updatedEvent.lastModifiedBy = currentUser || currentRole || 'admin';
-    updatedEvent.lastModifiedByName = currentUser || currentRole || 'Admin';
+    updatedEvent.lastModifiedByName = currentUserName;
 
     // Ensure subFunctions maintain their IDs, independent timings, PAX, and pricePerPlate
     if (Array.isArray(updatedEvent.subFunctions)) {
@@ -1627,6 +1686,17 @@ export const AppProvider = ({ children }) => {
       subtotal = (parseInt(event.guestCount, 10) || totalGuests) * defaultPlateRate;
     }
 
+    // Include Add-ons total in subtotal
+    if (Array.isArray(event.addons) && event.addons.length > 0) {
+      const addonsCost = event.addons.reduce((sum, ad) => {
+        const qty = Number(ad.quantity !== undefined ? ad.quantity : ad.pax) || 0;
+        const rate = Number(ad.rate || ad.price || 0);
+        const rowTotal = (qty > 0 && rate > 0) ? (qty * rate) : (Number(ad.price || ad.rate) || 0);
+        return sum + rowTotal;
+      }, 0);
+      subtotal += addonsCost;
+    }
+
     // Automatic Commission Calculation
     // Formula: Commission Amount = Base Amount * Commission % / 100
     const commissionRate = Math.max(0, parseFloat(event.billing?.commissionRate) || 0);
@@ -1763,6 +1833,7 @@ export const AppProvider = ({ children }) => {
       logout,
       users,
       addUser,
+      updateUser,
       deleteUser,
       updateUserPassword,
       venues,

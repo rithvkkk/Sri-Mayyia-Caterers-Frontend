@@ -16,6 +16,7 @@ const EventBooking = () => {
   const {
     currentRole,
     currentUser,
+    users = [],
     events,
     createEvent,
     updateEvent,
@@ -26,7 +27,7 @@ const EventBooking = () => {
     dishes = []
   } = useContext(AppContext);
 
-  const ADDON_CATEGORIES = [
+  const PREDEFINED_ADDON_CATEGORIES = [
     'Breakfast',
     'Welcome Drinks & Starters',
     'Lunch',
@@ -41,6 +42,7 @@ const EventBooking = () => {
     'Water Bottle',
     'Tambula'
   ];
+  const ADDON_CATEGORIES = [...PREDEFINED_ADDON_CATEGORIES, 'Manual / Custom'];
 
   // Modal & Selection States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -106,14 +108,20 @@ const EventBooking = () => {
   // Available sales executives dynamically computed
   const availableSalesExecs = React.useMemo(() => {
     const execs = new Set();
+    // Include registered Sales Executives
+    (users || []).filter(u => u && (u.role === 'Sales Executive' || u.role === 'Sales')).forEach(u => {
+      if (u.name && u.name.trim()) execs.add(u.name.trim());
+      else if (u.id && u.id.trim()) execs.add(u.id.trim());
+    });
+    // Include creators from bookings
     events.forEach(e => {
       const name = e.createdByName || e.salesExecutive || e.createdBy;
       if (name && typeof name === 'string' && name.trim()) {
         execs.add(name.trim());
       }
     });
-    return Array.from(execs).sort();
-  }, [events]);
+    return Array.from(execs).sort((a, b) => a.localeCompare(b));
+  }, [events, users]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -255,7 +263,18 @@ const EventBooking = () => {
       newDateToAdd: '',
       status: selectedEvent.status || 'Inquiry',
       subFunctions: JSON.parse(JSON.stringify(selectedEvent.subFunctions || [])),
-      addons: JSON.parse(JSON.stringify(selectedEvent.addons || []))
+      addons: (selectedEvent.addons || []).map(ad => {
+        const isCustom = !PREDEFINED_ADDON_CATEGORIES.includes(ad.category) || ad.category === 'Manual / Custom';
+        return {
+          ...ad,
+          category: isCustom ? 'Manual / Custom' : (ad.category || 'Welcome Drinks & Starters'),
+          customCategory: isCustom ? (ad.customCategory || ad.category || '') : '',
+          quantity: ad.quantity !== undefined ? ad.quantity : (ad.pax || 0),
+          pax: ad.pax !== undefined ? ad.pax : (ad.quantity || 0),
+          rate: ad.rate !== undefined ? ad.rate : (ad.price || 0),
+          price: ad.price !== undefined ? ad.price : (ad.rate || 0)
+        };
+      })
     });
   };
 
@@ -274,6 +293,16 @@ const EventBooking = () => {
           : (parseInt(selectedEvent.guestCount, 10) || 0));
       if (totalGuests < 50 || totalGuests > 100) {
         alert(`Micro Event must have between 50 and 100 Pax (guests). Current: ${totalGuests} Pax.`);
+        setSaving(false);
+        return;
+      }
+    }
+
+    // Validate that Manual / Custom add-on categories have custom names provided
+    for (let i = 0; i < (editDraft.addons || []).length; i++) {
+      const ad = editDraft.addons[i];
+      if (ad.category === 'Manual / Custom' && !(ad.customCategory || '').trim()) {
+        alert(`Please specify the custom category name for add-on #${i + 1}`);
         setSaving(false);
         return;
       }
@@ -312,20 +341,28 @@ const EventBooking = () => {
         instructions: sf.instructions || sf.clientNotes || '',
         clientNotes: sf.clientNotes || sf.instructions || ''
       })),
-      addons: (editDraft.addons || []).map((ad, idx) => ({
-        id: ad.id || `addon-${Date.now()}-${idx}`,
-        category: ad.category || 'Welcome Drinks & Starters',
-        name: (ad.item || ad.name || '').trim(),
-        item: (ad.item || ad.name || '').trim(),
-        quantity: Number(ad.quantity || ad.pax || 0),
-        pax: Number(ad.pax || ad.quantity || 0),
-        useEventPax: !!ad.useEventPax,
-        appliesTo: ad.appliesTo || 'All Event',
-        subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
-        rate: Number(ad.rate || ad.price || 0),
-        price: Number(ad.price || ad.rate || 0),
-        notes: (ad.notes || '').trim()
-      }))
+      addons: (editDraft.addons || []).map((ad, idx) => {
+        const isCustom = ad.category === 'Manual / Custom' || !PREDEFINED_ADDON_CATEGORIES.includes(ad.category);
+        const resolvedCategory = isCustom ? (ad.customCategory || ad.category || 'Custom').trim() : ad.category;
+        const qty = Number(ad.quantity !== undefined ? ad.quantity : (ad.pax || 0));
+        const rate = Number(ad.rate !== undefined ? ad.rate : (ad.price || 0));
+        return {
+          id: ad.id || `addon-${Date.now()}-${idx}`,
+          category: resolvedCategory,
+          customCategory: isCustom ? resolvedCategory : '',
+          name: (ad.item || ad.name || '').trim(),
+          item: (ad.item || ad.name || '').trim(),
+          quantity: qty,
+          pax: qty,
+          useEventPax: !!ad.useEventPax,
+          appliesTo: ad.appliesTo || 'All Event',
+          subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
+          rate: rate,
+          price: rate,
+          total: qty * rate,
+          notes: (ad.notes || '').trim()
+        };
+      })
     };
     await updateEvent(updated);
     setSaving(false);
@@ -391,6 +428,15 @@ const EventBooking = () => {
       }
     }
 
+    // Validate custom add-on categories
+    for (let i = 0; i < addonsList.length; i++) {
+      const ad = addonsList[i];
+      if (ad.category === 'Manual / Custom' && !(ad.customCategory || '').trim()) {
+        alert(`Please specify the custom category name for add-on #${i + 1}`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const allDates = Array.from(new Set([primaryDate, ...additionalDates])).filter(Boolean).sort();
@@ -429,20 +475,28 @@ const EventBooking = () => {
           clientNotes: sf.clientNotes || '',
           instructions: sf.instructions || sf.clientNotes || ''
         })),
-        addons: addonsList.map((ad, idx) => ({
-          id: ad.id || `addon-${Date.now()}-${idx}`,
-          category: ad.category || 'Welcome Drinks & Starters',
-          name: (ad.item || ad.name || '').trim(),
-          item: (ad.item || ad.name || '').trim(),
-          quantity: Number(ad.quantity || ad.pax || 0),
-          pax: Number(ad.pax || ad.quantity || 0),
-          useEventPax: !!ad.useEventPax,
-          appliesTo: ad.appliesTo || 'All Event',
-          subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
-          rate: Number(ad.rate || ad.price || 0),
-          price: Number(ad.price || ad.rate || 0),
-          notes: (ad.notes || '').trim()
-        }))
+        addons: addonsList.map((ad, idx) => {
+          const isCustom = ad.category === 'Manual / Custom' || !PREDEFINED_ADDON_CATEGORIES.includes(ad.category);
+          const resolvedCategory = isCustom ? (ad.customCategory || ad.category || 'Custom').trim() : ad.category;
+          const qty = Number(ad.quantity !== undefined ? ad.quantity : (ad.pax || 0));
+          const rate = Number(ad.rate !== undefined ? ad.rate : (ad.price || 0));
+          return {
+            id: ad.id || `addon-${Date.now()}-${idx}`,
+            category: resolvedCategory,
+            customCategory: isCustom ? resolvedCategory : '',
+            name: (ad.item || ad.name || '').trim(),
+            item: (ad.item || ad.name || '').trim(),
+            quantity: qty,
+            pax: qty,
+            useEventPax: !!ad.useEventPax,
+            appliesTo: ad.appliesTo || 'All Event',
+            subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
+            rate: rate,
+            price: rate,
+            total: qty * rate,
+            notes: (ad.notes || '').trim()
+          };
+        })
       };
 
       const newId = await createEvent(payload);
@@ -463,6 +517,12 @@ const EventBooking = () => {
       setSubFunctionsList([{ name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }]);
       setAddonsList([]);
       setShowCreateModal(false);
+      // Reset list filters to immediately reveal new booking without manual refresh
+      setSearchQuery('');
+      setSelectedYear('all');
+      setSelectedMonth('all');
+      setSelectedSalesExec('all');
+      setStatusFilter('all');
       if (newId) setSelectedEventId(newId);
     } catch (err) {
       console.error('Event creation error:', err);
@@ -492,6 +552,7 @@ const EventBooking = () => {
     const newAddon = {
       id: `addon-${Date.now()}-${addonsList.length}`,
       category: 'Welcome Drinks & Starters',
+      customCategory: '',
       item: '',
       quantity: totalEventPax,
       pax: totalEventPax,
@@ -528,6 +589,21 @@ const EventBooking = () => {
           quantity: numVal,
           pax: numVal,
           useEventPax: false
+        };
+      }
+      if (field === 'rate') {
+        const numRate = parseFloat(value) || 0;
+        return {
+          ...item,
+          rate: numRate,
+          price: numRate
+        };
+      }
+      if (field === 'category') {
+        return {
+          ...item,
+          category: value,
+          customCategory: value === 'Manual / Custom' ? (item.customCategory || '') : ''
         };
       }
       if (field === 'appliesTo') {
@@ -1189,20 +1265,34 @@ const EventBooking = () => {
                       ? selectedEvent.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
                       : (parseInt(selectedEvent.guestCount, 10) || 0);
                     const platePrice = selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800;
-                    const subtotal = (selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
+                    const mealsCost = (selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
                       ? selectedEvent.subFunctions.reduce((sum, sf) => sum + ((parseInt(sf.guestCount, 10) || 0) * (sf.pricePerPlate !== undefined && sf.pricePerPlate !== '' ? parseFloat(sf.pricePerPlate) : platePrice)), 0)
                       : guestsCount * platePrice;
+                    const addonsCost = (selectedEvent.addons || []).reduce((sum, ad) => sum + ((Number(ad.quantity !== undefined ? ad.quantity : ad.pax) || 0) * (Number(ad.rate !== undefined ? ad.rate : ad.price) || 0)), 0);
+                    const subtotal = (selectedEvent.billing?.subtotal !== undefined && selectedEvent.billing?.subtotal > 0)
+                      ? selectedEvent.billing.subtotal
+                      : (mealsCost + addonsCost);
                     const commRate = selectedEvent.billing?.commissionRate || 0;
                     const commAmt = selectedEvent.billing?.commissionAmount !== undefined
                       ? selectedEvent.billing.commissionAmount
                       : ((subtotal * commRate) / 100);
 
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
                         <div>
                           <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Total Guests</span>
                           <strong>{guestsCount} Pax</strong>
                         </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Meals Cost</span>
+                          <strong>₹{Math.round(mealsCost).toLocaleString('en-IN')}</strong>
+                        </div>
+                        {addonsCost > 0 && (
+                          <div>
+                            <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Add-ons Total</span>
+                            <strong style={{ color: '#8b5cf6' }}>₹{Math.round(addonsCost).toLocaleString('en-IN')}</strong>
+                          </div>
+                        )}
                         <div>
                           <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Est. Subtotal</span>
                           <strong>₹{Math.round(subtotal).toLocaleString('en-IN')}</strong>
@@ -1453,17 +1543,26 @@ const EventBooking = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                     {(editDraft.addons || []).map((addon, idx) => {
                       const totalPax = (editDraft.subFunctions || []).reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+                      const isCustom = addon.category === 'Manual / Custom' || !PREDEFINED_ADDON_CATEGORIES.includes(addon.category);
+                      const qty = Number(addon.quantity !== undefined ? addon.quantity : (addon.pax || 0));
+                      const rate = Number(addon.rate !== undefined ? addon.rate : (addon.price || 0));
+                      const lineTotal = qty * rate;
+
                       return (
                         <div key={addon.id || idx} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.75)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr auto', gap: '0.4rem', alignItems: 'center' }}>
                             <select
                               className="form-input"
-                              value={addon.category}
+                              value={isCustom ? 'Manual / Custom' : addon.category}
                               onChange={e => {
                                 const val = e.target.value;
                                 setEditDraft(d => ({
                                   ...d,
-                                  addons: d.addons.map((item, i) => i === idx ? { ...item, category: val } : item)
+                                  addons: d.addons.map((item, i) => i === idx ? {
+                                    ...item,
+                                    category: val,
+                                    customCategory: val === 'Manual / Custom' ? (item.customCategory || item.category || '') : ''
+                                  } : item)
                                 }));
                               }}
                               style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
@@ -1504,7 +1603,27 @@ const EventBooking = () => {
                             </button>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: '0.4rem', alignItems: 'center' }}>
+                          {isCustom && (
+                            <div>
+                              <input
+                                type="text"
+                                className="form-input"
+                                placeholder="Enter custom category name (e.g. Live Mocktails, Paan Counter)"
+                                value={addon.customCategory !== undefined ? addon.customCategory : (addon.category !== 'Manual / Custom' ? addon.category : '')}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setEditDraft(d => ({
+                                    ...d,
+                                    addons: d.addons.map((item, i) => i === idx ? { ...item, customCategory: val } : item)
+                                  }));
+                                }}
+                                required
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.45rem', borderColor: !(addon.customCategory || (addon.category !== 'Manual / Custom' ? addon.category : '')) ? '#ef4444' : undefined }}
+                              />
+                            </div>
+                          )}
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 0.9fr auto', gap: '0.4rem', alignItems: 'center' }}>
                             <div>
                               <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Applies to</label>
                               <select
@@ -1547,6 +1666,26 @@ const EventBooking = () => {
                               />
                             </div>
 
+                            <div>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Rate (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                className="form-input"
+                                placeholder="Rate ₹"
+                                value={addon.rate !== undefined ? addon.rate : (addon.price || '')}
+                                onChange={e => {
+                                  const numVal = parseFloat(e.target.value) || 0;
+                                  setEditDraft(d => ({
+                                    ...d,
+                                    addons: d.addons.map((item, i) => i === idx ? { ...item, rate: numVal, price: numVal } : item)
+                                  }));
+                                }}
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              />
+                            </div>
+
                             <div style={{ paddingTop: '1.1rem' }}>
                               <button
                                 type="button"
@@ -1566,13 +1705,27 @@ const EventBooking = () => {
                                 title={`Set to Total Event Headcount (${totalPax})`}
                                 style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', whiteSpace: 'nowrap' }}
                               >
-                                {addon.useEventPax ? '✓ Event PAX' : 'Use Event PAX'}
+                                {addon.useEventPax ? '✓ PAX' : 'PAX'}
                               </button>
                             </div>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', fontSize: '0.74rem', color: 'var(--text-secondary)', paddingTop: '0.15rem' }}>
+                            <span>Line Total: <strong style={{ color: 'var(--text-primary)' }}>₹{lineTotal.toLocaleString('en-IN')}</strong></span>
                           </div>
                         </div>
                       );
                     })}
+
+                    {editDraft.addons && editDraft.addons.length > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(139, 92, 246, 0.08)', borderRadius: '6px', border: '1px solid rgba(139, 92, 246, 0.25)', fontSize: '0.8rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Total Add-ons Subtotal:</span>
+                        <strong style={{ fontSize: '0.9rem', color: 'var(--color-primary)' }}>
+                          ₹{editDraft.addons.reduce((sum, ad) => sum + ((Number(ad.quantity !== undefined ? ad.quantity : ad.pax) || 0) * (Number(ad.rate !== undefined ? ad.rate : ad.price) || 0)), 0).toLocaleString('en-IN')}
+                        </strong>
+                      </div>
+                    )}
+
                     {(!editDraft.addons || editDraft.addons.length === 0) && (
                       <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', fontStyle: 'italic' }}>
                         No add-ons attached yet. Click "+ Add Add-on" to add water bottles, ice creams, chats, welcome drinks, etc.
@@ -1582,21 +1735,41 @@ const EventBooking = () => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {(selectedEvent.addons && selectedEvent.addons.length > 0) ? (
-                      selectedEvent.addons.map(ad => (
-                        <div key={ad.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              <span className="badge badge-purple" style={{ fontWeight: 600, fontSize: '0.72rem' }}>{ad.category}</span>
-                              <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{ad.item || ad.name || 'Unnamed Add-on'}</span>
+                      <>
+                        {selectedEvent.addons.map((ad, adIdx) => {
+                          const qty = Number(ad.quantity !== undefined ? ad.quantity : (ad.pax || 0));
+                          const rate = Number(ad.rate !== undefined ? ad.rate : (ad.price || 0));
+                          const lineTotal = Number(ad.total !== undefined && ad.total !== null ? ad.total : (qty * rate));
+                          const uom = ad.category === 'Water Bottle' ? 'Units' : 'Pax';
+                          return (
+                            <div key={ad.id || adIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                  <span className="badge badge-purple" style={{ fontWeight: 600, fontSize: '0.72rem' }}>{ad.category}</span>
+                                  <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{ad.item || ad.name || 'Unnamed Add-on'}</span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                                  <span>Applies to: <strong>{ad.appliesTo || 'All Event'}</strong></span>
+                                  <span>Qty: <strong>{qty} {uom}</strong></span>
+                                  {rate > 0 && <span>Rate: <strong>₹{rate} / {uom}</strong></span>}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                  ₹{lineTotal.toLocaleString('en-IN')}
+                                </div>
+                                <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>{qty} {uom}</span>
+                              </div>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.2rem' }}>
-                              <span>Applies to: <strong>{ad.appliesTo || 'All Event'}</strong></span>
-                              {ad.rate > 0 && <span>Rate: ₹{ad.rate}</span>}
-                            </div>
-                          </div>
-                          <span className="badge badge-info">{ad.quantity !== undefined ? ad.quantity : ad.pax} {ad.category === 'Water Bottle' ? 'Units' : 'Pax'}</span>
+                          );
+                        })}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(139, 92, 246, 0.08)', borderRadius: '6px', border: '1px solid rgba(139, 92, 246, 0.25)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Total Add-ons:</span>
+                          <strong style={{ fontSize: '0.9rem', color: 'var(--color-primary)' }}>
+                            ₹{selectedEvent.addons.reduce((sum, ad) => sum + ((Number(ad.quantity !== undefined ? ad.quantity : ad.pax) || 0) * (Number(ad.rate !== undefined ? ad.rate : ad.price) || 0)), 0).toLocaleString('en-IN')}
+                          </strong>
                         </div>
-                      ))
+                      </>
                     ) : (
                       <div style={{ textAlign: 'center', padding: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', fontStyle: 'italic' }}>
                         No add-ons configured for this event.
@@ -1808,6 +1981,54 @@ const EventBooking = () => {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Booking & Sales Audit Trail */}
+              <div style={{ marginTop: '1.25rem', padding: '0.9rem 1rem', background: 'rgba(255, 255, 255, 0.65)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+                <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <User size={14} style={{ color: 'var(--color-primary)' }} />
+                  Booking & Sales Audit Trail
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.6rem', fontSize: '0.78rem' }}>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Sales Executive / Booked By</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {selectedEvent.salesExecutive || selectedEvent.createdByName || selectedEvent.createdBy || 'Direct Booking'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Creator Account ID</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {selectedEvent.createdBy || 'Legacy System'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Booking Created On</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                      {selectedEvent.createdAt
+                        ? (isNaN(new Date(selectedEvent.createdAt).getTime()) ? selectedEvent.createdAt : new Date(selectedEvent.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))
+                        : (selectedEvent.date || 'Pre-existing record')}
+                    </span>
+                  </div>
+                  {(selectedEvent.updatedBy || selectedEvent.updatedByName || selectedEvent.updatedAt) && (
+                    <>
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Last Modified By</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>
+                          {selectedEvent.updatedByName || selectedEvent.updatedBy || '—'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Last Modified On</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                          {selectedEvent.updatedAt
+                            ? (isNaN(new Date(selectedEvent.updatedAt).getTime()) ? selectedEvent.updatedAt : new Date(selectedEvent.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))
+                            : '—'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -2043,12 +2264,17 @@ const EventBooking = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', maxHeight: '180px', overflowY: 'auto' }}>
                     {addonsList.map((addon, index) => {
                       const totalEventPax = subFunctionsList.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+                      const isCustom = addon.category === 'Manual / Custom' || !PREDEFINED_ADDON_CATEGORIES.includes(addon.category);
+                      const qty = Number(addon.quantity !== undefined ? addon.quantity : (addon.pax || 0));
+                      const rate = Number(addon.rate !== undefined ? addon.rate : (addon.price || 0));
+                      const lineTotal = qty * rate;
+
                       return (
                         <div key={addon.id || index} style={{ padding: '0.65rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.85)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr auto', gap: '0.4rem', alignItems: 'center' }}>
                             <select
                               className="form-input"
-                              value={addon.category}
+                              value={isCustom ? 'Manual / Custom' : addon.category}
                               onChange={e => updateCreationAddon(index, 'category', e.target.value)}
                               style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
                             >
@@ -2077,7 +2303,21 @@ const EventBooking = () => {
                             </button>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: '0.4rem', alignItems: 'center' }}>
+                          {isCustom && (
+                            <div>
+                              <input
+                                type="text"
+                                className="form-input"
+                                placeholder="Enter custom category name (e.g. Live Mocktails, Paan Counter)"
+                                value={addon.customCategory || ''}
+                                onChange={e => updateCreationAddon(index, 'customCategory', e.target.value)}
+                                required
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.45rem', borderColor: !addon.customCategory ? '#ef4444' : undefined }}
+                              />
+                            </div>
+                          )}
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr 0.9fr auto', gap: '0.4rem', alignItems: 'center' }}>
                             <div>
                               <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Applies to</label>
                               <select
@@ -2096,7 +2336,7 @@ const EventBooking = () => {
                             </div>
 
                             <div>
-                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Quantity / PAX</label>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Qty / PAX</label>
                               <input
                                 type="number"
                                 min="0"
@@ -2104,6 +2344,20 @@ const EventBooking = () => {
                                 placeholder="Quantity / PAX"
                                 value={addon.quantity !== undefined ? addon.quantity : addon.pax}
                                 onChange={e => updateCreationAddon(index, 'quantity', e.target.value)}
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              />
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Rate (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                className="form-input"
+                                placeholder="Rate ₹"
+                                value={addon.rate !== undefined ? addon.rate : (addon.price || '')}
+                                onChange={e => updateCreationAddon(index, 'rate', e.target.value)}
                                 style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
                               />
                             </div>
@@ -2116,13 +2370,26 @@ const EventBooking = () => {
                                 title={`Sync with Event PAX (${totalEventPax})`}
                                 style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', whiteSpace: 'nowrap' }}
                               >
-                                {addon.useEventPax ? '✓ Event PAX' : 'Use Event PAX'}
+                                {addon.useEventPax ? '✓ PAX' : 'PAX'}
                               </button>
                             </div>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', fontSize: '0.74rem', color: 'var(--text-secondary)', paddingTop: '0.15rem' }}>
+                            <span>Line Total: <strong style={{ color: 'var(--text-primary)' }}>₹{lineTotal.toLocaleString('en-IN')}</strong></span>
                           </div>
                         </div>
                       );
                     })}
+
+                    {addonsList.length > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.65rem', background: 'rgba(139, 92, 246, 0.08)', borderRadius: '6px', border: '1px solid rgba(139, 92, 246, 0.25)', fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Total Add-ons Subtotal:</span>
+                        <strong style={{ fontSize: '0.85rem', color: 'var(--color-primary)' }}>
+                          ₹{addonsList.reduce((sum, ad) => sum + ((Number(ad.quantity !== undefined ? ad.quantity : ad.pax) || 0) * (Number(ad.rate !== undefined ? ad.rate : ad.price) || 0)), 0).toLocaleString('en-IN')}
+                        </strong>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

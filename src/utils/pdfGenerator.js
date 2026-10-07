@@ -398,6 +398,28 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
     });
   }
 
+  // Include configured Event Add-ons in line items
+  if (ev.addons && Array.isArray(ev.addons) && ev.addons.length > 0) {
+    ev.addons.forEach(ad => {
+      const qty = Number(ad.quantity !== undefined ? ad.quantity : (ad.pax || 1));
+      const rate = Number(ad.rate !== undefined ? ad.rate : (ad.price || 0));
+      const rowTotal = Number(ad.total !== undefined && ad.total !== null ? ad.total : (qty * rate));
+      calculatedSubtotal += rowTotal;
+      const catLabel = ad.category || 'Add-on';
+      const itemLabel = ad.item || ad.name || 'Additional Item';
+      const sessionLabel = (ad.appliesTo && ad.appliesTo !== 'All Event') ? ` (${ad.appliesTo})` : '';
+      const uom = ad.category === 'Water Bottle' ? 'Units' : 'Pax';
+      tableRows.push([
+        '',
+        `[${catLabel}] ${itemLabel}${sessionLabel}`,
+        String(qty),
+        uom,
+        rate ? rate.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
+        rowTotal ? rowTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'
+      ]);
+    });
+  }
+
   const explicitSubtotal = Number(ev.billing?.subtotal || ev.billing?.totalAmount || 0);
   const subtotal = explicitSubtotal > 0 ? explicitSubtotal : calculatedSubtotal;
 
@@ -534,8 +556,10 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
 
   const instHeight = instLines.length > 0 ? (instLines.length * 4.0) + 8 : 0;
   const totalLeftHeight = instHeight + 35; // inst + bank details
+  const totalBlockHeight = Math.max(totalLeftHeight, 35);
+  const pageWasAdded = curLeftY + totalBlockHeight > 275;
 
-  if (curLeftY + totalLeftHeight > 275) {
+  if (pageWasAdded) {
     // If overflowing, add page
     doc.addPage();
     curLeftY = 25;
@@ -579,8 +603,8 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   doc.text('BRANCH :- HALASURU', 14, curLeftY); curLeftY += 4.2;
   doc.text('BRANCH CODE :- 1304', 14, curLeftY); curLeftY += 4.2;
 
-  // Authorized Signatory
-  const sigY = wordsY + 7;
+  // Authorized Signatory (aligned on the active page alongside bank details)
+  const sigY = pageWasAdded ? 25 : wordsY + 7;
   doc.setFont('times', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(0, 0, 0);
@@ -746,7 +770,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const tableBody = subFunctions.map(sf => {
       const itm = (sf && typeof sf === 'object') ? sf : { name: String(sf || 'Function') };
       const gCount = parseInt(itm.guestCount, 10) || 0;
-      const pRate = parseFloat(ev.billing?.pricePerPlate) || 975;
+      const pRate = (itm.pricePerPlate !== undefined && itm.pricePerPlate !== null && itm.pricePerPlate !== '') ? parseFloat(itm.pricePerPlate) : (parseFloat(ev.billing?.pricePerPlate) || 975);
       const subTotal = gCount * pRate;
       return [
         itm.name || 'Catering Function',
@@ -755,6 +779,24 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
         formatCurrencyValue(subTotal, curr)
       ];
     });
+
+    if (ev.addons && Array.isArray(ev.addons) && ev.addons.length > 0) {
+      ev.addons.forEach(ad => {
+        const qty = Number(ad.quantity !== undefined ? ad.quantity : (ad.pax || 0));
+        const rate = Number(ad.rate !== undefined ? ad.rate : (ad.price || 0));
+        const rowTotal = Number(ad.total !== undefined && ad.total !== null ? ad.total : (qty * rate));
+        const catLabel = ad.category || 'Add-on';
+        const itemLabel = ad.item || ad.name || 'Add-on Service';
+        const sessionLabel = (ad.appliesTo && ad.appliesTo !== 'All Event') ? ` (${ad.appliesTo})` : '';
+        const uom = ad.category === 'Water Bottle' ? 'Units' : 'Pax';
+        tableBody.push([
+          `[${catLabel}] ${itemLabel}${sessionLabel}`,
+          `${qty} ${uom}`,
+          formatCurrencyValue(rate, curr),
+          formatCurrencyValue(rowTotal, curr)
+        ]);
+      });
+    }
 
     renderTable(doc, {
       head: tableHeaders,
@@ -785,7 +827,16 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     const isInter = Boolean(ev.billing?.isInterState);
     const taxRate = isGst ? (ev.billing?.taxRate !== undefined && !isNaN(Number(ev.billing.taxRate)) ? Math.max(0, Number(ev.billing.taxRate)) : 0) : 0;
     const totalPax = subFunctions.reduce((s, sf) => s + (parseInt(sf.guestCount, 10) || 0), 0) || 225;
-    const subtotalAmt = ev.billing?.subtotal || (totalPax * (ev.billing?.pricePerPlate || 975));
+    const sessionsTotal = subFunctions.reduce((sum, sf) => {
+      const itm = (sf && typeof sf === 'object') ? sf : { name: String(sf || 'Function') };
+      const gCount = parseInt(itm.guestCount, 10) || 0;
+      const pRate = (itm.pricePerPlate !== undefined && itm.pricePerPlate !== null && itm.pricePerPlate !== '') ? parseFloat(itm.pricePerPlate) : (parseFloat(ev.billing?.pricePerPlate) || 975);
+      return sum + (gCount * pRate);
+    }, 0);
+    const addonsTotal = (ev.addons && Array.isArray(ev.addons))
+      ? ev.addons.reduce((sum, ad) => sum + ((Number(ad.quantity !== undefined ? ad.quantity : ad.pax) || 0) * (Number(ad.rate !== undefined ? ad.rate : ad.price) || 0)), 0)
+      : 0;
+    const subtotalAmt = Number(ev.billing?.subtotal || ev.billing?.totalAmount || (sessionsTotal + addonsTotal));
     const taxAmt = isGst ? Math.round((subtotalAmt * (taxRate / 100)) * 100) / 100 : 0;
     const grandAmt = subtotalAmt + taxAmt;
     const balAmt = grandAmt - (parseFloat(ev.billing?.advancePaid) || 0);
@@ -960,11 +1011,11 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.text(formatCurrencyValue(totalMaterialsCost, curr), 190, finalY + 12, { align: 'right' });
   }
 
-  // Dynamic Terms page addition and accurate page numbering across all pages
+  // Dynamic Terms page addition ONLY if terms or menu template background asset is actually present
   const pageHeight = 297;
-  doc.addPage();
   const page2Bg = menuTemplateAssets.page4Terms || menuTemplateAssets.page2MenuBg;
-  if (page2Bg) {
+  if (page2Bg && typeof page2Bg === 'string' && page2Bg.length > 50) {
+    doc.addPage();
     doc.addImage(page2Bg, 'JPEG', 0, 0, 210, 297);
   }
 

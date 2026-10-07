@@ -7,7 +7,7 @@ import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../ut
 const AuthSetup = () => {
   const {
     currentRole,
-    users, updateUserPassword, addUser, deleteUser,
+    users, updateUser, updateUserPassword, addUser, deleteUser,
     venues, addVenue, updateVenue, deleteVenue,
     rawMaterials, addRawMaterial, updateRawMaterial, deleteRawMaterial,
     dishes, addDish, updateDish, deleteDish,
@@ -1110,12 +1110,29 @@ const AuthSetup = () => {
                     <tr key={u.id}>
                       <td style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>{u.id}</td>
                       <td>
-                        <span className={`badge ${
-                          u.role === 'Admin' ? 'badge-danger' :
-                          (u.role === 'HR' || u.role === 'HR Manager' || u.role === 'Manager') ? 'badge-info' :
-                          (u.role.includes('Inventory') || u.role.includes('Store')) ? 'badge-warning' :
-                          (u.role === 'Accountant' || u.role === 'Accounts Manager') ? 'badge-success' : 'badge-purple'
-                        }`}>{u.role}</span>
+                        {isEditing && u.id !== 'admin' ? (
+                          <select
+                            className="form-input"
+                            value={tempData.role || u.role}
+                            onChange={e => setTempData({ ...tempData, role: e.target.value })}
+                            style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                          >
+                            <option value="Sales Executive">Sales Executive</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Chef">Chef</option>
+                            <option value="HR Manager">HR Manager</option>
+                            <option value="Inhouse Inventory Manager">Inhouse Inventory Manager</option>
+                            <option value="Accountant">Accountant</option>
+                            <option value="Agency">Agency</option>
+                          </select>
+                        ) : (
+                          <span className={`badge ${
+                            u.role === 'Admin' ? 'badge-danger' :
+                            (u.role === 'HR' || u.role === 'HR Manager' || u.role === 'Manager') ? 'badge-info' :
+                            (u.role.includes('Inventory') || u.role.includes('Store')) ? 'badge-warning' :
+                            (u.role === 'Accountant' || u.role === 'Accounts Manager') ? 'badge-success' : 'badge-purple'
+                          }`}>{u.role}</span>
+                        )}
                       </td>
                       <td>
                         {isEditing ? (
@@ -1125,7 +1142,7 @@ const AuthSetup = () => {
                             value={tempData.password || ''}
                             onChange={e => setTempData({ ...tempData, password: e.target.value })}
                             style={{ maxWidth: '180px' }}
-                            placeholder="Enter new password"
+                            placeholder="Enter new password (optional)"
                             autoFocus
                           />
                         ) : (
@@ -1154,7 +1171,7 @@ const AuthSetup = () => {
                                 type="button"
                                 className="btn btn-secondary btn-small"
                                 style={{
-                                  padding: '0.2rem 0.4rem',
+                                   padding: '0.2rem 0.4rem',
                                   minWidth: 'auto',
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -1198,11 +1215,14 @@ const AuthSetup = () => {
                         {isEditing ? (
                           <div style={{ display: 'flex', gap: '0.35rem' }}>
                             <button className="btn btn-primary btn-small" onClick={async () => {
-                              const res = await updateUserPassword(tempData.id, tempData.password);
-                              if (res.success) {
-                                alert('Password updated successfully!');
+                              const res = await updateUser(tempData.id, {
+                                role: tempData.role || u.role,
+                                password: tempData.password
+                              });
+                              if (res && res.success) {
+                                alert('User account updated successfully!');
                               } else {
-                                alert('Failed to update password.');
+                                alert('Failed to update user account.');
                               }
                               cancelEdit();
                             }}><Check size={14} /></button>
@@ -1211,7 +1231,7 @@ const AuthSetup = () => {
                         ) : (
                           <div style={{ display: 'flex', gap: '0.35rem' }}>
                             <button className="btn btn-secondary btn-small" onClick={() => startEdit(u)}>
-                              <Edit2 size={12} /> Change Password
+                              <Edit2 size={12} /> Edit Role / Password
                             </button>
                             {u.id !== 'admin' && (
                               <button className="btn btn-danger btn-small" onClick={() => {

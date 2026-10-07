@@ -140,17 +140,77 @@ export const DEFAULT_RBAC_MATRIX = {
   }
 };
 
+// Aliases matching UI dropdowns and system accounts
+DEFAULT_RBAC_MATRIX['HR'] = DEFAULT_RBAC_MATRIX['HR Manager'];
+DEFAULT_RBAC_MATRIX['Accounts Manager'] = DEFAULT_RBAC_MATRIX['Accountant'];
+DEFAULT_RBAC_MATRIX['Inhouse Inventory Manager'] = DEFAULT_RBAC_MATRIX['Store Incharge'];
+DEFAULT_RBAC_MATRIX['Inhouse Provision Manager'] = DEFAULT_RBAC_MATRIX['Store Incharge'];
+DEFAULT_RBAC_MATRIX['Inhouse Storage Manager'] = DEFAULT_RBAC_MATRIX['Store Incharge'];
+DEFAULT_RBAC_MATRIX['Sales'] = DEFAULT_RBAC_MATRIX['Sales Executive'];
+
+/**
+ * Normalizes role variations to the canonical role key
+ */
+export const canonicalRole = (role) => {
+  if (!role) return '';
+  const r = String(role).trim();
+  const lower = r.toLowerCase();
+  if (lower === 'admin') return 'Admin';
+  if (lower === 'sales executive' || lower === 'sales') return 'Sales Executive';
+  if (lower === 'chef') return 'Chef';
+  if (lower === 'hr' || lower === 'hr manager' || lower === 'manager') return 'HR Manager';
+  if (lower === 'accountant' || lower === 'accounts manager' || lower === 'accounts') return 'Accountant';
+  if (lower.includes('inhouse') || lower.includes('store') || lower.includes('inventory') || lower.includes('provision') || lower.includes('storage')) return 'Store Incharge';
+  if (lower === 'agency') return 'Agency';
+  return r;
+};
+
 /**
  * Checks if a role has the required access level for a module
+ * Supports both checkPermission(matrix, role, module, requiredLevel)
+ * and checkPermission(role, module, requiredLevel)
  */
-export const checkPermission = (matrix, role, module, requiredLevel = ACCESS_LEVELS.READ) => {
-  const rolePermissions = (matrix || DEFAULT_RBAC_MATRIX)[role] || {};
+export const checkPermission = (arg1, arg2, arg3, arg4) => {
+  let matrix, role, rawModule, requiredLevel;
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    matrix = arg1;
+    role = arg2;
+    rawModule = arg3;
+    requiredLevel = arg4 || ACCESS_LEVELS.READ;
+  } else {
+    matrix = DEFAULT_RBAC_MATRIX;
+    role = arg1;
+    rawModule = arg2;
+    requiredLevel = arg3 || ACCESS_LEVELS.READ;
+  }
+
+  const canonical = canonicalRole(role);
+  if (canonical === 'Admin') return true;
+
+  // Resolve module aliases
+  const moduleAliases = {
+    'events': MODULES.EVENT_BOOKING,
+    'event': MODULES.EVENT_BOOKING,
+    'workers': MODULES.LABOUR_MANAGEMENT,
+    'worker': MODULES.LABOUR_MANAGEMENT,
+    'labour': MODULES.LABOUR_MANAGEMENT,
+    'billing': MODULES.QUOTATION_BILLING,
+    'quote': MODULES.QUOTATION_BILLING,
+    'inventory': MODULES.INHOUSE_INVENTORY,
+    'storage': MODULES.INHOUSE_INVENTORY,
+    'settings': MODULES.RBAC_ADMIN
+  };
+  const module = moduleAliases[rawModule] || rawModule;
+
+  const matrixToUse = matrix || DEFAULT_RBAC_MATRIX;
+  const rolePermissions = matrixToUse[role] || matrixToUse[canonical] || {};
   const currentLevel = rolePermissions[module] || ACCESS_LEVELS.HIDE;
 
-  if (requiredLevel === ACCESS_LEVELS.WRITE) {
+  const req = String(requiredLevel).toLowerCase();
+  if (req === ACCESS_LEVELS.WRITE || req === 'create' || req === 'edit' || req === 'delete') {
     return currentLevel === ACCESS_LEVELS.WRITE;
   }
-  if (requiredLevel === ACCESS_LEVELS.READ) {
+  if (req === ACCESS_LEVELS.READ || req === 'view') {
     return currentLevel === ACCESS_LEVELS.READ || currentLevel === ACCESS_LEVELS.WRITE;
   }
   return currentLevel !== ACCESS_LEVELS.HIDE;

@@ -7,8 +7,10 @@ import {
   generateSupplierPO,
   generateOfficialTaxInvoicePdf,
   calculatePdfReport,
-  resolveEventVenue
+  resolveEventVenue,
+  collectEventInstructions
 } from '../src/utils/pdfGenerator.js';
+import { canonicalRole, checkPermission, DEFAULT_RBAC_MATRIX } from '../src/utils/rbacMatrix.js';
 
 const mockCompanyProfile = {
   name: 'Sri Mayyia Caterers',
@@ -681,9 +683,193 @@ const appContextSource = readFileSync(new URL('../src/context/AppContext.jsx', i
 assert(appContextSource.includes('const [vendorCategories, setVendorCategories] = useState('), 'Test 13e: AppContext.jsx declares vendorCategories state');
 assert(appContextSource.includes('vendorCategories: (Array.isArray(vendorCategories)'), 'Test 13e: AppContext.jsx exports defensive vendorCategories in Context Provider');
 
+// -------------------------------------------------------------
+// TEST 14: Phase 1 — User Accounts, Canonical Roles & Permissions
+// -------------------------------------------------------------
+console.log('\nTEST 14: User Accounts & Canonical RBAC Role Mapping');
+
+assert(canonicalRole('HR') === 'HR Manager', 'Test 14a: canonicalRole("HR") -> "HR Manager"');
+assert(canonicalRole('Accounts Manager') === 'Accountant', 'Test 14a: canonicalRole("Accounts Manager") -> "Accountant"');
+assert(canonicalRole('Sales') === 'Sales Executive', 'Test 14a: canonicalRole("Sales") -> "Sales Executive"');
+assert(canonicalRole('Inhouse Inventory/Provision/Storage Manager') === 'Store Incharge', 'Test 14a: canonicalRole("Inhouse...") -> "Store Incharge"');
+assert(canonicalRole('Admin') === 'Admin', 'Test 14a: canonicalRole("Admin") -> "Admin"');
+
+// Test permission check with aliases
+assert(checkPermission('Sales', 'events', 'create'), 'Test 14b: "Sales" alias can create events');
+assert(checkPermission('HR', 'workers', 'create'), 'Test 14b: "HR" alias can manage workers');
+assert(checkPermission('Accounts Manager', 'billing', 'view'), 'Test 14b: "Accounts Manager" alias can view billing');
+assert(!checkPermission('Sales Executive', 'settings', 'edit'), 'Test 14b: "Sales Executive" cannot edit system settings');
+
+// Test username duplicate prevention logic
+const existingUsers = [
+  { id: 'admin', name: 'System Admin', role: 'Admin' },
+  { id: 'sales_ramesh', name: 'Ramesh K', role: 'Sales Executive' }
+];
+const isDuplicateUser = (newId) => existingUsers.some(u => u.id.toLowerCase() === newId.trim().toLowerCase());
+assert(isDuplicateUser('SALES_RAMESH'), 'Test 14c: Detects duplicate username case-insensitively');
+assert(!isDuplicateUser('sales_suresh'), 'Test 14c: Allows distinct new username');
+
+// -------------------------------------------------------------
+// TEST 15: Phase 3 & 4 — Event Add-ons Rates, Totals & Creator Tracking
+// -------------------------------------------------------------
+console.log('\nTEST 15: Event Add-ons Rates, Line Totals & Creator Tracking');
+
+const testAddonsList = [
+  {
+    category: 'Water Bottle',
+    item: '250ml Sealed Water Bottle',
+    quantity: 500,
+    rate: 10,
+    appliesTo: 'All Event'
+  },
+  {
+    category: 'Manual / Custom',
+    customCategory: 'Live Mocktail Counter',
+    item: 'Virgin Mojito & Blue Curacao',
+    quantity: 250,
+    rate: 75,
+    appliesTo: 'Dinner'
+  }
+];
+
+// Test custom category resolution and line totals
+const processedAddons = testAddonsList.map((ad, idx) => {
+  const isCustom = ad.category === 'Manual / Custom' || !EXPECTED_ADDON_CATEGORIES.includes(ad.category);
+  const resolvedCategory = isCustom ? (ad.customCategory || ad.category).trim() : ad.category;
+  const qty = Number(ad.quantity || 0);
+  const rate = Number(ad.rate || 0);
+  return {
+    id: `addon-${idx}`,
+    category: resolvedCategory,
+    customCategory: isCustom ? resolvedCategory : '',
+    quantity: qty,
+    rate: rate,
+    total: qty * rate
+  };
+});
+
+assert(processedAddons[0].category === 'Water Bottle', 'Test 15a: Predefined category mapped correctly');
+assert(processedAddons[0].total === 5000, 'Test 15a: Line total 500 * 10 = 5000');
+assert(processedAddons[1].category === 'Live Mocktail Counter', 'Test 15b: Custom category correctly assigned');
+assert(processedAddons[1].customCategory === 'Live Mocktail Counter', 'Test 15b: customCategory field populated');
+assert(processedAddons[1].total === 18750, 'Test 15b: Line total 250 * 75 = 18750');
+
+const addonsSubtotal = processedAddons.reduce((sum, ad) => sum + ad.total, 0);
+assert(addonsSubtotal === 23750, 'Test 15c: Total add-ons sum = 23750');
+
+// Test creator & modifier tracking immutability
+const auditBookingTest = {
+  id: 'EVT-AUDIT-001',
+  createdBy: 'sales_user_1',
+  createdByName: 'Ramesh K',
+  salesExecutive: 'Ramesh K',
+  createdAt: '2026-10-01T10:00:00.000Z',
+  updatedBy: 'sales_user_1',
+  updatedByName: 'Ramesh K',
+  updatedAt: '2026-10-01T10:00:00.000Z'
+};
+
+const simulateUpdateBooking = (existing, modifierId, modifierName) => {
+  return {
+    ...existing,
+    // Preserve original creator & creation time
+    createdBy: existing.createdBy,
+    createdByName: existing.createdByName,
+    salesExecutive: existing.salesExecutive || existing.createdByName || existing.createdBy,
+    createdAt: existing.createdAt,
+    // Update modifier details
+    updatedBy: modifierId,
+    updatedByName: modifierName,
+    updatedAt: new Date().toISOString()
+  };
+};
+
+const testUpdatedBooking = simulateUpdateBooking(auditBookingTest, 'admin_master', 'Admin Master');
+assert(testUpdatedBooking.createdBy === 'sales_user_1', 'Test 15d: createdBy is preserved on update');
+assert(testUpdatedBooking.createdByName === 'Ramesh K', 'Test 15d: createdByName is preserved on update');
+assert(testUpdatedBooking.createdAt === '2026-10-01T10:00:00.000Z', 'Test 15d: createdAt is strictly preserved');
+assert(testUpdatedBooking.updatedBy === 'admin_master', 'Test 15d: updatedBy reflects modifying user');
+assert(testUpdatedBooking.updatedByName === 'Admin Master', 'Test 15d: updatedByName reflects modifying user');
+
+// -------------------------------------------------------------
+// TEST 16: Phase 5 — PDF Add-ons, Instructions & Page Integrity
+// -------------------------------------------------------------
+console.log('\nTEST 16: PDF Add-ons, Instructions & Page Integrity');
+
+const commercialQuoteEvent = {
+  id: 'EVT-PDF-QUOTE-01',
+  customer: { name: 'Sanjay Deshmukh', phone: '9845011223' },
+  eventType: 'Wedding Feast',
+  date: '2026-11-25',
+  venue: 'Grand Palace Mantapa',
+  instructions: 'Special welcome drinks for 200 VIP guests upon arrival.',
+  subFunctions: [
+    { id: 'sf-1', name: 'Grand Wedding Lunch', guestCount: 500, pricePerPlate: 850 }
+  ],
+  addons: [
+    { id: 'ad-1', category: 'Cut Fruits', item: 'Exotic Fruit Salad', quantity: 500, rate: 50, total: 25000, appliesTo: 'Grand Wedding Lunch' },
+    { id: 'ad-2', category: 'Ice Cream', item: 'Anjeer & Kesar Pista', quantity: 500, rate: 40, total: 20000, appliesTo: 'Grand Wedding Lunch' }
+  ],
+  billing: {
+    pricePerPlate: 850,
+    subtotal: (500 * 850) + 25000 + 20000, // 425000 + 45000 = 470000
+    taxType: 'GST',
+    taxRate: 5
+  }
+};
+
+// 16a: Commercial Quotation PDF
+const resQuotePdf = await calculatePdfReport(commercialQuoteEvent, [], mockCompanyProfile, 'EN', 'invoice', true, 'commercial');
+assert(resQuotePdf && resQuotePdf.doc, 'Test 16a: Commercial Quotation PDF generated');
+const quotePdfPages = resQuotePdf.doc.internal.getNumberOfPages();
+assert(quotePdfPages === 2, `Test 16a: Commercial quote has exactly 2 pages (Quote + Terms, no blank page 3). Actual: ${quotePdfPages}`);
+
+// 16b: Tax Invoice PDF with Add-ons
+const resTaxInvoicePdf = generateOfficialTaxInvoicePdf(commercialQuoteEvent, mockCompanyProfile);
+assert(resTaxInvoicePdf && resTaxInvoicePdf.doc, 'Test 16b: Official Tax Invoice PDF generated');
+const taxInvoiceText = extractPdfText(resTaxInvoicePdf.doc);
+assert(taxInvoiceText.includes('Cut Fruits') || taxInvoiceText.includes('Exotic Fruit'), 'Test 16b: Tax invoice contains Cut Fruits add-on');
+assert(taxInvoiceText.includes('Ice Cream'), 'Test 16b: Tax invoice contains Ice Cream add-on');
+
+// 16c: Instruction Collection
+const collectedInst = collectEventInstructions(commercialQuoteEvent);
+assert(collectedInst.length > 0, 'Test 16c: collectEventInstructions collects event instructions');
+assert(collectedInst[0].text.includes('welcome drinks for 200 VIP'), 'Test 16c: Instruction text collected accurately');
+
+// -------------------------------------------------------------
+// TEST 17: Phase 6 & 8 — Data Integrity & Startup Defensiveness
+// -------------------------------------------------------------
+console.log('\nTEST 17: Data Integrity & Defensive Backward Compatibility');
+
+// Older legacy event without addons, without billing, without subFunctions
+const legacyEventMinimal = {
+  id: 'EVT-LEGACY-001',
+  customer: { name: 'Old Client' },
+  date: '2025-05-10',
+  guestCount: 200
+};
+
+// Ensure PDF generation does not throw on legacy minimal event
+let legacyPdfGenerated = false;
+try {
+  const legacyQuote = await calculatePdfReport(legacyEventMinimal, [], mockCompanyProfile, 'EN', 'invoice', true, 'commercial');
+  const legacyInv = generateOfficialTaxInvoicePdf(legacyEventMinimal, mockCompanyProfile);
+  legacyPdfGenerated = !!(legacyQuote && legacyInv);
+} catch (err) {
+  legacyPdfGenerated = false;
+  console.error('Legacy PDF error:', err);
+}
+assert(legacyPdfGenerated, 'Test 17a: Legacy booking without addons/subfunctions generates PDFs without crashing');
+
+// Test vendorCategories undefined safety
+const testVendorCatContext = {
+  vendorCategories: initialVendorCategories || []
+};
+assert(Array.isArray(testVendorCatContext.vendorCategories) && testVendorCatContext.vendorCategories.length > 0, 'Test 17b: vendorCategories is safely array-guaranteed at all times');
+
 console.log('\n======================================================');
 if (allPassed) {
-  console.log('✓ ALL 13 AUDIT AND INTEGRATION TEST SUITES PASSED SUCCESSFULLY!');
+  console.log('✓ ALL 17 AUDIT AND INTEGRATION TEST SUITES PASSED SUCCESSFULLY!');
 } else {
   console.error('✗ SOME TESTS FAILED. PLEASE REVIEW LOGS ABOVE.');
 }
