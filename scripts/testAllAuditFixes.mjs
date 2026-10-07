@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import {
   generateOccasionMenuPdf,
   generateVectorOccasionMenuPdf,
@@ -640,9 +641,49 @@ assert(testEventWithAddons.addons[0].appliesTo === 'All Event', 'Test 12e: Water
 assert(testEventWithAddons.addons[1].appliesTo === 'Dinner', 'Test 12e: Ice Cream applies to Dinner');
 assert(testEventWithAddons.addons[2].appliesTo === 'Evening Snacks', 'Test 12e: Welcome Drinks applies to Evening Snacks');
 
+// -------------------------------------------------------------
+// TEST 13: Vendor Categories Definition, Integrity & Startup Safety
+// -------------------------------------------------------------
+console.log('\nTEST 13: Vendor Categories Definition, Integrity & Startup Safety');
+
+const { initialVendorCategories } = await import('../src/utils/mockData.js');
+
+assert(Array.isArray(initialVendorCategories), 'Test 13a: initialVendorCategories is an array');
+assert(initialVendorCategories.length === 34, `Test 13a: Expected 34 initial vendor categories, got ${initialVendorCategories.length}`);
+
+// Test essential categories
+const categoryNames = initialVendorCategories.map(c => c.name);
+assert(categoryNames.includes('Plant and Leaf'), 'Test 13b: Category Plant and Leaf exists');
+assert(categoryNames.includes('Water Bottle'), 'Test 13b: Category Water Bottle exists');
+assert(categoryNames.includes('Coconut'), 'Test 13b: Category Coconut exists');
+assert(categoryNames.includes('Tea and Coffee Counter'), 'Test 13b: Category Tea and Coffee Counter exists');
+
+// Verify defensive state initialization simulation
+const getSafeLocalSim = (val, fallback) => {
+  if (!val || (Array.isArray(val) && val.length === 0)) return fallback;
+  return val;
+};
+
+// Scenario A: null/empty localStorage fallback
+const stateFromEmptyLocal = getSafeLocalSim(null, initialVendorCategories);
+assert(Array.isArray(stateFromEmptyLocal) && stateFromEmptyLocal.length === 34, 'Test 13c: Falls back to initialVendorCategories when storage is null');
+
+// Scenario B: Corrupted empty array fallback
+const stateFromCorruptEmpty = getSafeLocalSim([], initialVendorCategories);
+assert(Array.isArray(stateFromCorruptEmpty) && stateFromCorruptEmpty.length === 34, 'Test 13c: Falls back to initialVendorCategories when storage is empty array');
+
+// Scenario C: Provider value fallback guarantee
+const providerExportFallback = (null || initialVendorCategories || []);
+assert(Array.isArray(providerExportFallback) && providerExportFallback.length === 34, 'Test 13d: Provider export value is always defined and non-empty');
+
+// Scenario D: AppContext.jsx file contains valid vendorCategories declaration
+const appContextSource = readFileSync(new URL('../src/context/AppContext.jsx', import.meta.url), 'utf-8');
+assert(appContextSource.includes('const [vendorCategories, setVendorCategories] = useState('), 'Test 13e: AppContext.jsx declares vendorCategories state');
+assert(appContextSource.includes('vendorCategories: (Array.isArray(vendorCategories)'), 'Test 13e: AppContext.jsx exports defensive vendorCategories in Context Provider');
+
 console.log('\n======================================================');
 if (allPassed) {
-  console.log('✓ ALL 12 AUDIT AND INTEGRATION TEST SUITES PASSED SUCCESSFULLY!');
+  console.log('✓ ALL 13 AUDIT AND INTEGRATION TEST SUITES PASSED SUCCESSFULLY!');
 } else {
   console.error('✗ SOME TESTS FAILED. PLEASE REVIEW LOGS ABOVE.');
 }

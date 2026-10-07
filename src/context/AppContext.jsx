@@ -347,6 +347,10 @@ export const AppProvider = ({ children }) => {
   const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
   const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
   const [menuCategories, setMenuCategories] = useState(() => getSafeLocal('cater_menu_categories', initialMenuCategories));
+  const [vendorCategories, setVendorCategories] = useState(() => {
+    const loaded = getSafeLocal('cater_vendor_categories', initialVendorCategories);
+    return (Array.isArray(loaded) && loaded.length > 0) ? loaded : initialVendorCategories;
+  });
   const [labourCategories, setLabourCategories] = useState(() => {
     const loaded = getSafeLocal('cater_labour_categories', initialLabourCategories);
     if (Array.isArray(loaded)) {
@@ -683,7 +687,9 @@ export const AppProvider = ({ children }) => {
   }, [menuCategories]);
 
   useEffect(() => {
-    localStorage.setItem('cater_vendor_categories', JSON.stringify(vendorCategories));
+    if (Array.isArray(vendorCategories) && vendorCategories.length > 0) {
+      localStorage.setItem('cater_vendor_categories', JSON.stringify(vendorCategories));
+    }
   }, [vendorCategories]);
 
   useEffect(() => {
@@ -1813,7 +1819,7 @@ export const AppProvider = ({ children }) => {
       addMenuCategory,
       updateMenuCategory,
       deleteMenuCategory,
-      vendorCategories,
+      vendorCategories: (Array.isArray(vendorCategories) && vendorCategories.length > 0) ? vendorCategories : initialVendorCategories,
       addVendorCategory,
       updateVendorCategory,
       deleteVendorCategory,
