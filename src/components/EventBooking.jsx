@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
-  Calendar, Phone, Mail, MapPin, Users, Plus, PlusCircle, Trash2,
+  Calendar, Phone, Mail, MapPin, Users, User, Plus, PlusCircle, Trash2,
   ShieldAlert, CheckCircle, Clipboard, Search, Save, ArrowUpDown,
   Filter, Bell, Clock, AlertCircle, Check, CalendarDays, Edit2, X as LucideX
 } from 'lucide-react';
@@ -38,6 +38,7 @@ const EventBooking = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'Inquiry', 'Confirmed', 'Completed'
   const [selectedMonth, setSelectedMonth] = useState('all'); // 'all', '0'...'11'
   const [selectedYear, setSelectedYear] = useState('all'); // 'all', '2026', '2027'...
+  const [selectedSalesExec, setSelectedSalesExec] = useState('all'); // 'all', or specific sales executive name
   const [groupByMonth, setGroupByMonth] = useState(true);
 
   // Form states for creation
@@ -56,7 +57,7 @@ const EventBooking = () => {
   
   // Subfunctions builder in form
   const [subFunctionsList, setSubFunctionsList] = useState([
-    { name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }
+    { name: '', date: '', startTime: '', endTime: '', guestCount: '', pricePerPlate: '', menuItems: [], clientNotes: '' }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -84,6 +85,18 @@ const EventBooking = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [events]);
 
+  // Available sales executives dynamically computed
+  const availableSalesExecs = React.useMemo(() => {
+    const execs = new Set();
+    events.forEach(e => {
+      const name = e.createdByName || e.salesExecutive || e.createdBy;
+      if (name && typeof name === 'string' && name.trim()) {
+        execs.add(name.trim());
+      }
+    });
+    return Array.from(execs).sort();
+  }, [events]);
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -94,7 +107,7 @@ const EventBooking = () => {
     ? events.filter(e => !e.createdBy || e.createdBy === currentUser || e.createdByName === currentUser || e.salesExecutive === currentUser || (currentUser && e.createdBy && e.createdBy.toLowerCase() === currentUser.toLowerCase()))
     : events;
 
-  // Apply Search, Month/Year Filtering, Status Filtering, and Multi-criteria Sorting
+  // Apply Search, Month/Year Filtering, Sales Executive Filtering, Status Filtering, and Multi-criteria Sorting
   const processedEvents = [...baseVisibleEvents]
     // 1. Year Filter
     .filter(e => {
@@ -108,7 +121,13 @@ const EventBooking = () => {
       const allD = [e.date, ...(e.dates || [])].filter(Boolean);
       return allD.some(d => new Date(d).getMonth().toString() === selectedMonth.toString());
     })
-    // 3. Search Query Filter
+    // 3. Sales Executive Filter
+    .filter(e => {
+      if (selectedSalesExec === 'all') return true;
+      const exec = (e.createdByName || e.salesExecutive || e.createdBy || '').toLowerCase();
+      return exec === selectedSalesExec.toLowerCase();
+    })
+    // 4. Search Query Filter
     .filter(e => {
       const q = (searchQuery || '').trim().toLowerCase();
       if (!q) return true;
@@ -119,12 +138,12 @@ const EventBooking = () => {
         (e.eventType || '').toLowerCase().includes(q)
       );
     })
-    // 4. Status Pill Filter
+    // 5. Status Pill Filter
     .filter(e => {
       if (statusFilter === 'all') return true;
       return e.status === statusFilter;
     })
-    // 5. Sorting (Date + Status)
+    // 6. Sorting (Date + Status)
     .sort((a, b) => {
       // Primary Sort: Status Priority if active
       if (statusSort === 'inquiry-first') {
@@ -216,7 +235,8 @@ const EventBooking = () => {
       date: selectedEvent.date || allDates[0] || '',
       dates: allDates,
       newDateToAdd: '',
-      status: selectedEvent.status || 'Inquiry'
+      status: selectedEvent.status || 'Inquiry',
+      subFunctions: JSON.parse(JSON.stringify(selectedEvent.subFunctions || []))
     });
   };
 
@@ -228,9 +248,11 @@ const EventBooking = () => {
 
     const isMicro = (editDraft.eventType || '').trim().toLowerCase() === 'micro event';
     if (isMicro) {
-      const totalGuests = (selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
-        ? selectedEvent.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
-        : (parseInt(selectedEvent.guestCount, 10) || 0);
+      const totalGuests = (editDraft.subFunctions && editDraft.subFunctions.length > 0)
+        ? editDraft.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
+        : ((selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
+          ? selectedEvent.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
+          : (parseInt(selectedEvent.guestCount, 10) || 0));
       if (totalGuests < 50 || totalGuests > 100) {
         alert(`Micro Event must have between 50 and 100 Pax (guests). Current: ${totalGuests} Pax.`);
         setSaving(false);
@@ -257,7 +279,20 @@ const EventBooking = () => {
       },
       date: finalDate,
       dates: cleanedDates.length > 0 ? cleanedDates : [finalDate],
-      status: editDraft.status
+      status: editDraft.status,
+      subFunctions: (editDraft.subFunctions || []).map((sf, idx) => ({
+        ...sf,
+        id: sf.id || `sf-${Date.now()}-${idx}`,
+        name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${editDraft.eventType || 'Meal'} Session`,
+        date: sf.date || finalDate,
+        startTime: sf.startTime || sf.time || '',
+        endTime: sf.endTime || '',
+        time: sf.time || sf.startTime || '',
+        guestCount: Math.max(1, parseInt(sf.guestCount, 10) || 100),
+        pricePerPlate: (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '') ? parseFloat(sf.pricePerPlate) : (parseFloat(selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate) || 800),
+        instructions: sf.instructions || sf.clientNotes || '',
+        clientNotes: sf.clientNotes || sf.instructions || ''
+      }))
     };
     await updateEvent(updated);
     setSaving(false);
@@ -349,12 +384,17 @@ const EventBooking = () => {
         },
         reminders: [],
         subFunctions: subFunctionsList.map((sf, idx) => ({
-          id: `sf-${Date.now()}-${idx}`,
+          id: sf.id || `sf-${Date.now()}-${idx}`,
           name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${eventType || 'Main'} Function`,
           date: sf.date || primaryDate,
+          startTime: sf.startTime || sf.time || '',
+          endTime: sf.endTime || '',
+          time: sf.time || sf.startTime || '',
           guestCount: Math.max(1, parseInt(sf.guestCount, 10) || 100),
-          menuItems: [],
-          clientNotes: sf.clientNotes || ''
+          pricePerPlate: (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '') ? parseFloat(sf.pricePerPlate) : (parseFloat(pricePerPlate) || 800),
+          menuItems: sf.menuItems || [],
+          clientNotes: sf.clientNotes || '',
+          instructions: sf.instructions || sf.clientNotes || ''
         }))
       };
 
@@ -545,6 +585,10 @@ const EventBooking = () => {
               <Users size={13} />
               <span>{totalGuests} Total Pax</span>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <User size={13} />
+              <span>Booked by: <strong style={{ color: 'var(--text-primary)' }}>{e.createdByName || e.salesExecutive || e.createdBy || 'Direct'}</strong></span>
+            </div>
           </div>
         </div>
       </div>
@@ -635,6 +679,23 @@ const EventBooking = () => {
               <option value="all">All Years</option>
               {availableYears.map(y => (
                 <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sales Executive Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <User size={14} style={{ color: 'var(--text-secondary)' }} />
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Booked By:</span>
+            <select
+              className="form-select"
+              value={selectedSalesExec}
+              onChange={e => setSelectedSalesExec(e.target.value)}
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '130px', background: 'var(--bg-card)' }}
+            >
+              <option value="all">All Executives</option>
+              {availableSalesExecs.map(exec => (
+                <option key={exec} value={exec}>{exec}</option>
               ))}
             </select>
           </div>
@@ -784,9 +845,14 @@ const EventBooking = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1.25rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <div>
                   <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Booking File: {selectedEvent.id}</h2>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Occasion: <strong>{selectedEvent.eventType}</strong>
-                  </span>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Occasion: <strong>{selectedEvent.eventType}</strong>
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                      Booked by: {selectedEvent.createdByName || selectedEvent.salesExecutive || selectedEvent.createdBy || 'Direct'}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1012,7 +1078,7 @@ const EventBooking = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary)' }}>Financial & Billing Overview</span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      ₹{selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800}/plate
+                      ₹{selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800}/plate base
                     </span>
                   </div>
                   {(() => {
@@ -1020,7 +1086,9 @@ const EventBooking = () => {
                       ? selectedEvent.subFunctions.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0)
                       : (parseInt(selectedEvent.guestCount, 10) || 0);
                     const platePrice = selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800;
-                    const subtotal = guestsCount * platePrice;
+                    const subtotal = (selectedEvent.subFunctions && selectedEvent.subFunctions.length > 0)
+                      ? selectedEvent.subFunctions.reduce((sum, sf) => sum + ((parseInt(sf.guestCount, 10) || 0) * (sf.pricePerPlate !== undefined && sf.pricePerPlate !== '' ? parseFloat(sf.pricePerPlate) : platePrice)), 0)
+                      : guestsCount * platePrice;
                     const commRate = selectedEvent.billing?.commissionRate || 0;
                     const commAmt = selectedEvent.billing?.commissionAmount !== undefined
                       ? selectedEvent.billing.commissionAmount
@@ -1034,7 +1102,7 @@ const EventBooking = () => {
                         </div>
                         <div>
                           <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Est. Subtotal</span>
-                          <strong>₹{subtotal.toLocaleString('en-IN')}</strong>
+                          <strong>₹{Math.round(subtotal).toLocaleString('en-IN')}</strong>
                         </div>
                         <div>
                           <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Commission</span>
@@ -1055,28 +1123,190 @@ const EventBooking = () => {
 
               {/* Sub-functions */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Configured Sub-functions ({selectedEvent.subFunctions?.length || 0})
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {(selectedEvent.subFunctions || []).map(sf => (
-                    <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{sf.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
-                          <span>{sf.date || selectedEvent.date}</span>
-                          <span>{(sf.menuItems || []).length} Dishes</span>
-                        </div>
-                        {sf.clientNotes && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.35rem', fontStyle: 'italic', background: 'rgba(156,21,25,0.04)', padding: '0.25rem 0.5rem', borderRadius: '4px', borderLeft: '2px solid var(--color-primary)' }}>
-                            <strong style={{ color: 'var(--color-primary)' }}>Instructions:</strong> {sf.clientNotes}
-                          </div>
-                        )}
-                      </div>
-                      <span className="badge badge-info">{sf.guestCount} Pax</span>
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Configured Meal Sessions ({editDraft ? editDraft.subFunctions?.length || 0 : selectedEvent.subFunctions?.length || 0})
+                  </h3>
+                  {editDraft && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => {
+                        const newSf = {
+                          id: `sf-${Date.now()}-${(editDraft.subFunctions || []).length}`,
+                          name: '',
+                          date: editDraft.date || (editDraft.dates && editDraft.dates[0]) || selectedEvent.date,
+                          startTime: '',
+                          endTime: '',
+                          guestCount: 100,
+                          pricePerPlate: selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800,
+                          menuItems: [],
+                          clientNotes: ''
+                        };
+                        setEditDraft(d => ({ ...d, subFunctions: [...(d.subFunctions || []), newSf] }));
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      <Plus size={12} /> Add Session
+                    </button>
+                  )}
                 </div>
+
+                {editDraft ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {(editDraft.subFunctions || []).map((sf, idx) => (
+                      <div key={sf.id || idx} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.75)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.4rem' }}>
+                          <input
+                            className="form-input"
+                            placeholder="Session Name (e.g. Breakfast, Lunch)"
+                            value={sf.name}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setEditDraft(d => ({
+                                ...d,
+                                subFunctions: d.subFunctions.map((item, i) => i === idx ? { ...item, name: val } : item)
+                              }));
+                            }}
+                            style={{ fontWeight: 600, fontSize: '0.85rem', padding: '0.3rem 0.5rem' }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-small"
+                            onClick={() => {
+                              if (editDraft.subFunctions.length <= 1) {
+                                alert('An event must have at least one meal session.');
+                                return;
+                              }
+                              setEditDraft(d => ({
+                                ...d,
+                                subFunctions: d.subFunctions.filter((_, i) => i !== idx)
+                              }));
+                            }}
+                            style={{ padding: '0.25rem 0.4rem' }}
+                            title="Remove Session"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.4rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Date</label>
+                            <input
+                              type="date"
+                              className="form-input"
+                              value={sf.date || editDraft.date}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setEditDraft(d => ({
+                                  ...d,
+                                  subFunctions: d.subFunctions.map((item, i) => i === idx ? { ...item, date: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Start Time</label>
+                            <input
+                              type="time"
+                              className="form-input"
+                              value={sf.startTime || sf.time || ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setEditDraft(d => ({
+                                  ...d,
+                                  subFunctions: d.subFunctions.map((item, i) => i === idx ? { ...item, startTime: val, time: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>End Time</label>
+                            <input
+                              type="time"
+                              className="form-input"
+                              value={sf.endTime || ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setEditDraft(d => ({
+                                  ...d,
+                                  subFunctions: d.subFunctions.map((item, i) => i === idx ? { ...item, endTime: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Headcount (PAX)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              className="form-input"
+                              placeholder="PAX count"
+                              value={sf.guestCount}
+                              onChange={e => {
+                                const val = Math.max(1, parseInt(e.target.value, 10) || 0);
+                                setEditDraft(d => ({
+                                  ...d,
+                                  subFunctions: d.subFunctions.map((item, i) => i === idx ? { ...item, guestCount: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Plate Rate (₹)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="10"
+                              className="form-input"
+                              placeholder="Price per plate"
+                              value={sf.pricePerPlate !== undefined ? sf.pricePerPlate : (selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800)}
+                              onChange={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setEditDraft(d => ({
+                                  ...d,
+                                  subFunctions: d.subFunctions.map((item, i) => i === idx ? { ...item, pricePerPlate: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {(selectedEvent.subFunctions || []).map(sf => (
+                      <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{sf.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem', flexWrap: 'wrap' }}>
+                            <span>{sf.date || selectedEvent.date}</span>
+                            {(sf.startTime || sf.time) && <span>🕒 {sf.startTime || sf.time}{sf.endTime ? ` - ${sf.endTime}` : ''}</span>}
+                            <span>Rate: ₹{sf.pricePerPlate || selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate || 800}/plate</span>
+                            <span>{(sf.menuItems || []).length} Dishes</span>
+                          </div>
+                          {sf.clientNotes && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.35rem', fontStyle: 'italic', background: 'rgba(156,21,25,0.04)', padding: '0.25rem 0.5rem', borderRadius: '4px', borderLeft: '2px solid var(--color-primary)' }}>
+                              <strong style={{ color: 'var(--color-primary)' }}>Instructions:</strong> {sf.clientNotes}
+                            </div>
+                          )}
+                        </div>
+                        <span className="badge badge-info">{sf.guestCount} Pax</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Reminders & Follow-up Section (Enquiry and Booking Reminders) */}

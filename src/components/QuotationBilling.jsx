@@ -105,7 +105,13 @@ const QuotationBilling = () => {
 
     // Auto recalculate commission based on updated revenue/rate
     const platePrice = field === 'pricePerPlate' ? val : (parseFloat(currentEvent.billing?.pricePerPlate) || 800);
-    const subtotal = totalGuests * platePrice;
+    const subtotal = (currentEvent.subFunctions && currentEvent.subFunctions.length > 0)
+      ? currentEvent.subFunctions.reduce((sum, sf) => {
+          const sfGuests = parseInt(sf?.guestCount, 10) || 0;
+          const sfRate = (field === 'pricePerPlate') ? val : ((sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '') ? parseFloat(sf.pricePerPlate) : platePrice);
+          return sum + (sfGuests * sfRate);
+        }, 0)
+      : totalGuests * platePrice;
     const commRate = field === 'commissionRate' ? val : Math.max(0, parseFloat(currentEvent.billing?.commissionRate) || 0);
     const commAmount = parseFloat(((subtotal * commRate) / 100).toFixed(2));
     updatedBilling.commissionRate = commRate;
@@ -354,8 +360,16 @@ const QuotationBilling = () => {
   const venueRent = currentEvent ? (currentEvent.execution?.costs?.venueRent || 0) : 0;
   const otherExpenses = currentEvent ? (currentEvent.execution?.costs?.otherExpenses || 0) : 0;
   const totalGuests = currentEvent ? (currentEvent.subFunctions || []).reduce((sum, sf) => sum + (parseInt(sf?.guestCount, 10) || 0), 0) : 0;
-  const pricePerPlate = currentEvent?.billing?.pricePerPlate || 800;
-  const revenue = totalGuests * pricePerPlate;
+  const pricePerPlate = currentEvent?.billing?.pricePerPlate || currentEvent?.pricePerPlate || 800;
+  const revenue = (currentEvent?.subFunctions && currentEvent.subFunctions.length > 0)
+    ? currentEvent.subFunctions.reduce((sum, sf) => {
+        const sfGuests = parseInt(sf?.guestCount, 10) || 0;
+        const sfRate = (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '')
+          ? (parseFloat(sf.pricePerPlate) || 0)
+          : (parseFloat(pricePerPlate) || 800);
+        return sum + (sfGuests * sfRate);
+      }, 0)
+    : (totalGuests * (parseFloat(pricePerPlate) || 800));
   const commissionRate = Math.max(0, parseFloat(currentEvent?.billing?.commissionRate) || 0);
   const commissionAmount = parseFloat(((revenue * commissionRate) / 100).toFixed(2));
   const commissionCost = currentEvent?.execution?.costs?.commissionCost !== undefined
@@ -1374,7 +1388,9 @@ const QuotationBilling = () => {
                 </div>
                 {(currentEvent.subFunctions || []).map(sf => {
                   const sfGuests = parseInt(sf?.guestCount, 10) || 0;
-                  const price = parseFloat(currentEvent.billing?.pricePerPlate) || 800;
+                  const price = (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '')
+                    ? (parseFloat(sf.pricePerPlate) || 0)
+                    : (parseFloat(currentEvent.billing?.pricePerPlate || currentEvent.pricePerPlate) || 800);
                   return (
                     <div key={sf.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
                       <div>

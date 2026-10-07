@@ -479,16 +479,16 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
     theme: 'plain',
     styles: {
       font: 'times',
-      fontSize: 8.5,
+      fontSize: 9.5,
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
       lineWidth: 0.25,
-      cellPadding: 2
+      cellPadding: 2.5
     },
     headStyles: {
       font: 'times',
       fontStyle: 'bold',
-      fontSize: 8.5,
+      fontSize: 9.5,
       halign: 'center',
       textColor: [0, 0, 0],
       fillColor: [255, 255, 255],
@@ -511,7 +511,7 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   // 6. Amount in words
   const wordsY = finalTableY + 6;
   doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(9.5);
   doc.setTextColor(0, 0, 0);
   doc.text(`Amount in words: ${numberToWordsIndian(grandTotal)}`, 14, wordsY);
 
@@ -532,10 +532,10 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
     });
   });
 
-  const instHeight = instLines.length > 0 ? (instLines.length * 3.8) + 8 : 0;
+  const instHeight = instLines.length > 0 ? (instLines.length * 4.0) + 8 : 0;
   const totalLeftHeight = instHeight + 35; // inst + bank details
 
-  if (curLeftY + totalLeftHeight > 255) {
+  if (curLeftY + totalLeftHeight > 275) {
     // If overflowing, add page
     doc.addPage();
     curLeftY = 25;
@@ -543,13 +543,13 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
 
   if (instLines.length > 0) {
     doc.setFont('times', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
     doc.text('Instructions:', 14, curLeftY);
     curLeftY += 4.5;
 
     doc.setFont('times', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     instLines.forEach(l => {
       if (l.type === 'header') {
         doc.setFont('times', 'bold');
@@ -558,37 +558,40 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
       } else {
         doc.text(l.text, 14, curLeftY);
       }
-      curLeftY += 3.8;
+      curLeftY += 4.0;
     });
     curLeftY += 3;
   }
 
   // Bank & Payment Details
   doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(9.5);
   doc.setTextColor(0, 0, 0);
   doc.text('Bank & Payment Details:', 14, curLeftY);
   curLeftY += 4.5;
 
   doc.setFont('times', 'normal');
-  doc.setFontSize(8);
-  doc.text('Account Name :- SRI MAYYIA CATERERS', 14, curLeftY); curLeftY += 4;
-  doc.text('Account Number: 1304013000000051', 14, curLeftY); curLeftY += 4;
-  doc.text('IFSC CODE :- KVBL0001304', 14, curLeftY); curLeftY += 4;
-  doc.text('BANK :- KARUR VYSYA BANK', 14, curLeftY); curLeftY += 4;
-  doc.text('BRANCH :- HALASURU', 14, curLeftY); curLeftY += 4;
-  doc.text('BRANCH CODE :- 1304', 14, curLeftY); curLeftY += 4;
+  doc.setFontSize(8.5);
+  doc.text('Account Name :- SRI MAYYIA CATERERS', 14, curLeftY); curLeftY += 4.2;
+  doc.text('Account Number: 1304013000000051', 14, curLeftY); curLeftY += 4.2;
+  doc.text('IFSC CODE :- KVBL0001304', 14, curLeftY); curLeftY += 4.2;
+  doc.text('BANK :- KARUR VYSYA BANK', 14, curLeftY); curLeftY += 4.2;
+  doc.text('BRANCH :- HALASURU', 14, curLeftY); curLeftY += 4.2;
+  doc.text('BRANCH CODE :- 1304', 14, curLeftY); curLeftY += 4.2;
 
   // Authorized Signatory
   const sigY = wordsY + 7;
   doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(9.5);
   doc.setTextColor(0, 0, 0);
   doc.text('FOR SRI MAYYIA CATERERS', 135, sigY);
   doc.setFont('times', 'normal');
+  doc.setFontSize(9);
   doc.text('Authorized Signature', 140, sigY + 20);
 
-  // 8. Corporate Footer Image at bottom right
+  // 8. Corporate Footer Image at bottom right of last page
+  const totalInvPages = doc.internal.getNumberOfPages();
+  doc.setPage(totalInvPages);
   if (menuTemplateAssets.invoiceFooter) {
     doc.addImage(menuTemplateAssets.invoiceFooter, 'PNG', 122, 258, 74, 24);
   }
@@ -957,33 +960,28 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.text(formatCurrencyValue(totalMaterialsCost, curr), 190, finalY + 12, { align: 'right' });
   }
 
-  // Footer line on Page 1
+  // Dynamic Terms page addition and accurate page numbering across all pages
   const pageHeight = 297;
-  doc.setPage(1);
-  doc.setDrawColor(210, 180, 130);
-  doc.setLineWidth(0.4);
-  doc.line(15, pageHeight - 16, 195, pageHeight - 16);
-
-  doc.setTextColor(100, 100, 100);
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7.5);
-  doc.text('Thank you for choosing Sri Mayyia Caterers.', 15, pageHeight - 11);
-  doc.text('Page 1 of 2  |  Generated securely by Sri Mayyia ERP', 195, pageHeight - 11, { align: 'right' });
-
-  // PAGE 2: OFFICIAL SERVICE TERMS & BRASS THALI ARTWORK TEMPLATE (page4Terms)
   doc.addPage();
   const page2Bg = menuTemplateAssets.page4Terms || menuTemplateAssets.page2MenuBg;
   if (page2Bg) {
     doc.addImage(page2Bg, 'JPEG', 0, 0, 210, 297);
   }
 
-  // Footer text on Page 2 (No horizontal line to preserve artwork)
-  doc.setPage(2);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7.5);
-  doc.text('Thank you for choosing Sri Mayyia Caterers.', 15, pageHeight - 11);
-  doc.text('Page 2 of 2  |  Generated securely by Sri Mayyia ERP', 195, pageHeight - 11, { align: 'right' });
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    if (p < totalPages) {
+      doc.setDrawColor(210, 180, 130);
+      doc.setLineWidth(0.4);
+      doc.line(15, pageHeight - 16, 195, pageHeight - 16);
+    }
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.text('Thank you for choosing Sri Mayyia Caterers.', 15, pageHeight - 11);
+    doc.text(`Page ${p} of ${totalPages}  |  Generated securely by Sri Mayyia ERP`, 195, pageHeight - 11, { align: 'right' });
+  }
 
   // Standardized filename
   const safeEvId = String(evId).replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
@@ -1250,12 +1248,12 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
       fillColor: maroonColor,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 8.5
+      fontSize: 9.5
     },
     styles: {
       font: 'helvetica',
-      fontSize: 8.5,
-      cellPadding: 2.2,
+      fontSize: 9.0,
+      cellPadding: 2.5,
       lineColor: [225, 225, 225],
       lineWidth: 0.25,
       textColor: [30, 30, 30],
@@ -1278,8 +1276,8 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   const lastTableY = (doc.lastAutoTable?.finalY || doc.previousAutoTable?.finalY || 100);
   let afterTableY = lastTableY + 4;
 
-  // Check if we need space for terms and signatures (needs ~46mm, leave 24mm at bottom for footer/margins)
-  if (afterTableY + 46 > ph - 24) {
+  // Check if we need space for terms and signatures (needs ~48mm, leave 24mm at bottom for footer/margins)
+  if (afterTableY + 48 > ph - 24) {
     doc.addPage();
     afterTableY = 22;
   }
@@ -1287,36 +1285,36 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   // Amount in words
   const wordsText = numberToWordsIndian(grandTotal);
   doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(9.5);
   doc.setTextColor(...maroonColor);
   doc.text(`Amount in Words: `, 14, afterTableY);
   doc.setFont('times', 'italic');
   doc.setTextColor(...charcoalColor);
-  doc.text(`${wordsText}.`, 42, afterTableY);
-  afterTableY += 4.5;
+  doc.text(`${wordsText}.`, 44, afterTableY);
+  afterTableY += 5.0;
 
   // Delivery & Quality Instructions Container
   doc.setFillColor(253, 249, 242);
-  doc.roundedRect(14, afterTableY, pw - 28, 13, 1.5, 1.5, 'F');
+  doc.roundedRect(14, afterTableY, pw - 28, 15, 1.5, 1.5, 'F');
   doc.setDrawColor(220, 200, 165);
   doc.setLineWidth(0.25);
-  doc.roundedRect(14, afterTableY, pw - 28, 13, 1.5, 1.5, 'D');
+  doc.roundedRect(14, afterTableY, pw - 28, 15, 1.5, 1.5, 'D');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
+  doc.setFontSize(8.5);
   doc.setTextColor(...navyColor);
-  doc.text('SUPPLIER PROCUREMENT INSTRUCTIONS:', 18, afterTableY + 3.8);
+  doc.text('SUPPLIER PROCUREMENT INSTRUCTIONS:', 18, afterTableY + 4.2);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.8);
+  doc.setFontSize(8.0);
   doc.setTextColor(...charcoalColor);
-  doc.text('1. Delivery must reach the venue at least 4 hours before service.  2. All food ingredients must be fresh and inspected upon arrival.', 18, afterTableY + 7.5);
-  doc.text('3. Weighing verification will be conducted by our storekeeper before unloading. Defective or expired items will be returned.', 18, afterTableY + 10.8);
+  doc.text('1. Delivery must reach the venue at least 4 hours before service.  2. All food ingredients must be fresh and inspected upon arrival.', 18, afterTableY + 8.2);
+  doc.text('3. Weighing verification will be conducted by our storekeeper before unloading. Defective or expired items will be returned.', 18, afterTableY + 12.0);
 
-  afterTableY += 17;
+  afterTableY += 19;
 
   // Three-column Signatures Block
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
+  doc.setFontSize(8.5);
   doc.setTextColor(...charcoalColor);
 
   // Column 1
@@ -2906,12 +2904,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setTextColor(...primaryColor);
       doc.text(`MENU for ${subCleanName}${headerSuffix}`, 94.0, 60.5, { align: 'center' });
 
-      // 3. Pax in Column 3 header: exact number right after "Pax:"
+      // 3. Pax in Column 3 header: exact number right after "Pax:" (pre-printed label ends at 124.5 mm)
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFont('times', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(...primaryColor);
-      const paxX = isBaleyele ? 116.0 : 126.0;
+      const paxX = 128.0;
       doc.text(String(paxCount), paxX, 70.3);
 
       const availableHeight = 270 - 77; // 193 mm
@@ -2923,7 +2921,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
         if (entry.type === 'category') {
           curY += stepY * 0.3;
           doc.setFont('times', 'bold');
-          doc.setFontSize(10);
+          doc.setFontSize(10.5);
           doc.setTextColor(...primaryColor);
           doc.text(entry.text, centerX, curY, { align: 'center' });
           curY += stepY;
@@ -2932,23 +2930,23 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           // Column 1: SL NO (center X = 22.3 mm for Baleyele, 21.05 mm for Olive/Crimson)
           const slColX = isBaleyele ? 22.3 : 21.05;
           doc.setFont('times', 'bold');
-          doc.setFontSize(8.5);
+          doc.setFontSize(10);
           doc.setTextColor(...primaryColor);
           doc.text(String(sessionItemNum), slColX, curY, { align: 'center' });
 
           // Column 2: Item Name (center X = 94.0 mm)
           doc.setFont('times', 'bold');
-          doc.setFontSize(9.5);
+          doc.setFontSize(11);
           doc.setTextColor(...navyColor);
 
           let displayName = entry.text;
           if (doc.getTextWidth(displayName) > 124) {
-            doc.setFontSize(8.5);
+            doc.setFontSize(9.5);
             if (doc.getTextWidth(displayName) > 124) {
               displayName = doc.splitTextToSize(displayName, 122)[0] + '...';
             }
           } else {
-            doc.setFontSize(9.5);
+            doc.setFontSize(11);
           }
 
           doc.text(displayName, centerX, curY, { align: 'center' });
@@ -2962,18 +2960,18 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
         const lineObj = formattedInstLines[instLineIdx];
         if (lineObj.type === 'header') {
           doc.setFont('times', 'bold');
-          doc.setFontSize(8);
+          doc.setFontSize(9.5);
           doc.setTextColor(...primaryColor);
           doc.text(lineObj.text, instColX, instY);
-          instY += 3.8;
+          instY += 4.2;
         } else if (lineObj.type === 'spacer') {
           instY += 2.0;
         } else {
           doc.setFont('times', 'normal');
-          doc.setFontSize(7.5);
+          doc.setFontSize(8.5);
           doc.setTextColor(40, 40, 40);
           doc.text(lineObj.text, instColX, instY);
-          instY += 3.4;
+          instY += 3.8;
         }
         instLineIdx++;
       }
@@ -3006,7 +3004,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
 
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFontSize(10.5);
-      const paxX = isBaleyele ? 116.0 : 126.0;
+      const paxX = 128.0;
       doc.text(String(paxCount), paxX, 70.3);
 
       let contInstY = 78.0;
@@ -3014,18 +3012,18 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
         const lineObj = formattedInstLines[instLineIdx];
         if (lineObj.type === 'header') {
           doc.setFont('times', 'bold');
-          doc.setFontSize(8);
+          doc.setFontSize(9.5);
           doc.setTextColor(...primaryColor);
           doc.text(lineObj.text, instColX, contInstY);
-          contInstY += 3.8;
+          contInstY += 4.2;
         } else if (lineObj.type === 'spacer') {
           contInstY += 2.0;
         } else {
           doc.setFont('times', 'normal');
-          doc.setFontSize(7.5);
+          doc.setFontSize(8.5);
           doc.setTextColor(40, 40, 40);
           doc.text(lineObj.text, instColX, contInstY);
-          contInstY += 3.4;
+          contInstY += 3.8;
         }
         instLineIdx++;
       }

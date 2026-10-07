@@ -324,6 +324,19 @@ const MenuPlanning = () => {
     });
   };
 
+  const handleUpdateSelectedSubField = (field, value) => {
+    if (!isEditable || !selectedSub) return;
+    setIsDirty(true);
+    setDraftSubFunctions(prev => {
+      return prev.map(sf => {
+        if (sf.id === selectedSub.id) {
+          return { ...sf, [field]: value };
+        }
+        return sf;
+      });
+    });
+  };
+
   const handleAddQuickTag = (tagText) => {
     if (!isEditable || !selectedSub) return;
     const currentNotes = selectedSub.clientNotes || '';
@@ -626,7 +639,9 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                           </div>
                         )}
                       </div>
-                      <span className="badge badge-info">{sf.guestCount} Pax</span>
+                      <span className="badge badge-info">
+                        {sf.guestCount} Pax · ₹{sf.pricePerPlate !== undefined && sf.pricePerPlate !== '' ? sf.pricePerPlate : (currentEvent?.billing?.pricePerPlate || currentEvent?.pricePerPlate || 800)}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -764,6 +779,91 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                   >
                     <Download size={14} /> Export Menu PDF
                   </button>
+                </div>
+              </div>
+
+              {/* Session Independent Headcount, Timing & Rate Parameters */}
+              <div style={{
+                background: 'rgba(253, 248, 237, 0.85)',
+                border: '1px solid rgba(210, 180, 130, 0.5)',
+                borderRadius: '10px',
+                padding: '0.75rem 1rem',
+                marginBottom: '1rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '0.6rem',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                    Session Headcount (PAX)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="form-input"
+                    value={selectedSub.guestCount}
+                    onChange={e => handleUpdateSelectedSubField('guestCount', Math.max(1, parseInt(e.target.value, 10) || 0))}
+                    disabled={!isEditable}
+                    style={{ fontSize: '0.85rem', padding: '0.3rem 0.5rem', fontWeight: 700 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                    Session Rate (₹/plate)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    className="form-input"
+                    value={selectedSub.pricePerPlate !== undefined && selectedSub.pricePerPlate !== '' ? selectedSub.pricePerPlate : (currentEvent?.billing?.pricePerPlate || currentEvent?.pricePerPlate || 800)}
+                    onChange={e => handleUpdateSelectedSubField('pricePerPlate', parseFloat(e.target.value) || 0)}
+                    disabled={!isEditable}
+                    style={{ fontSize: '0.85rem', padding: '0.3rem 0.5rem', fontWeight: 700 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                    Session Date
+                  </label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={selectedSub.date || currentEvent.date}
+                    onChange={e => handleUpdateSelectedSubField('date', e.target.value)}
+                    disabled={!isEditable}
+                    style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={selectedSub.startTime || selectedSub.time || ''}
+                    onChange={e => {
+                      handleUpdateSelectedSubField('startTime', e.target.value);
+                      handleUpdateSelectedSubField('time', e.target.value);
+                    }}
+                    disabled={!isEditable}
+                    style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={selectedSub.endTime || ''}
+                    onChange={e => handleUpdateSelectedSubField('endTime', e.target.value)}
+                    disabled={!isEditable}
+                    style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                  />
                 </div>
               </div>
 

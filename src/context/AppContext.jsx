@@ -83,8 +83,10 @@ export const AppProvider = ({ children }) => {
         }
         
         const fullUrl = `${cleanBase}/${path}`;
+        const token = localStorage.getItem('cater_auth_token');
+        const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
         const res = await fetch(fullUrl, {
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...(options.headers || {}) },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...authHeader, ...(options.headers || {}) },
           signal: controller.signal,
           ...options
         });
@@ -169,6 +171,9 @@ export const AppProvider = ({ children }) => {
         setCurrentUser(data.username || username);
         localStorage.setItem('cater_current_role', data.role);
         localStorage.setItem('cater_current_user', data.username || username);
+        if (data.token) {
+          localStorage.setItem('cater_auth_token', data.token);
+        }
         return { success: true, role: data.role, username: data.username || username };
       }
       return { success: false, message: (data && data.message) || 'Invalid credentials' };
@@ -182,6 +187,7 @@ export const AppProvider = ({ children }) => {
     setCurrentUser('');
     localStorage.removeItem('cater_current_role');
     localStorage.removeItem('cater_current_user');
+    localStorage.removeItem('cater_auth_token');
     localStorage.removeItem('cater_last_activity');
   };
 
@@ -1257,14 +1263,25 @@ export const AppProvider = ({ children }) => {
       dates: eventDates,
       status: eventDetails.status || 'Inquiry',
       reminders: eventDetails.reminders || [],
-      subFunctions: (eventDetails.subFunctions || []).map((sf, idx) => ({
-        id: sf.id || `sf-${Date.now()}-${idx}`,
-        name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${eventDetails.eventType || 'Main'} Function`,
-        date: sf.date || primaryDate,
-        guestCount: parseInt(sf.guestCount, 10) || 100,
-        menuItems: sf.menuItems || [],
-        clientNotes: sf.clientNotes || ''
-      })),
+      subFunctions: (eventDetails.subFunctions || []).map((sf, idx) => {
+        const sfId = sf.id || `sf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${idx}`;
+        const sfPrice = (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '' && !isNaN(Number(sf.pricePerPlate)))
+          ? Number(sf.pricePerPlate)
+          : (eventDetails.pricePerPlate ? Number(eventDetails.pricePerPlate) : undefined);
+        return {
+          id: sfId,
+          name: (sf.name && sf.name.trim()) ? sf.name.trim() : `${eventDetails.eventType || 'Main'} Function`,
+          date: sf.date || primaryDate,
+          startTime: sf.startTime || sf.time || '',
+          endTime: sf.endTime || '',
+          time: sf.startTime || sf.time || '',
+          guestCount: Math.max(1, parseInt(sf.guestCount, 10) || 100),
+          pricePerPlate: sfPrice,
+          menuItems: sf.menuItems || [],
+          clientNotes: sf.clientNotes || sf.instructions || '',
+          instructions: sf.instructions || sf.clientNotes || ''
+        };
+      }),
       manualMaterials: eventDetails.manualMaterials || [],
       transport: eventDetails.transport || {
         vehicles: [],
@@ -1344,6 +1361,35 @@ export const AppProvider = ({ children }) => {
         }
       }
     }
+
+    // Preserve existing creator identity strictly
+    const prev = events.find(e => String(e.id || e._id) === String(updatedEvent.id || updatedEvent._id));
+    if (prev) {
+      updatedEvent.createdBy = prev.createdBy || updatedEvent.createdBy || 'Not recorded';
+      updatedEvent.createdByName = prev.createdByName || prev.salesExecutive || updatedEvent.createdByName || 'Not recorded';
+      updatedEvent.salesExecutive = prev.salesExecutive || prev.createdByName || updatedEvent.salesExecutive || 'Not recorded';
+      updatedEvent.createdAt = prev.createdAt || updatedEvent.createdAt;
+    }
+    updatedEvent.updatedBy = currentUser || currentRole || 'admin';
+    updatedEvent.updatedByName = currentUser || currentRole || 'Admin';
+    updatedEvent.lastModifiedBy = currentUser || currentRole || 'admin';
+    updatedEvent.lastModifiedByName = currentUser || currentRole || 'Admin';
+
+    // Ensure subFunctions maintain their IDs, independent timings, PAX, and pricePerPlate
+    if (Array.isArray(updatedEvent.subFunctions)) {
+      updatedEvent.subFunctions = updatedEvent.subFunctions.map((sf, idx) => ({
+        ...sf,
+        id: sf.id || `sf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${idx}`,
+        guestCount: Math.max(1, parseInt(sf.guestCount, 10) || 100),
+        startTime: sf.startTime || sf.time || '',
+        endTime: sf.endTime || '',
+        time: sf.startTime || sf.time || '',
+        pricePerPlate: (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '' && !isNaN(Number(sf.pricePerPlate)))
+          ? Number(sf.pricePerPlate)
+          : undefined
+      }));
+    }
+
     recalculateEventFinances(updatedEvent);
     const targetId = String(updatedEvent.id || updatedEvent._id || '');
     // Optimistic update
@@ -1494,7 +1540,19 @@ export const AppProvider = ({ children }) => {
     const venueRent = venue ? venue.price : 0;
 
     const totalGuests = subFunctions.reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
-    const subtotal = totalGuests * (parseFloat(event.billing?.pricePerPlate) || 0);
+    const defaultPlateRate = parseFloat(event.billing?.pricePerPlate) || parseFloat(event.pricePerPlate) || 800;
+    let subtotal = 0;
+    if (subFunctions.length > 0) {
+      subtotal = subFunctions.reduce((sum, sub) => {
+        const sfGuests = parseInt(sub.guestCount, 10) || 0;
+        const sfRate = (sub.pricePerPlate !== undefined && sub.pricePerPlate !== null && sub.pricePerPlate !== '' && !isNaN(Number(sub.pricePerPlate)))
+          ? parseFloat(sub.pricePerPlate)
+          : defaultPlateRate;
+        return sum + (sfGuests * sfRate);
+      }, 0);
+    } else {
+      subtotal = (parseInt(event.guestCount, 10) || totalGuests) * defaultPlateRate;
+    }
 
     // Automatic Commission Calculation
     // Formula: Commission Amount = Base Amount * Commission % / 100

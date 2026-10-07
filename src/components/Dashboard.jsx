@@ -12,6 +12,7 @@ const Dashboard = ({ setActiveTab }) => {
   const [displayYear, setDisplayYear] = React.useState(new Date().getFullYear());
   const [dashMonthFilter, setDashMonthFilter] = React.useState('all');
   const [dashYearFilter, setDashYearFilter] = React.useState('all');
+  const [dashSalesExecFilter, setDashSalesExecFilter] = React.useState('all');
   const [dashGroupByMonth, setDashGroupByMonth] = React.useState(true);
 
   const handleDayClick = (cd) => {
@@ -94,6 +95,17 @@ const Dashboard = ({ setActiveTab }) => {
     return Array.from(years).sort((a, b) => b - a);
   }, [events]);
 
+  const availableSalesExecs = React.useMemo(() => {
+    const execs = new Set();
+    events.forEach(e => {
+      const name = e.createdByName || e.salesExecutive || e.createdBy;
+      if (name && typeof name === 'string' && name.trim()) {
+        execs.add(name.trim());
+      }
+    });
+    return Array.from(execs).sort();
+  }, [events]);
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -111,6 +123,10 @@ const Dashboard = ({ setActiveTab }) => {
           const allD = [e.date, ...(e.dates || [])].filter(Boolean);
           const hasMo = allD.some(d => new Date(d).getMonth().toString() === dashMonthFilter.toString());
           if (!hasMo) return false;
+        }
+        if (dashSalesExecFilter !== 'all') {
+          const exec = (e.createdByName || e.salesExecutive || e.createdBy || '').toLowerCase();
+          if (exec !== dashSalesExecFilter.toLowerCase()) return false;
         }
         return true;
       }).sort((a, b) => {
@@ -411,6 +427,19 @@ const Dashboard = ({ setActiveTab }) => {
                       ))}
                     </select>
 
+                    {/* Sales Executive Filter */}
+                    <select
+                      className="form-select"
+                      value={dashSalesExecFilter}
+                      onChange={e => setDashSalesExecFilter(e.target.value)}
+                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minWidth: '130px', background: 'var(--bg-card)' }}
+                    >
+                      <option value="all">All Executives</option>
+                      {availableSalesExecs.map(exec => (
+                        <option key={exec} value={exec}>{exec}</option>
+                      ))}
+                    </select>
+
                     {/* Group Toggle */}
                     <button
                       type="button"
@@ -444,6 +473,7 @@ const Dashboard = ({ setActiveTab }) => {
                     <th>Event Type</th>
                     <th>Venue</th>
                     <th>Schedule Dates</th>
+                    <th>Booked By</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -452,7 +482,7 @@ const Dashboard = ({ setActiveTab }) => {
                     groupedDashboardEvents.map(grp => (
                       <React.Fragment key={grp.key}>
                         <tr style={{ background: 'rgba(156, 21, 25, 0.08)' }}>
-                          <td colSpan="6" style={{ fontWeight: 700, color: 'var(--color-primary)', padding: '0.55rem 0.8rem', fontSize: '0.88rem' }}>
+                          <td colSpan="7" style={{ fontWeight: 700, color: 'var(--color-primary)', padding: '0.55rem 0.8rem', fontSize: '0.88rem' }}>
                             📅 {grp.label} ({grp.events.length} Bookings)
                           </td>
                         </tr>
@@ -472,6 +502,9 @@ const Dashboard = ({ setActiveTab }) => {
                                   {e.dates.length} Days Multi-Date
                                 </div>
                               )}
+                            </td>
+                            <td style={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                              {e.createdByName || e.salesExecutive || e.createdBy || 'Direct'}
                             </td>
                             <td>{renderStatusBadge(e.status)}</td>
                           </tr>
@@ -496,13 +529,16 @@ const Dashboard = ({ setActiveTab }) => {
                             </div>
                           )}
                         </td>
+                        <td style={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                          {e.createdByName || e.salesExecutive || e.createdBy || 'Direct'}
+                        </td>
                         <td>{renderStatusBadge(e.status)}</td>
                       </tr>
                     ))
                   )}
                   {filteredEvents.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                         No events scheduled matching this filter.
                       </td>
                     </tr>
