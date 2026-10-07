@@ -22,8 +22,25 @@ const EventBooking = () => {
     deleteEvent,
     deduplicateEvents,
     venues,
-    companyProfile
+    companyProfile,
+    dishes = []
   } = useContext(AppContext);
+
+  const ADDON_CATEGORIES = [
+    'Breakfast',
+    'Welcome Drinks & Starters',
+    'Lunch',
+    'Evening Snacks',
+    "Welcome Drink & Bit's",
+    'Chats',
+    'Mexican Items',
+    'Dinner',
+    'Cut Fruits',
+    'Ice Cream',
+    'Pan',
+    'Water Bottle',
+    'Tambula'
+  ];
 
   // Modal & Selection States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,6 +76,7 @@ const EventBooking = () => {
   const [subFunctionsList, setSubFunctionsList] = useState([
     { name: '', date: '', startTime: '', endTime: '', guestCount: '', pricePerPlate: '', menuItems: [], clientNotes: '' }
   ]);
+  const [addonsList, setAddonsList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reminder form states (for active event)
@@ -236,7 +254,8 @@ const EventBooking = () => {
       dates: allDates,
       newDateToAdd: '',
       status: selectedEvent.status || 'Inquiry',
-      subFunctions: JSON.parse(JSON.stringify(selectedEvent.subFunctions || []))
+      subFunctions: JSON.parse(JSON.stringify(selectedEvent.subFunctions || [])),
+      addons: JSON.parse(JSON.stringify(selectedEvent.addons || []))
     });
   };
 
@@ -292,6 +311,20 @@ const EventBooking = () => {
         pricePerPlate: (sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '') ? parseFloat(sf.pricePerPlate) : (parseFloat(selectedEvent.billing?.pricePerPlate || selectedEvent.pricePerPlate) || 800),
         instructions: sf.instructions || sf.clientNotes || '',
         clientNotes: sf.clientNotes || sf.instructions || ''
+      })),
+      addons: (editDraft.addons || []).map((ad, idx) => ({
+        id: ad.id || `addon-${Date.now()}-${idx}`,
+        category: ad.category || 'Welcome Drinks & Starters',
+        name: (ad.item || ad.name || '').trim(),
+        item: (ad.item || ad.name || '').trim(),
+        quantity: Number(ad.quantity || ad.pax || 0),
+        pax: Number(ad.pax || ad.quantity || 0),
+        useEventPax: !!ad.useEventPax,
+        appliesTo: ad.appliesTo || 'All Event',
+        subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
+        rate: Number(ad.rate || ad.price || 0),
+        price: Number(ad.price || ad.rate || 0),
+        notes: (ad.notes || '').trim()
       }))
     };
     await updateEvent(updated);
@@ -395,6 +428,20 @@ const EventBooking = () => {
           menuItems: sf.menuItems || [],
           clientNotes: sf.clientNotes || '',
           instructions: sf.instructions || sf.clientNotes || ''
+        })),
+        addons: addonsList.map((ad, idx) => ({
+          id: ad.id || `addon-${Date.now()}-${idx}`,
+          category: ad.category || 'Welcome Drinks & Starters',
+          name: (ad.item || ad.name || '').trim(),
+          item: (ad.item || ad.name || '').trim(),
+          quantity: Number(ad.quantity || ad.pax || 0),
+          pax: Number(ad.pax || ad.quantity || 0),
+          useEventPax: !!ad.useEventPax,
+          appliesTo: ad.appliesTo || 'All Event',
+          subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
+          rate: Number(ad.rate || ad.price || 0),
+          price: Number(ad.price || ad.rate || 0),
+          notes: (ad.notes || '').trim()
         }))
       };
 
@@ -414,6 +461,7 @@ const EventBooking = () => {
       setPricePerPlate('');
       setCommissionRate('');
       setSubFunctionsList([{ name: '', date: '', guestCount: '', menuItems: [], clientNotes: '' }]);
+      setAddonsList([]);
       setShowCreateModal(false);
       if (newId) setSelectedEventId(newId);
     } catch (err) {
@@ -436,6 +484,61 @@ const EventBooking = () => {
     setSubFunctionsList(subFunctionsList.map((sf, idx) => 
       idx === index ? { ...sf, [field]: value } : sf
     ));
+  };
+
+  // Add-ons helpers in Create Modal
+  const handleAddAddonToCreation = () => {
+    const totalEventPax = subFunctionsList.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+    const newAddon = {
+      id: `addon-${Date.now()}-${addonsList.length}`,
+      category: 'Welcome Drinks & Starters',
+      item: '',
+      quantity: totalEventPax,
+      pax: totalEventPax,
+      useEventPax: false,
+      appliesTo: 'All Event',
+      subFunctionName: 'All Event',
+      rate: 0,
+      price: 0,
+      notes: ''
+    };
+    setAddonsList(prev => [...prev, newAddon]);
+  };
+
+  const removeCreationAddon = (index) => {
+    setAddonsList(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const updateCreationAddon = (index, field, value) => {
+    setAddonsList(prev => prev.map((item, idx) => {
+      if (idx !== index) return item;
+      if (field === 'useEventPax') {
+        const totalEventPax = subFunctionsList.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+        return {
+          ...item,
+          useEventPax: value,
+          quantity: value ? totalEventPax : item.quantity,
+          pax: value ? totalEventPax : item.pax
+        };
+      }
+      if (field === 'quantity') {
+        const numVal = parseInt(value, 10) || 0;
+        return {
+          ...item,
+          quantity: numVal,
+          pax: numVal,
+          useEventPax: false
+        };
+      }
+      if (field === 'appliesTo') {
+        return {
+          ...item,
+          appliesTo: value,
+          subFunctionName: value
+        };
+      }
+      return { ...item, [field]: value };
+    }));
   };
 
   // Reminder Actions for Selected Event
@@ -1309,6 +1412,200 @@ const EventBooking = () => {
                 )}
               </div>
 
+              {/* Add-ons Section */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Configured Add-ons ({editDraft ? editDraft.addons?.length || 0 : selectedEvent.addons?.length || 0})
+                    </h3>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Additional offerings, services, and live counters</div>
+                  </div>
+                  {editDraft && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => {
+                        const totalPax = (editDraft.subFunctions || []).reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+                        const newAddon = {
+                          id: `addon-${Date.now()}-${(editDraft.addons || []).length}`,
+                          category: 'Welcome Drinks & Starters',
+                          item: '',
+                          quantity: totalPax,
+                          pax: totalPax,
+                          useEventPax: false,
+                          appliesTo: 'All Event',
+                          subFunctionName: 'All Event',
+                          rate: 0,
+                          price: 0,
+                          notes: ''
+                        };
+                        setEditDraft(d => ({ ...d, addons: [...(d.addons || []), newAddon] }));
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      <Plus size={12} /> Add Add-on
+                    </button>
+                  )}
+                </div>
+
+                {editDraft ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {(editDraft.addons || []).map((addon, idx) => {
+                      const totalPax = (editDraft.subFunctions || []).reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+                      return (
+                        <div key={addon.id || idx} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.75)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr auto', gap: '0.4rem', alignItems: 'center' }}>
+                            <select
+                              className="form-input"
+                              value={addon.category}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setEditDraft(d => ({
+                                  ...d,
+                                  addons: d.addons.map((item, i) => i === idx ? { ...item, category: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                            >
+                              {ADDON_CATEGORIES.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+
+                            <input
+                              className="form-input"
+                              placeholder="Item / Details (e.g. Vanilla Ice Cream)"
+                              list="dishes-datalist"
+                              value={addon.item || addon.name || ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setEditDraft(d => ({
+                                  ...d,
+                                  addons: d.addons.map((item, i) => i === idx ? { ...item, item: val, name: val } : item)
+                                }));
+                              }}
+                              style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                            />
+
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-small"
+                              onClick={() => {
+                                setEditDraft(d => ({
+                                  ...d,
+                                  addons: d.addons.filter((_, i) => i !== idx)
+                                }));
+                              }}
+                              style={{ padding: '0.25rem 0.4rem' }}
+                              title="Remove Add-on"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: '0.4rem', alignItems: 'center' }}>
+                            <div>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Applies to</label>
+                              <select
+                                className="form-input"
+                                value={addon.appliesTo || 'All Event'}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setEditDraft(d => ({
+                                    ...d,
+                                    addons: d.addons.map((item, i) => i === idx ? { ...item, appliesTo: val, subFunctionName: val } : item)
+                                  }));
+                                }}
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              >
+                                <option value="All Event">All Event (Overall Event)</option>
+                                {(editDraft.subFunctions || []).map((sf, sfIdx) => (
+                                  <option key={sf.id || sfIdx} value={sf.name || `Session ${sfIdx + 1}`}>
+                                    {sf.name || `Session ${sfIdx + 1}`} ({sf.guestCount || 0} Pax)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.15rem' }}>Quantity / PAX</label>
+                              <input
+                                type="number"
+                                min="0"
+                                className="form-input"
+                                placeholder="Quantity / PAX"
+                                value={addon.quantity !== undefined ? addon.quantity : addon.pax}
+                                onChange={e => {
+                                  const numVal = parseInt(e.target.value, 10) || 0;
+                                  setEditDraft(d => ({
+                                    ...d,
+                                    addons: d.addons.map((item, i) => i === idx ? { ...item, quantity: numVal, pax: numVal, useEventPax: false } : item)
+                                  }));
+                                }}
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              />
+                            </div>
+
+                            <div style={{ paddingTop: '1.1rem' }}>
+                              <button
+                                type="button"
+                                className={`btn btn-small ${addon.useEventPax ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => {
+                                  const nextVal = !addon.useEventPax;
+                                  setEditDraft(d => ({
+                                    ...d,
+                                    addons: d.addons.map((item, i) => i === idx ? {
+                                      ...item,
+                                      useEventPax: nextVal,
+                                      quantity: nextVal ? totalPax : item.quantity,
+                                      pax: nextVal ? totalPax : item.pax
+                                    } : item)
+                                  }));
+                                }}
+                                title={`Set to Total Event Headcount (${totalPax})`}
+                                style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', whiteSpace: 'nowrap' }}
+                              >
+                                {addon.useEventPax ? '✓ Event PAX' : 'Use Event PAX'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(!editDraft.addons || editDraft.addons.length === 0) && (
+                      <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', fontStyle: 'italic' }}>
+                        No add-ons attached yet. Click "+ Add Add-on" to add water bottles, ice creams, chats, welcome drinks, etc.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {(selectedEvent.addons && selectedEvent.addons.length > 0) ? (
+                      selectedEvent.addons.map(ad => (
+                        <div key={ad.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.55)' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <span className="badge badge-purple" style={{ fontWeight: 600, fontSize: '0.72rem' }}>{ad.category}</span>
+                              <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{ad.item || ad.name || 'Unnamed Add-on'}</span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.2rem' }}>
+                              <span>Applies to: <strong>{ad.appliesTo || 'All Event'}</strong></span>
+                              {ad.rate > 0 && <span>Rate: ₹{ad.rate}</span>}
+                            </div>
+                          </div>
+                          <span className="badge badge-info">{ad.quantity !== undefined ? ad.quantity : ad.pax} {ad.category === 'Water Bottle' ? 'Units' : 'Pax'}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', fontStyle: 'italic' }}>
+                        No add-ons configured for this event.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Reminders & Follow-up Section (Enquiry and Booking Reminders) */}
               <div style={{ padding: '1rem', background: selectedEvent.status === 'Inquiry' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(255,255,255,0.02)', border: selectedEvent.status === 'Inquiry' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid var(--border-color)', borderRadius: '10px', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -1724,6 +2021,112 @@ const EventBooking = () => {
                 </div>
               </div>
 
+              {/* Add-ons builder */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)', marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Add-ons ({addonsList.length})
+                    </h4>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Additional offerings, services, and live counters</div>
+                  </div>
+                  <button type="button" className="btn btn-secondary btn-small" onClick={handleAddAddonToCreation} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
+                    <Plus size={12} /> + Add Add-on
+                  </button>
+                </div>
+
+                {addonsList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '0.85rem', fontSize: '0.78rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', fontStyle: 'italic' }}>
+                    No add-ons added yet. Click "+ Add Add-on" to configure welcome drinks, ice creams, chats, water bottles, etc.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', maxHeight: '180px', overflowY: 'auto' }}>
+                    {addonsList.map((addon, index) => {
+                      const totalEventPax = subFunctionsList.reduce((acc, sf) => acc + (parseInt(sf.guestCount, 10) || 0), 0) || 100;
+                      return (
+                        <div key={addon.id || index} style={{ padding: '0.65rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.85)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr auto', gap: '0.4rem', alignItems: 'center' }}>
+                            <select
+                              className="form-input"
+                              value={addon.category}
+                              onChange={e => updateCreationAddon(index, 'category', e.target.value)}
+                              style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
+                            >
+                              {ADDON_CATEGORIES.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+
+                            <input
+                              className="form-input"
+                              placeholder="Item / Details (e.g. Fresh Lime Juice)"
+                              list="dishes-datalist"
+                              value={addon.item || addon.name || ''}
+                              onChange={e => updateCreationAddon(index, 'item', e.target.value)}
+                              style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
+                            />
+
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-small"
+                              onClick={() => removeCreationAddon(index)}
+                              style={{ padding: '0.3rem 0.45rem' }}
+                              title="Remove Add-on"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: '0.4rem', alignItems: 'center' }}>
+                            <div>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Applies to</label>
+                              <select
+                                className="form-input"
+                                value={addon.appliesTo || 'All Event'}
+                                onChange={e => updateCreationAddon(index, 'appliesTo', e.target.value)}
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              >
+                                <option value="All Event">All Event (Overall Event)</option>
+                                {subFunctionsList.map((sf, sfIdx) => (
+                                  <option key={sf.id || sfIdx} value={sf.name || `Session ${sfIdx + 1}`}>
+                                    {sf.name || `Session ${sfIdx + 1}`} ({sf.guestCount || 0} Pax)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Quantity / PAX</label>
+                              <input
+                                type="number"
+                                min="0"
+                                className="form-input"
+                                placeholder="Quantity / PAX"
+                                value={addon.quantity !== undefined ? addon.quantity : addon.pax}
+                                onChange={e => updateCreationAddon(index, 'quantity', e.target.value)}
+                                style={{ fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                              />
+                            </div>
+
+                            <div style={{ paddingTop: '1rem' }}>
+                              <button
+                                type="button"
+                                className={`btn btn-small ${addon.useEventPax ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => updateCreationAddon(index, 'useEventPax', !addon.useEventPax)}
+                                title={`Sync with Event PAX (${totalEventPax})`}
+                                style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', whiteSpace: 'nowrap' }}
+                              >
+                                {addon.useEventPax ? '✓ Event PAX' : 'Use Event PAX'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Event Instructions / Directives */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontWeight: 600 }}>Special Event Instructions & Directives</label>
@@ -1748,6 +2151,15 @@ const EventBooking = () => {
           </form>
         </div>
       )}
+
+      {/* Database-driven dishes auto-complete datalist */}
+      <datalist id="dishes-datalist">
+        {(dishes || []).map((d, i) => (
+          <option key={d.id || d._id || i} value={d.name}>
+            {d.category ? `[${d.category}] ` : ''}{d.name}
+          </option>
+        ))}
+      </datalist>
 
     </div>
   );

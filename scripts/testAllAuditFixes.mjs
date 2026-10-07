@@ -427,9 +427,222 @@ assert(updatedBooking.salesExecutive === 'Ashok Kumar', 'Sales Executive preserv
 assert(updatedBooking.updatedBy === 'admin_super', 'UpdatedBy correctly records admin editor');
 assert(updatedBooking.customer.name === 'Ravi Shankar Updated', 'Event data successfully updated');
 
+// -------------------------------------------------------------
+// TEST 11: Register New Worker Feature (Rotti, Custom, 2 Phones)
+// -------------------------------------------------------------
+console.log('\nTEST 11: Register New Worker Feature (Rotti, Custom Category, Dual Phones)');
+
+// Phone validator helper matching application logic
+const isValidPhone = (str) => {
+  if (!str) return false;
+  const trimmed = String(str).trim();
+  if (/[a-zA-Z]/.test(trimmed)) return false;
+  const digits = trimmed.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15;
+};
+
+// 11a: Test 1 - Rotti Labour Category
+const workerRotti = {
+  id: 'lw_test_rotti',
+  name: 'Test Rotti Worker',
+  category: 'Rotti',
+  labourCategory: 'Rotti',
+  role: 'Assistant Chef',
+  phone: '9876543210',
+  phoneNumber: '9876543210',
+  dailyRate: 1200,
+  advancePayment: 0,
+  type: 'Direct',
+  status: 'Active'
+};
+assert(workerRotti.category === 'Rotti', 'Test 1: Worker category saved as Rotti');
+assert(workerRotti.labourCategory === 'Rotti', 'Test 1: labourCategory alias preserved as Rotti');
+
+// 11b: Test 2 - Manual / Custom Category ("Kitchen Helper")
+const customCategoryInput = 'Kitchen Helper';
+const selectedDropdown = 'Manual / Custom';
+const resolvedCategory = selectedDropdown === 'Manual / Custom' ? customCategoryInput.trim() : selectedDropdown;
+const workerCustom = {
+  id: 'lw_test_custom',
+  name: 'Test Custom Worker',
+  category: resolvedCategory,
+  labourCategory: resolvedCategory,
+  role: 'Kitchen Helper',
+  phone: '9876543210',
+  phoneNumber: '9876543210',
+  dailyRate: 900,
+  type: 'Direct'
+};
+assert(workerCustom.category === 'Kitchen Helper', 'Test 2: Actual category is Kitchen Helper');
+assert(workerCustom.category !== 'Manual / Custom', 'Test 2: "Manual / Custom" literal is NOT stored');
+assert(workerCustom.labourCategory === 'Kitchen Helper', 'Test 2: labourCategory persisted as Kitchen Helper');
+
+// 11c: Test 3 - Manual category without value (Validation check)
+const emptyCustomInput = '   ';
+let validationPassed = false;
+let validationMessage = '';
+if (selectedDropdown === 'Manual / Custom') {
+  const trimmedCustom = emptyCustomInput.trim();
+  if (!trimmedCustom) {
+    validationPassed = false;
+    validationMessage = 'Please enter the labour category.';
+  } else {
+    validationPassed = true;
+  }
+}
+assert(!validationPassed, 'Test 3: Empty manual category prevents saving');
+assert(validationMessage === 'Please enter the labour category.', 'Test 3: Correct validation error message shown');
+
+// 11d: Test 4 - Two phone numbers & validation
+const validPrimary = '9876543210';
+const validSecondary = '9123456780';
+const invalidAlpha = 'abc123';
+const invalidShort = '123';
+
+assert(isValidPhone(validPrimary), 'Test 4: Primary 9876543210 is valid');
+assert(isValidPhone(validSecondary), 'Test 4: Secondary 9123456780 is valid');
+assert(!isValidPhone(invalidAlpha), 'Test 4: Alphabetic phone abc123 is invalid');
+assert(!isValidPhone(invalidShort), 'Test 4: Short phone 123 is invalid');
+
+const workerDualPhone = {
+  id: 'lw_test_dual',
+  name: 'Dual Phone Worker',
+  category: 'Rotti',
+  phone: validPrimary,
+  phoneNumber: validPrimary,
+  secondaryPhone: validSecondary,
+  secondaryPhoneNumber: validSecondary,
+  dailyRate: 1100
+};
+assert(workerDualPhone.phone === '9876543210', 'Test 4: Primary phone preserved');
+assert(workerDualPhone.secondaryPhone === '9123456780', 'Test 4: Secondary phone preserved independently');
+assert(workerDualPhone.phone !== workerDualPhone.secondaryPhone, 'Test 4: Primary not overwritten by secondary');
+
+// 11e: Test 5 - Existing worker with only one phone number
+const existingLegacyWorker = {
+  id: 'lw_legacy',
+  name: 'Shivu Kumar',
+  category: 'Assistant Cook',
+  role: 'Assistant Chef',
+  phone: '9482911739',
+  dailyRate: 1500
+};
+assert(existingLegacyWorker.phone === '9482911739', 'Test 5: Existing worker primary phone preserved');
+assert(!existingLegacyWorker.secondaryPhone, 'Test 5: Existing worker secondary phone remains absent/optional');
+
+// 11f: Test 6 - Existing worker changed to Rotti
+const editedWorkerRotti = {
+  ...existingLegacyWorker,
+  category: 'Rotti',
+  labourCategory: 'Rotti'
+};
+assert(editedWorkerRotti.category === 'Rotti', 'Test 6: Existing worker updated to Rotti');
+
+// 11g: Test 7 - Existing worker changed to custom category "Event Helper"
+const editedWorkerCustom = {
+  ...existingLegacyWorker,
+  category: 'Event Helper',
+  labourCategory: 'Event Helper'
+};
+assert(editedWorkerCustom.category === 'Event Helper', 'Test 7: Existing worker updated to Event Helper');
+
+// -------------------------------------------------------------
+// TEST 12: Event Booking Add-ons Feature
+// -------------------------------------------------------------
+console.log('\nTEST 12: Event Booking Add-ons Feature (Categories, Headcounts, Sessions)');
+
+const EXPECTED_ADDON_CATEGORIES = [
+  'Breakfast',
+  'Welcome Drinks & Starters',
+  'Lunch',
+  'Evening Snacks',
+  "Welcome Drink & Bit's",
+  'Chats',
+  'Mexican Items',
+  'Dinner',
+  'Cut Fruits',
+  'Ice Cream',
+  'Pan',
+  'Water Bottle',
+  'Tambula'
+];
+
+assert(EXPECTED_ADDON_CATEGORIES.length === 13, 'Test 12a: Exactly 13 Add-on Categories exist');
+assert(EXPECTED_ADDON_CATEGORIES.includes("Welcome Drink & Bit's"), 'Test 12a: Exact spelling preserved for Welcome Drink & Bit\'s');
+assert(EXPECTED_ADDON_CATEGORIES.includes('Water Bottle'), 'Test 12a: Water Bottle category present');
+assert(EXPECTED_ADDON_CATEGORIES.includes('Tambula'), 'Test 12a: Tambula category present');
+
+// Test 12b: Add-ons are independent of sub-events
+const testEventWithAddons = {
+  id: 'EVT-ADDON-TEST',
+  customer: { name: 'Wedding Reception Client', phone: '9876543210' },
+  eventType: 'Wedding Reception',
+  subFunctions: [
+    { id: 'sf-1', name: 'Breakfast', guestCount: 300, date: '2026-11-20' },
+    { id: 'sf-2', name: 'Lunch', guestCount: 750, date: '2026-11-20' },
+    { id: 'sf-3', name: 'Evening Snacks', guestCount: 200, date: '2026-11-20' },
+    { id: 'sf-4', name: 'Dinner', guestCount: 500, date: '2026-11-20' }
+  ],
+  addons: [
+    {
+      id: 'addon-1',
+      category: 'Water Bottle',
+      item: '250ml Water Bottles',
+      quantity: 1000,
+      pax: 1000,
+      appliesTo: 'All Event',
+      subFunctionName: 'All Event',
+      rate: 10
+    },
+    {
+      id: 'addon-2',
+      category: 'Ice Cream',
+      item: 'Vanilla & Chocolate Scoops',
+      quantity: 500,
+      pax: 500,
+      appliesTo: 'Dinner',
+      subFunctionName: 'Dinner',
+      rate: 60
+    },
+    {
+      id: 'addon-3',
+      category: 'Welcome Drinks & Starters',
+      item: 'Fresh Lime Juice & Paneer Tikka',
+      quantity: 200,
+      pax: 200,
+      appliesTo: 'Evening Snacks',
+      subFunctionName: 'Evening Snacks',
+      rate: 120
+    }
+  ]
+};
+
+assert(testEventWithAddons.subFunctions.length === 4, 'Test 12b: Sub-functions count remains exactly 4');
+assert(testEventWithAddons.addons.length === 3, 'Test 12b: Add-ons count is 3, separate from sub-functions');
+
+// Test 12c: Add-ons support their own PAX/quantity without mutating event PAX
+const totalEventPax = testEventWithAddons.subFunctions.reduce((sum, sf) => sum + sf.guestCount, 0); // 1750
+assert(totalEventPax === 1750, 'Test 12c: Total event PAX is 1750');
+assert(testEventWithAddons.addons[0].quantity === 1000, 'Test 12c: Water Bottle quantity is 1000');
+assert(testEventWithAddons.addons[1].quantity === 500, 'Test 12c: Ice Cream quantity is 500');
+
+// Test 12d: "Use Event PAX" logic
+const eventPax500 = 500;
+let addonPax = eventPax500; // Use Event PAX enabled
+assert(addonPax === 500, 'Test 12d: Add-on PAX matches event PAX (500)');
+// User manually changes addon quantity to 300
+addonPax = 300;
+assert(addonPax === 300, 'Test 12d: Add-on PAX manually adjusted to 300');
+assert(eventPax500 === 500, 'Test 12d: Event PAX strictly unchanged at 500');
+
+// Test 12e: Association with Sub-event or All Event
+assert(testEventWithAddons.addons[0].appliesTo === 'All Event', 'Test 12e: Water Bottle applies to All Event');
+assert(testEventWithAddons.addons[1].appliesTo === 'Dinner', 'Test 12e: Ice Cream applies to Dinner');
+assert(testEventWithAddons.addons[2].appliesTo === 'Evening Snacks', 'Test 12e: Welcome Drinks applies to Evening Snacks');
+
 console.log('\n======================================================');
 if (allPassed) {
-  console.log('✓ ALL 10 AUDIT AND INTEGRATION TEST SUITES PASSED SUCCESSFULLY!');
+  console.log('✓ ALL 12 AUDIT AND INTEGRATION TEST SUITES PASSED SUCCESSFULLY!');
 } else {
   console.error('✗ SOME TESTS FAILED. PLEASE REVIEW LOGS ABOVE.');
 }

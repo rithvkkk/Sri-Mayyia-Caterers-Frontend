@@ -347,8 +347,16 @@ export const AppProvider = ({ children }) => {
   const [dishes, setDishes] = useState(() => getSafeLocal('cater_dishes', initialDishes));
   const [laborRates, setLaborRates] = useState(() => getSafeLocal('cater_labor_rates', initialLaborRates));
   const [menuCategories, setMenuCategories] = useState(() => getSafeLocal('cater_menu_categories', initialMenuCategories));
-  const [vendorCategories, setVendorCategories] = useState(() => getSafeLocal('cater_vendor_categories', initialVendorCategories));
-  const [labourCategories, setLabourCategories] = useState(() => getSafeLocal('cater_labour_categories', initialLabourCategories));
+  const [labourCategories, setLabourCategories] = useState(() => {
+    const loaded = getSafeLocal('cater_labour_categories', initialLabourCategories);
+    if (Array.isArray(loaded)) {
+      const hasRotti = loaded.some(c => (typeof c === 'string' ? c : c?.name)?.toLowerCase() === 'rotti');
+      if (!hasRotti) {
+        return [...loaded, { id: 'lc_12', name: 'Rotti', active: true }];
+      }
+    }
+    return loaded;
+  });
 
   const masterMenuCategories = useMemo(() => {
     return (menuCategories || []).filter(c => c.type !== 'LIVE_STATION');
@@ -1035,7 +1043,19 @@ export const AppProvider = ({ children }) => {
 
   // Labour Worker Actions
   const addLabourWorker = async (lw) => {
-    const payload = { ...lw, id: lw.id || ('lw_' + Date.now()) };
+    const cat = lw.category || lw.labourCategory || 'Head Cook';
+    const primaryPh = lw.phone || lw.phoneNumber || '';
+    const secondaryPh = lw.secondaryPhone || lw.secondaryPhoneNumber || '';
+    const payload = {
+      ...lw,
+      id: lw.id || ('lw_' + Date.now()),
+      category: cat,
+      labourCategory: cat,
+      phone: primaryPh,
+      phoneNumber: primaryPh,
+      secondaryPhone: secondaryPh,
+      secondaryPhoneNumber: secondaryPh
+    };
     setLabourWorkers(prev => [...prev, payload]);
     const res = await apiCall('/labour-workers', { method: 'POST', body: JSON.stringify(payload) });
     if (res) setLabourWorkers(prev => prev.map(w => w.id === payload.id ? res : w));
@@ -1043,8 +1063,20 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateLabourWorker = async (updated) => {
-    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? updated : w));
-    const res = await apiCall(`/labour-workers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    const cat = updated.category || updated.labourCategory || 'Head Cook';
+    const primaryPh = updated.phone || updated.phoneNumber || '';
+    const secondaryPh = updated.secondaryPhone || updated.secondaryPhoneNumber || '';
+    const payload = {
+      ...updated,
+      category: cat,
+      labourCategory: cat,
+      phone: primaryPh,
+      phoneNumber: primaryPh,
+      secondaryPhone: secondaryPh,
+      secondaryPhoneNumber: secondaryPh
+    };
+    setLabourWorkers(prev => prev.map(w => w.id === updated.id ? payload : w));
+    const res = await apiCall(`/labour-workers/${updated.id}`, { method: 'PUT', body: JSON.stringify(payload) });
     if (res) setLabourWorkers(prev => prev.map(w => w.id === updated.id ? res : w));
   };
 
@@ -1282,6 +1314,21 @@ export const AppProvider = ({ children }) => {
           instructions: sf.instructions || sf.clientNotes || ''
         };
       }),
+      addons: (eventDetails.addons || []).map((ad, idx) => ({
+        id: ad.id || `addon-${Date.now()}-${idx}`,
+        category: ad.category || 'Welcome Drinks & Starters',
+        name: ad.name || ad.item || '',
+        item: ad.item || ad.name || '',
+        quantity: Number(ad.quantity || ad.pax || 0),
+        pax: Number(ad.pax || ad.quantity || 0),
+        useEventPax: !!ad.useEventPax,
+        appliesTo: ad.appliesTo || 'All Event',
+        subFunctionId: ad.subFunctionId || '',
+        subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
+        rate: Number(ad.rate || ad.price || 0),
+        price: Number(ad.price || ad.rate || 0),
+        notes: ad.notes || ''
+      })),
       manualMaterials: eventDetails.manualMaterials || [],
       transport: eventDetails.transport || {
         vehicles: [],
@@ -1388,6 +1435,26 @@ export const AppProvider = ({ children }) => {
           ? Number(sf.pricePerPlate)
           : undefined
       }));
+    }
+
+    if (updatedEvent.addons !== undefined) {
+      updatedEvent.addons = (updatedEvent.addons || []).map((ad, idx) => ({
+        id: ad.id || `addon-${Date.now()}-${idx}`,
+        category: ad.category || 'Welcome Drinks & Starters',
+        name: ad.name || ad.item || '',
+        item: ad.item || ad.name || '',
+        quantity: Number(ad.quantity || ad.pax || 0),
+        pax: Number(ad.pax || ad.quantity || 0),
+        useEventPax: !!ad.useEventPax,
+        appliesTo: ad.appliesTo || 'All Event',
+        subFunctionId: ad.subFunctionId || '',
+        subFunctionName: ad.subFunctionName || ad.appliesTo || 'All Event',
+        rate: Number(ad.rate || ad.price || 0),
+        price: Number(ad.price || ad.rate || 0),
+        notes: ad.notes || ''
+      }));
+    } else if (prev && prev.addons) {
+      updatedEvent.addons = prev.addons;
     }
 
     recalculateEventFinances(updatedEvent);

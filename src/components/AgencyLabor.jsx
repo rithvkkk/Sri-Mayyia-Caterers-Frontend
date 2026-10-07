@@ -52,7 +52,7 @@ const AgencyLabor = () => {
     companyProfile
   } = useContext(AppContext);
 
-  const LABOUR_CATEGORIES = [
+  const PREDEFINED_LABOUR_CATEGORIES = [
     'Head Cook',
     'Assistant Cook',
     'Sweet Master',
@@ -63,8 +63,35 @@ const AgencyLabor = () => {
     'Loaders',
     'Cleaners',
     'Ladies Supply',
-    'Coffee Duty'
+    'Coffee Duty',
+    'Rotti'
   ];
+
+  const availableLabourCategories = React.useMemo(() => {
+    const list = [...PREDEFINED_LABOUR_CATEGORIES];
+    if (Array.isArray(labourCategories)) {
+      labourCategories.forEach(c => {
+        const name = typeof c === 'string' ? c : c?.name;
+        if (name && name !== 'Manual / Custom' && !list.includes(name)) {
+          list.push(name);
+        }
+      });
+    }
+    return list;
+  }, [labourCategories]);
+
+  const availableCategoryFilterOptions = React.useMemo(() => {
+    const list = [...availableLabourCategories];
+    if (Array.isArray(labourWorkers)) {
+      labourWorkers.forEach(w => {
+        const cat = w.category || w.labourCategory;
+        if (cat && cat !== 'Manual / Custom' && !list.includes(cat)) {
+          list.push(cat);
+        }
+      });
+    }
+    return list;
+  }, [availableLabourCategories, labourWorkers]);
 
   const [activeSubTab, setActiveSubTab] = useState('directory'); // 'directory' | 'attendance' | 'roster' | 'payouts' | 'agencies'
   
@@ -108,6 +135,11 @@ const AgencyLabor = () => {
   // Worker Modal State
   const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
+  const [selectedCategoryDropdown, setSelectedCategoryDropdown] = useState('Head Cook');
+  const [customLabourCategory, setCustomLabourCategory] = useState('');
+  const [showSecondPhone, setShowSecondPhone] = useState(false);
+  const [secondPhone, setSecondPhone] = useState('');
+  const [workerValidationError, setWorkerValidationError] = useState('');
   const [workerForm, setWorkerForm] = useState({
     name: '',
     role: 'Waiter / Service Staff',
@@ -119,6 +151,63 @@ const AgencyLabor = () => {
     agencyId: 'Direct Hire',
     status: 'Active'
   });
+
+  const handleOpenAddWorker = () => {
+    setEditingWorker(null);
+    setSelectedCategoryDropdown('Head Cook');
+    setCustomLabourCategory('');
+    setShowSecondPhone(false);
+    setSecondPhone('');
+    setWorkerValidationError('');
+    setWorkerForm({
+      name: '',
+      role: 'Waiter / Service Staff',
+      category: 'Head Cook',
+      phone: '',
+      dailyRate: 900,
+      advancePayment: 0,
+      type: 'Direct',
+      agencyId: 'Direct Hire',
+      status: 'Active'
+    });
+    setIsWorkerModalOpen(true);
+  };
+
+  const handleOpenEditWorker = (w) => {
+    setEditingWorker(w);
+    const workerCat = w.category || w.labourCategory || 'Head Cook';
+    const isPredefined = availableLabourCategories.includes(workerCat);
+    if (isPredefined) {
+      setSelectedCategoryDropdown(workerCat);
+      setCustomLabourCategory('');
+    } else {
+      setSelectedCategoryDropdown('Manual / Custom');
+      setCustomLabourCategory(workerCat);
+    }
+
+    const secPh = w.secondaryPhone || w.secondaryPhoneNumber || '';
+    if (secPh) {
+      setShowSecondPhone(true);
+      setSecondPhone(secPh);
+    } else {
+      setShowSecondPhone(false);
+      setSecondPhone('');
+    }
+
+    setWorkerValidationError('');
+    setWorkerForm({
+      name: w.name || '',
+      role: w.role || 'Waiter / Service Staff',
+      category: workerCat,
+      phone: w.phone || w.phoneNumber || '',
+      dailyRate: w.dailyRate !== undefined ? w.dailyRate : 900,
+      advancePayment: w.advancePayment || 0,
+      type: w.type || 'Direct',
+      agencyId: w.agencyId || 'Direct Hire',
+      status: w.status || 'Active'
+    });
+    setIsWorkerModalOpen(true);
+  };
 
   // Agency Modal State
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
@@ -289,13 +378,65 @@ const AgencyLabor = () => {
 
   const formatCurrency = (amt) => `${companyProfile?.currency || '₹'} ${Number(amt || 0).toLocaleString('en-IN')}`;
 
+  const isValidPhone = (str) => {
+    if (!str) return false;
+    const trimmed = String(str).trim();
+    if (/[a-zA-Z]/.test(trimmed)) return false;
+    const digits = trimmed.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15;
+  };
+
   // Worker Submit
   const handleWorkerSubmit = (e) => {
     e.preventDefault();
+    const trimmedName = (workerForm.name || '').trim();
+    if (!trimmedName) {
+      setWorkerValidationError("Please enter the worker's name.");
+      return;
+    }
+
+    const trimmedPhone = (workerForm.phone || '').trim();
+    if (!trimmedPhone) {
+      setWorkerValidationError("Please enter the primary phone number.");
+      return;
+    }
+    if (!isValidPhone(trimmedPhone)) {
+      setWorkerValidationError("Please enter a valid primary phone number (at least 10 digits).");
+      return;
+    }
+
+    let finalCategory = selectedCategoryDropdown;
+    if (selectedCategoryDropdown === 'Manual / Custom') {
+      const trimmedCustom = (customLabourCategory || '').trim();
+      if (!trimmedCustom) {
+        setWorkerValidationError("Please enter the labour category.");
+        return;
+      }
+      finalCategory = trimmedCustom;
+    }
+
+    const trimmedSecondPhone = (secondPhone || '').trim();
+    if (showSecondPhone && trimmedSecondPhone) {
+      if (!isValidPhone(trimmedSecondPhone)) {
+        setWorkerValidationError("Please enter a valid secondary phone number (at least 10 digits).");
+        return;
+      }
+    }
+
+    setWorkerValidationError('');
+
     const payload = {
       ...workerForm,
+      name: trimmedName,
+      category: finalCategory,
+      labourCategory: finalCategory,
+      phone: trimmedPhone,
+      phoneNumber: trimmedPhone,
+      secondaryPhone: (showSecondPhone && trimmedSecondPhone) ? trimmedSecondPhone : '',
+      secondaryPhoneNumber: (showSecondPhone && trimmedSecondPhone) ? trimmedSecondPhone : '',
       dailyRate: Number(workerForm.dailyRate),
-      advancePayment: Number(workerForm.advancePayment || 0)
+      advancePayment: Number(workerForm.advancePayment || 0),
+      initialAdvancePaid: Number(workerForm.advancePayment || 0)
     };
 
     if (editingWorker) {
@@ -306,6 +447,11 @@ const AgencyLabor = () => {
 
     setIsWorkerModalOpen(false);
     setEditingWorker(null);
+    setCustomLabourCategory('');
+    setSecondPhone('');
+    setShowSecondPhone(false);
+    setSelectedCategoryDropdown('Head Cook');
+    setWorkerValidationError('');
     setWorkerForm({
       name: '',
       role: 'Waiter / Service Staff',
@@ -472,13 +618,17 @@ const AgencyLabor = () => {
   // Filtered Workers
   const filteredWorkers = labourWorkers.filter(w => {
     const q = (searchWorkerTerm || '').trim().toLowerCase();
+    const wCat = w.category || w.labourCategory || '';
+    const wPhone = w.phone || w.phoneNumber || '';
+    const wSecPhone = w.secondaryPhone || w.secondaryPhoneNumber || '';
     const matchesSearch = !q ||
       (w.name && w.name.toLowerCase().includes(q)) ||
-      (w.phone && String(w.phone).includes(q)) ||
-      (w.category || '').toLowerCase().includes(q) ||
+      (wPhone && String(wPhone).includes(q)) ||
+      (wSecPhone && String(wSecPhone).includes(q)) ||
+      (wCat && wCat.toLowerCase().includes(q)) ||
       (w.role || '').toLowerCase().includes(q);
     const matchesRole = roleFilter === 'All' || w.role === roleFilter;
-    const matchesCategory = categoryFilter === 'All' || w.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'All' || wCat === categoryFilter;
     return matchesSearch && matchesRole && matchesCategory;
   });
 
@@ -547,7 +697,7 @@ const AgencyLabor = () => {
             </>
           )}
           {activeSubTab === 'directory' && hasWriteAccess && (
-            <button className="btn btn-primary" onClick={() => { setEditingWorker(null); setIsWorkerModalOpen(true); }}>
+            <button className="btn btn-primary" onClick={handleOpenAddWorker}>
               <Plus size={18} />
               <span>Register Worker / Staff</span>
             </button>
@@ -698,7 +848,7 @@ const AgencyLabor = () => {
                   style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
                 >
                   <option value="All">All Categories</option>
-                  {LABOUR_CATEGORIES.map(cat => (
+                  {availableCategoryFilterOptions.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
@@ -748,16 +898,24 @@ const AgencyLabor = () => {
                       </td>
                       <td>
                         <span className="badge badge-purple" style={{ fontWeight: 600, fontSize: '0.74rem' }}>
-                          {w.category || 'General Staff'}
+                          {w.category || w.labourCategory || 'General Staff'}
                         </span>
                       </td>
                       <td>
                         <span className="badge badge-info" style={{ fontWeight: 600 }}>{w.role}</span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem' }}>
-                          <Phone size={14} className="accent-text" />
-                          <span>{w.phone}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem' }}>
+                            <Phone size={14} className="accent-text" />
+                            <span>{w.phone || w.phoneNumber}</span>
+                          </div>
+                          {(w.secondaryPhone || w.secondaryPhoneNumber) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.76rem', color: 'var(--text-secondary)' }} title="Secondary Phone Number">
+                              <Phone size={12} style={{ opacity: 0.65 }} />
+                              <span>{w.secondaryPhone || w.secondaryPhoneNumber}</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -802,7 +960,7 @@ const AgencyLabor = () => {
                             >
                               <IndianRupee size={12} /> Advance
                             </button>
-                            <button className="btn btn-secondary btn-small" onClick={() => { setEditingWorker(w); setWorkerForm(w); setIsWorkerModalOpen(true); }} title="Edit Worker">
+                            <button className="btn btn-secondary btn-small" onClick={() => handleOpenEditWorker(w)} title="Edit Worker">
                               <Edit2 size={14} />
                             </button>
                             <button className="btn btn-secondary btn-small" onClick={() => deleteLabourWorker(w.id)} style={{ color: 'var(--color-danger)' }} title="Delete Worker">
@@ -1366,36 +1524,88 @@ const AgencyLabor = () => {
       {/* MODAL 1: WORKER MODAL */}
       {isWorkerModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card modal-card" style={{ maxWidth: '500px', width: '90%' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>
-              {editingWorker ? 'Edit Worker Profile' : 'Register New Worker'}
-            </h2>
+          <div className="glass-card modal-card" style={{ maxWidth: '560px', width: '92%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700 }}>
+                {editingWorker ? 'Edit Worker Profile' : 'Register New Worker'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsWorkerModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}
+                title="Close"
+              >
+                <LucideX size={20} />
+              </button>
+            </div>
+
+            {workerValidationError && (
+              <div style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.6rem 0.85rem', borderRadius: '6px', fontSize: '0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <AlertTriangle size={16} />
+                <span>{workerValidationError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleWorkerSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Worker Name</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  Worker Name <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Rameshwar Sharma"
                   value={workerForm.name}
-                  onChange={e => setWorkerForm({ ...workerForm, name: e.target.value })}
+                  onChange={e => {
+                    setWorkerForm({ ...workerForm, name: e.target.value });
+                    if (workerValidationError) setWorkerValidationError('');
+                  }}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'flex-start' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Labour Category</label>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Labour Category <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
                   <select
-                    value={workerForm.category || 'Head Cook'}
-                    onChange={e => setWorkerForm({ ...workerForm, category: e.target.value })}
+                    value={selectedCategoryDropdown}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setSelectedCategoryDropdown(val);
+                      if (val !== 'Manual / Custom') {
+                        setCustomLabourCategory('');
+                        setWorkerForm(prev => ({ ...prev, category: val }));
+                      }
+                      if (workerValidationError) setWorkerValidationError('');
+                    }}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                   >
-                    {LABOUR_CATEGORIES.map(cat => (
+                    {availableLabourCategories.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
+                    <option value="Manual / Custom">Manual / Custom</option>
                   </select>
+
+                  {selectedCategoryDropdown === 'Manual / Custom' && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--color-primary)' }}>
+                        Custom Labour Category <span style={{ color: 'var(--color-danger)' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter labour category"
+                        value={customLabourCategory}
+                        onChange={e => {
+                          setCustomLabourCategory(e.target.value);
+                          if (workerValidationError) setWorkerValidationError('');
+                        }}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1411,21 +1621,67 @@ const AgencyLabor = () => {
                     <option value="Waiter / Service Staff">Waiter / Service Staff</option>
                     <option value="Kitchen Helper">Kitchen Helper</option>
                     <option value="Utility Cleaner">Utility Cleaner</option>
+                    {!['Head Chef', 'Assistant Chef', 'Captain/Supervisor', 'Waiter / Service Staff', 'Kitchen Helper', 'Utility Cleaner'].includes(workerForm.role) && (
+                      <option value={workerForm.role}>{workerForm.role}</option>
+                    )}
                   </select>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'flex-start' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Phone Number</label>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Phone Number <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
                   <input
-                    type="text"
+                    type="tel"
                     required
-                    placeholder="+91 98765 43210"
+                    placeholder="e.g. 9876543210"
                     value={workerForm.phone}
-                    onChange={e => setWorkerForm({ ...workerForm, phone: e.target.value })}
+                    onChange={e => {
+                      setWorkerForm({ ...workerForm, phone: e.target.value });
+                      if (workerValidationError) setWorkerValidationError('');
+                    }}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                   />
+
+                  {!showSecondPhone ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => setShowSecondPhone(true)}
+                      style={{ marginTop: '0.45rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.55rem' }}
+                    >
+                      <Plus size={12} /> Add Second Phone Number
+                    </button>
+                  ) : (
+                    <div style={{ marginTop: '0.6rem', padding: '0.5rem', border: '1px dashed var(--border-color)', borderRadius: '6px', background: 'rgba(0,0,0,0.02)' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                        Second Phone Number <span style={{ fontSize: '0.74rem', fontWeight: 400, color: 'var(--text-muted)' }}>(Optional)</span>
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. 9123456780"
+                        value={secondPhone}
+                        onChange={e => {
+                          setSecondPhone(e.target.value);
+                          if (workerValidationError) setWorkerValidationError('');
+                        }}
+                        style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSecondPhone(false);
+                          setSecondPhone('');
+                          if (workerValidationError) setWorkerValidationError('');
+                        }}
+                        style={{ marginTop: '0.35rem', background: 'transparent', border: 'none', color: 'var(--color-danger)', fontSize: '0.75rem', cursor: 'pointer', padding: '0', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      >
+                        <LucideX size={12} /> Remove Second Phone Number
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>

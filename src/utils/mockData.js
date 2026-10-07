@@ -348,7 +348,8 @@ export const initialLabourCategories = [
   { id: 'lc_8', name: 'Loaders', active: true },
   { id: 'lc_9', name: 'Cleaners', active: true },
   { id: 'lc_10', name: 'Ladies Supply', active: true },
-  { id: 'lc_11', name: 'Coffee Duty', active: true }
+  { id: 'lc_11', name: 'Coffee Duty', active: true },
+  { id: 'lc_12', name: 'Rotti', active: true }
 ];
 
 export const initialLabourAttendance = [
