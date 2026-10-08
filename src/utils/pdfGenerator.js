@@ -2747,23 +2747,32 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   }
 
   if (isBaleyele) {
-    // Elegant royal styling on warm parchment cover
+    // Elegant royal styling on warm parchment cover matching the uploaded template
+    // Pre-printed labels on Page 1: "Date:" (ends X=44.7mm, baseline Y=145.2mm) and "Event:" (ends X=48.2mm, baseline Y=159.5mm)
     doc.setFont('times', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(13);
     doc.setTextColor(156, 21, 25);
-    doc.text(displayEventTitle, 105, 142, { align: 'center' });
+    doc.text(coverDateText, 48.0, 145.2);
 
-    doc.setFont('times', 'italic');
-    doc.setFontSize(12.5);
-    doc.setTextColor(184, 134, 11);
-    doc.text(coverDateText, 105, 153, { align: 'center' });
+    let eventLine = displayEventTitle;
+    if (doc.getTextWidth(eventLine) > 135) {
+      doc.setFontSize(11);
+      if (doc.getTextWidth(eventLine) > 135) {
+        eventLine = doc.splitTextToSize(eventLine, 133)[0] + '...';
+      }
+    }
+    doc.text(eventLine, 51.5, 159.5);
 
     const resolvedVenue = resolveEventVenue(event);
     if (resolvedVenue) {
-      doc.setFont('times', 'normal');
+      doc.setFont('times', 'italic');
       doc.setFontSize(10.5);
-      doc.setTextColor(60, 60, 60);
-      doc.text(resolvedVenue, 105, 163, { align: 'center' });
+      doc.setTextColor(90, 90, 90);
+      let venueLine = `Venue: ${resolvedVenue}`;
+      if (doc.getTextWidth(venueLine) > 135) {
+        venueLine = doc.splitTextToSize(venueLine, 133)[0] + '...';
+      }
+      doc.text(venueLine, 51.5, 167.0);
     }
   } else {
     doc.setFont('times', 'bold');
@@ -2780,10 +2789,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     doc.text(displayEventTitle, coverEventX, coverEventY);
   }
 
-  // PAGE 2: COMPANY CREDENTIALS & ACHIEVEMENTS
-  doc.addPage();
-  if (aboutAsset) {
-    doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
+  // If not Baleyele, add Page 2: About / Credentials before menus (Olive and Crimson flow)
+  if (!isBaleyele) {
+    doc.addPage();
+    if (aboutAsset) {
+      doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
+    }
   }
 
   // Helper to map catalog category to clean uppercase header
@@ -2937,10 +2948,10 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setTextColor(...primaryColor);
 
       if (isBaleyele) {
-        // Pre-printed labels on page2_menu_bg.jpg: Occasion (Y=20-24), Date (Y=31-35), Serving (Y=42-46)
-        doc.text(occasionVal || 'BANQUET', 42, 23.5);
-        doc.text(dateText, 32, 34.5);
-        doc.text(servingVal, 39, 45.5);
+        // Dynamic labels above table (Y = 49.0 mm) for Baleyele (table starts at Y = 54.5 mm)
+        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 16.0, 49.0);
+        doc.text(`Date: ${dateText}`, 95.5, 49.0, { align: 'center' });
+        doc.text(`Serving: ${servingVal}`, 196.0, 49.0, { align: 'right' });
       } else {
         // Above the table (Y = 48 mm) for Olive & Crimson
         doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
@@ -2953,14 +2964,15 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFont('times', 'bold');
       doc.setFontSize(11.5);
       doc.setTextColor(...primaryColor);
-      doc.text(`MENU for ${subCleanName}${headerSuffix}`, 94.0, 60.5, { align: 'center' });
+      const titleCenterX = isBaleyele ? 95.5 : 94.0;
+      doc.text(`MENU for ${subCleanName}${headerSuffix}`, titleCenterX, 60.5, { align: 'center' });
 
-      // 3. Pax in Column 3 header: exact number right after "Pax:" (pre-printed label ends at 124.5 mm)
+      // 3. Pax in Column 3 header: exact number right after "Pax:" (pre-printed label ends at 124.7 mm)
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFont('times', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(...primaryColor);
-      const paxX = 128.0;
+      const paxX = isBaleyele ? 127.5 : 128.0;
       doc.text(String(paxCount), paxX, 70.3);
 
       const availableHeight = 270 - 77; // 193 mm
@@ -2974,18 +2986,20 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           doc.setFont('times', 'bold');
           doc.setFontSize(10.5);
           doc.setTextColor(...primaryColor);
-          doc.text(entry.text, centerX, curY, { align: 'center' });
+          const catCenterX = isBaleyele ? 95.5 : centerX;
+          doc.text(entry.text, catCenterX, curY, { align: 'center' });
           curY += stepY;
         } else {
           sessionItemNum++;
-          // Column 1: SL NO (center X = 22.3 mm for Baleyele, 21.05 mm for Olive/Crimson)
-          const slColX = isBaleyele ? 22.3 : 21.05;
+          // Column 1: SL NO (center X = 22.45 mm for Baleyele, 21.05 mm for Olive/Crimson)
+          const slColX = isBaleyele ? 22.45 : 21.05;
           doc.setFont('times', 'bold');
           doc.setFontSize(10);
           doc.setTextColor(...primaryColor);
           doc.text(String(sessionItemNum), slColX, curY, { align: 'center' });
 
-          // Column 2: Item Name (center X = 94.0 mm)
+          // Column 2: Item Name (center X = 95.5 mm for Baleyele, 94.0 mm for others)
+          const itemCenterX = isBaleyele ? 95.5 : centerX;
           doc.setFont('times', 'bold');
           doc.setFontSize(11);
           doc.setTextColor(...navyColor);
@@ -3000,7 +3014,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
             doc.setFontSize(11);
           }
 
-          doc.text(displayName, centerX, curY, { align: 'center' });
+          doc.text(displayName, itemCenterX, curY, { align: 'center' });
           curY += stepY;
         }
       });
@@ -3013,8 +3027,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           doc.setFont('times', 'bold');
           doc.setFontSize(9.5);
           doc.setTextColor(...primaryColor);
-          doc.text(lineObj.text, instColX, instY);
-          instY += 4.2;
+          const wrappedH = doc.splitTextToSize(lineObj.text, instColWidth);
+          wrappedH.forEach(wh => {
+            doc.text(wh, instColX, instY);
+            instY += 4.0;
+          });
+          instY += 0.5;
         } else if (lineObj.type === 'spacer') {
           instY += 2.0;
         } else {
@@ -3041,9 +3059,9 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFontSize(9.5);
       doc.setTextColor(...primaryColor);
       if (isBaleyele) {
-        doc.text(occasionVal || 'BANQUET', 42, 23.5);
-        doc.text(dateText, 32, 34.5);
-        doc.text(servingVal, 39, 45.5);
+        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 16.0, 49.0);
+        doc.text(`Date: ${dateText}`, 95.5, 49.0, { align: 'center' });
+        doc.text(`Serving: ${servingVal}`, 196.0, 49.0, { align: 'right' });
       } else {
         doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
         doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
@@ -3051,11 +3069,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       }
 
       doc.setFontSize(11.5);
-      doc.text(`MENU for ${subCleanName} (CONTD.)`, 94.0, 60.5, { align: 'center' });
+      const contTitleCenterX = isBaleyele ? 95.5 : 94.0;
+      doc.text(`MENU for ${subCleanName} (CONTD.)`, contTitleCenterX, 60.5, { align: 'center' });
 
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFontSize(10.5);
-      const paxX = 128.0;
+      const paxX = isBaleyele ? 127.5 : 128.0;
       doc.text(String(paxCount), paxX, 70.3);
 
       let contInstY = 78.0;
@@ -3065,8 +3084,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           doc.setFont('times', 'bold');
           doc.setFontSize(9.5);
           doc.setTextColor(...primaryColor);
-          doc.text(lineObj.text, instColX, contInstY);
-          contInstY += 4.2;
+          const wrappedH = doc.splitTextToSize(lineObj.text, instColWidth);
+          wrappedH.forEach(wh => {
+            doc.text(wh, instColX, contInstY);
+            contInstY += 4.0;
+          });
+          contInstY += 0.5;
         } else if (lineObj.type === 'spacer') {
           contInstY += 2.0;
         } else {
@@ -3081,13 +3104,21 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     }
   });
 
-  // SECOND-TO-LAST PAGE: SERVICE TERMS
+  // For Baleyele, Company Credentials & Achievements (Page 3 of uploaded template) comes immediately after menu pages
+  if (isBaleyele) {
+    doc.addPage();
+    if (aboutAsset) {
+      doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
+    }
+  }
+
+  // SECOND-TO-LAST PAGE: SERVICE TERMS (Page 4 of uploaded template)
   doc.addPage();
   if (termsAsset) {
     doc.addImage(termsAsset, 'JPEG', 0, 0, pw, ph);
   }
 
-  // LAST PAGE: BACK COVER & HERITAGE
+  // LAST PAGE: BACK COVER & HERITAGE (Page 5 of uploaded template)
   doc.addPage();
   if (backAsset) {
     doc.addImage(backAsset, 'JPEG', 0, 0, pw, ph);
