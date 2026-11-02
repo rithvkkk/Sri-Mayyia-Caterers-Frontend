@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { calculatePdfReport, generateSupplierPO, printPdfBlob, downloadPdfBlob } from '../utils/pdfGenerator';
 import { initialVendorCategories } from '../utils/mockData';
-import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag, ChevronDown, ChevronRight, Layers, Package, IndianRupee, Camera, Image, Upload, AlertCircle } from 'lucide-react';
+import { Store, ShoppingBag, FileText, Download, Eye, X, Plus, Trash2, Save, Share2, Edit2, Check, ShieldAlert, Search, Printer, Tag, ChevronDown, ChevronRight, Layers, Package, IndianRupee, Camera, Image, Upload, AlertCircle, Phone } from 'lucide-react';
 
 const compressImage = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.82, maxOutputBytes = 1.6 * 1024 * 1024) => {
   return new Promise((resolve, reject) => {
@@ -119,7 +119,9 @@ const VendorManagement = () => {
     updateEvent,
     refreshEventTotals,
     uploadCloudImage,
-    vendorCategories = []
+    vendorCategories = [],
+    addVendorCategory,
+    updateVendorCategory
   } = useContext(AppContext);
 
   const vendorCategoriesList = (vendorCategories && vendorCategories.length > 0)
@@ -187,11 +189,16 @@ const VendorManagement = () => {
   // Supplier form modal
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isAddingNewSubCategory, setIsAddingNewSubCategory] = useState(false);
+  const [newSubCategoryName, setNewSubCategoryName] = useState('');
   const [supplierForm, setSupplierForm] = useState({
     name: '',
     category: 'Grocery',
     subCategory: 'Rice & Grains',
     phone: '',
+    secondaryPhone: '',
     address: '',
     status: 'Active',
     notes: ''
@@ -397,6 +404,84 @@ const VendorManagement = () => {
   const selectedCatObj = vendorCategoriesList.find(c => c.name === supplierForm.category);
   const currentSubCategories = selectedCatObj?.subCategories || [];
 
+  const handleCreateCategoryInline = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (e?.stopPropagation) e.stopPropagation();
+    const trimmed = (newCategoryName || '').trim();
+    if (!trimmed) {
+      alert('Please enter a category name');
+      return;
+    }
+    const existing = vendorCategoriesList.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      setSupplierForm(prev => ({
+        ...prev,
+        category: existing.name,
+        subCategory: existing.subCategories?.[0] || ''
+      }));
+      setIsAddingNewCategory(false);
+      setNewCategoryName('');
+      return;
+    }
+    if (addVendorCategory) {
+      await addVendorCategory({
+        name: trimmed,
+        parentCategory: '',
+        subCategories: [],
+        active: true
+      });
+    }
+    setSupplierForm(prev => ({
+      ...prev,
+      category: trimmed,
+      subCategory: ''
+    }));
+    setIsAddingNewCategory(false);
+    setNewCategoryName('');
+  };
+
+  const handleCreateSubCategoryInline = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (e?.stopPropagation) e.stopPropagation();
+    const trimmed = (newSubCategoryName || '').trim();
+    if (!trimmed) {
+      alert('Please enter a subcategory name');
+      return;
+    }
+    if (!supplierForm.category) {
+      alert('Please select a category first');
+      return;
+    }
+    const currentCat = vendorCategoriesList.find(c => c.name === supplierForm.category);
+    if (currentCat) {
+      const existingSubs = Array.isArray(currentCat.subCategories) ? currentCat.subCategories : [];
+      if (!existingSubs.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+        const updatedSubs = [...existingSubs, trimmed];
+        if (updateVendorCategory) {
+          await updateVendorCategory({
+            ...currentCat,
+            subCategories: updatedSubs
+          });
+        }
+      }
+    } else {
+      if (addVendorCategory) {
+        await addVendorCategory({
+          name: supplierForm.category,
+          parentCategory: '',
+          subCategories: [trimmed],
+          active: true
+        });
+      }
+    }
+    setSupplierForm(prev => ({
+      ...prev,
+      subCategory: trimmed
+    }));
+    setIsAddingNewSubCategory(false);
+    setNewSubCategoryName('');
+  };
+
   const filteredSuppliers = suppliers.filter(s => {
     const term = (searchTerm || '').trim().toLowerCase();
     const sCat = s.category || 'Uncategorized';
@@ -415,6 +500,7 @@ const VendorManagement = () => {
       sCat.toLowerCase().includes(term) ||
       sSub.toLowerCase().includes(term) ||
       (s.phone && s.phone.toLowerCase().includes(term)) ||
+      (s.secondaryPhone && s.secondaryPhone.toLowerCase().includes(term)) ||
       (s.contact && s.contact.toLowerCase().includes(term)) ||
       (s.address && s.address.toLowerCase().includes(term)) ||
       suppliedMatNames.includes(term);
@@ -426,6 +512,10 @@ const VendorManagement = () => {
   });
 
   const openSupplierForm = (supplier = null) => {
+    setIsAddingNewCategory(false);
+    setNewCategoryName('');
+    setIsAddingNewSubCategory(false);
+    setNewSubCategoryName('');
     if (supplier) {
       setEditingSupplier(supplier);
       setSupplierForm({
@@ -433,6 +523,7 @@ const VendorManagement = () => {
         category: supplier.category || 'Grocery',
         subCategory: supplier.subCategory || '',
         phone: supplier.phone || supplier.contact || '',
+        secondaryPhone: supplier.secondaryPhone || '',
         address: supplier.address || '',
         status: supplier.status || (supplier.active !== false ? 'Active' : 'Inactive'),
         notes: supplier.notes || ''
@@ -447,6 +538,7 @@ const VendorManagement = () => {
         category: defaultCat,
         subCategory: defaultSub,
         phone: '',
+        secondaryPhone: '',
         address: '',
         status: 'Active',
         notes: ''
@@ -465,6 +557,7 @@ const VendorManagement = () => {
       ...supplierForm,
       name: supplierForm.name.trim(),
       phone: (supplierForm.phone || '').trim(),
+      secondaryPhone: (supplierForm.secondaryPhone || '').trim(),
       address: (supplierForm.address || '').trim(),
       category: supplierForm.category || 'Uncategorized',
       subCategory: supplierForm.subCategory || '',
@@ -676,7 +769,10 @@ const VendorManagement = () => {
         _id: String(sup.id || sup._id),
         name: sup.name,
         contact: sup.phone || sup.contact || '',
-        category: sup.category
+        phone: sup.phone || sup.contact || '',
+        secondaryPhone: sup.secondaryPhone || '',
+        category: sup.category,
+        subCategory: sup.subCategory || ''
       }
     };
     const currentManuals = currentEvent?.manualMaterials || [];
@@ -723,8 +819,11 @@ const VendorManagement = () => {
     }
     const supplierForPDF = { 
       name: sup.name || (typeof sup === 'string' ? sup : 'Supplier'), 
-      contact: sup.contact || sup.phone || 'N/A', 
+      contact: sup.phone || sup.contact || 'N/A', 
+      phone: sup.phone || sup.contact || '',
+      secondaryPhone: sup.secondaryPhone || '',
       category: sup.category || '', 
+      subCategory: sup.subCategory || '',
       _id: sup.id || sup._id || 'sup'
     };
     try {
@@ -747,8 +846,11 @@ const VendorManagement = () => {
     }
     const supplierForPDF = { 
       name: sup.name || (typeof sup === 'string' ? sup : 'Supplier'), 
-      contact: sup.contact || sup.phone || 'N/A', 
+      contact: sup.phone || sup.contact || 'N/A', 
+      phone: sup.phone || sup.contact || '',
+      secondaryPhone: sup.secondaryPhone || '',
       category: sup.category || '', 
+      subCategory: sup.subCategory || '',
       _id: sup.id || sup._id || 'sup'
     };
     const supKey = sup.id || sup._id || sup.name;
@@ -1275,7 +1377,20 @@ const VendorManagement = () => {
                             {sSubCategory}
                           </span>
                         </td>
-                        <td style={{ color: 'var(--text-secondary)' }}>{s.phone || s.contact || 'N/A'}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.84rem' }}>
+                              <Phone size={13} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                              <span>{s.phone || s.contact || 'N/A'}</span>
+                            </div>
+                            {s.secondaryPhone ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                                <span className="badge badge-secondary" style={{ fontSize: '0.62rem', padding: '0.1rem 0.3rem', lineHeight: 1 }}>Alt</span>
+                                <span>{s.secondaryPhone}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </td>
                         <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.address || '—'}</td>
                         <td>
                           <button
@@ -1359,6 +1474,19 @@ const VendorManagement = () => {
                                     </button>
                                   </div>
                                 )}
+                              </div>
+
+                              {/* Supplier Overview Meta Strip */}
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', padding: '0.55rem 0.85rem', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', marginBottom: '0.85rem', fontSize: '0.82rem', alignItems: 'center' }}>
+                                <div><strong style={{ color: 'var(--text-secondary)' }}>Category:</strong> <span className="badge badge-info" style={{ marginLeft: '0.35rem' }}>{sCategory}</span></div>
+                                <div><strong style={{ color: 'var(--text-secondary)' }}>Subcategory:</strong> <span style={{ marginLeft: '0.35rem', color: 'var(--text-primary)', fontWeight: 500 }}>{sSubCategory}</span></div>
+                                <div><strong style={{ color: 'var(--text-secondary)' }}>Primary Phone:</strong> <span style={{ marginLeft: '0.35rem', color: 'var(--text-primary)' }}>{s.phone || s.contact || '—'}</span></div>
+                                {s.secondaryPhone ? (
+                                  <div><strong style={{ color: 'var(--text-secondary)' }}>Secondary Phone:</strong> <span style={{ marginLeft: '0.35rem', color: 'var(--text-primary)' }}>{s.secondaryPhone}</span></div>
+                                ) : null}
+                                {s.address ? (
+                                  <div><strong style={{ color: 'var(--text-secondary)' }}>Address:</strong> <span style={{ marginLeft: '0.35rem', color: 'var(--text-secondary)' }}>{s.address}</span></div>
+                                ) : null}
                               </div>
 
                               {suppliedMaterials.length === 0 ? (
@@ -1902,52 +2030,186 @@ const VendorManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Category (Parent)</label>
-                  <select
-                    value={supplierForm.category}
-                    onChange={(e) => {
-                      const newCat = e.target.value;
-                      const foundCat = vendorCategoriesList.find(c => c.name === newCat);
-                      const firstSub = foundCat?.subCategories?.[0] || '';
-                      setSupplierForm({ ...supplierForm, category: newCat, subCategory: firstSub });
-                    }}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                  >
-                    {vendorCategoriesList.map(cat => (
-                      <option key={cat.id || cat.name} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>Category (Parent) *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingNewCategory(!isAddingNewCategory);
+                        setNewCategoryName('');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-primary)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.2rem'
+                      }}
+                    >
+                      <Plus size={13} /> {isAddingNewCategory ? 'Choose Existing' : 'Add Category'}
+                    </button>
+                  </div>
+
+                  {isAddingNewCategory ? (
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <input
+                        type="text"
+                        placeholder="New category name"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleCreateCategoryInline();
+                          }
+                        }}
+                        autoFocus
+                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-small"
+                        onClick={handleCreateCategoryInline}
+                        style={{ padding: '0.4rem 0.65rem' }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={supplierForm.category}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '__ADD_NEW__') {
+                          setIsAddingNewCategory(true);
+                          return;
+                        }
+                        const foundCat = vendorCategoriesList.find(c => c.name === val);
+                        const firstSub = foundCat?.subCategories?.[0] || '';
+                        setSupplierForm({ ...supplierForm, category: val, subCategory: firstSub });
+                      }}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                    >
+                      {vendorCategoriesList.map(cat => (
+                        <option key={cat.id || cat._id || cat.name} value={cat.name}>{cat.name}</option>
+                      ))}
+                      <option value="__ADD_NEW__">+ Add New Category...</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Subcategory</label>
-                  {currentSubCategories.length > 0 ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>Subcategory</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingNewSubCategory(!isAddingNewSubCategory);
+                        setNewSubCategoryName('');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-primary)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.2rem'
+                      }}
+                    >
+                      <Plus size={13} /> {isAddingNewSubCategory ? 'Choose Existing' : 'Add Subcategory'}
+                    </button>
+                  </div>
+
+                  {isAddingNewSubCategory ? (
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <input
+                        type="text"
+                        placeholder={`New subcategory for ${supplierForm.category || 'Category'}`}
+                        value={newSubCategoryName}
+                        onChange={(e) => setNewSubCategoryName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleCreateSubCategoryInline();
+                          }
+                        }}
+                        autoFocus
+                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-small"
+                        onClick={handleCreateSubCategoryInline}
+                        style={{ padding: '0.4rem 0.65rem' }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ) : currentSubCategories.length > 0 ? (
                     <select
                       value={supplierForm.subCategory}
-                      onChange={(e) => setSupplierForm({ ...supplierForm, subCategory: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '__ADD_NEW__') {
+                          setIsAddingNewSubCategory(true);
+                          return;
+                        }
+                        setSupplierForm({ ...supplierForm, subCategory: val });
+                      }}
                       style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                     >
+                      <option value="">-- Select Subcategory --</option>
                       {currentSubCategories.map(sub => (
                         <option key={sub} value={sub}>{sub}</option>
                       ))}
+                      <option value="__ADD_NEW__">+ Add New Subcategory...</option>
                     </select>
                   ) : (
-                    <input
-                      type="text"
-                      placeholder="e.g. Regular, Tender, etc."
-                      value={supplierForm.subCategory}
-                      onChange={(e) => setSupplierForm({ ...supplierForm, subCategory: e.target.value })}
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                    />
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <input
+                        type="text"
+                        placeholder="e.g. Regular, Tender, etc."
+                        value={supplierForm.subCategory}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, subCategory: e.target.value })}
+                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                      />
+                      {supplierForm.subCategory.trim() && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          onClick={() => {
+                            setNewSubCategoryName(supplierForm.subCategory.trim());
+                            handleCreateSubCategoryInline();
+                          }}
+                          title="Save as permanent subcategory for this category"
+                          style={{ padding: '0.4rem 0.65rem', fontSize: '0.78rem' }}
+                        >
+                          Save
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
 
+              {/* Phone Numbers: Primary Phone and Secondary Phone */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Phone / Contact</label>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Primary Phone Number *
+                  </label>
                   <input
                     type="text"
+                    required
                     placeholder="+91 98765 43210"
                     value={supplierForm.phone}
                     onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
@@ -1956,16 +2218,29 @@ const VendorManagement = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Supplier Status</label>
-                  <select
-                    value={supplierForm.status || 'Active'}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, status: e.target.value })}
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    Secondary Phone / Alternate Contact (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +91 98250 12345 (Optional)"
+                    value={supplierForm.secondaryPhone}
+                    onChange={(e) => setSupplierForm({ ...supplierForm, secondaryPhone: e.target.value })}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Supplier Status</label>
+                <select
+                  value={supplierForm.status || 'Active'}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, status: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
               </div>
 
               <div>

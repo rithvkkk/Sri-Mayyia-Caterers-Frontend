@@ -5,7 +5,7 @@ import {
   HelpCircle, Save, MessageSquare, Tag, Sparkles, AlertCircle, 
   Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X, Check
 } from 'lucide-react';
-import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob, resolveEventVenue } from '../utils/pdfGenerator';
+import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob, resolveEventVenue, MENU_OCCASION_TEMPLATES } from '../utils/pdfGenerator';
 import { MASTER_MENU_CATEGORIES, LIVE_STATION_CATEGORIES } from '../utils/mockData';
 
 const STARTER_CUISINES = ['South Indian', 'North Indian', 'Asian', 'Continental', 'Chinese', 'Vegan'];
@@ -158,7 +158,7 @@ const MenuPlanning = () => {
 
   // Indian Occasion Menu PDF Modal State
   const [isMenuPdfModalOpen, setIsMenuPdfModalOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('olive');
+  const [selectedTemplate, setSelectedTemplate] = useState('royal_cream');
 
   const isEditable = currentRole === 'Admin' || currentRole === 'HR' || currentRole === 'HR Manager' || currentRole === 'Manager' || isSalesExec;
   const currentEvent = visibleEvents.find(e => e.id === selectedEventId) || visibleEvents[0];
@@ -1313,48 +1313,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
-              {[
-                {
-                  id: 'olive',
-                  title: 'Olive Green Proposal & Menu Booklet',
-                  badge: '★ Biryani Theme (5 Pages)',
-                  description: 'Complete 5-page ceremonial proposal booklet featuring hot Biryani cover, credentials & stats since 1953, tabular menu layout, brass thali service terms, and palace heritage back cover.',
-                  color: '#4A5D23',
-                  bgTint: 'rgba(74, 93, 35, 0.06)'
-                },
-                {
-                  id: 'crimson',
-                  title: 'Royal Crimson Proposal & Menu Booklet',
-                  badge: '★ Royal Thali Theme (5 Pages)',
-                  description: 'Majestic 5-page presentation booklet featuring royal crimson sunburst thali cover, company credentials, tabular sub-function menu pages, service guidelines, and palace heritage back cover.',
-                  color: '#C00000',
-                  bgTint: 'rgba(192, 0, 0, 0.05)'
-                },
-                {
-                  id: 'gold',
-                  title: 'Traditional Festive Gold Food Menu',
-                  badge: '★ South Indian Festive (3 Pages)',
-                  description: 'Ceremonial 3-page South Indian festive menu with sacred Kalasha & banana plants cover, gold floral inner course menu, and 25000+ events heritage stats back cover.',
-                  color: '#B8860B',
-                  bgTint: 'rgba(184, 134, 11, 0.06)'
-                },
-                {
-                  id: 'baleyele',
-                  title: 'Royal Baleyele Grand Feast Menu',
-                  badge: '★ Traditional Plantain Leaf Feast (5 Pages Uploaded Artwork)',
-                  description: 'Authentic 5-page royal feast presentation using the uploaded artwork templates: parchment cover, company credentials & achievements, Hampi chariot background menu with tabular course layout, brass thali service terms, and Mysore palace Baleyele feast back cover.',
-                  color: '#9C1519',
-                  bgTint: 'rgba(156, 21, 25, 0.06)'
-                },
-                {
-                  id: 'executive',
-                  title: 'Executive Function Menu Sheet',
-                  badge: '★ Event Order Sheet (1-2 Pages)',
-                  description: 'Clean, modern minimalist event order sheet with official logo header, centered date & venue, sequential numbered session menus, Pax headcount, notes, and parcel list.',
-                  color: '#17375E',
-                  bgTint: 'rgba(23, 55, 94, 0.05)'
-                }
-              ].map(tpl => {
+              {Object.values(MENU_OCCASION_TEMPLATES).map(tpl => {
                 const isSelected = selectedTemplate === tpl.id;
                 return (
                   <div

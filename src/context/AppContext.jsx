@@ -479,7 +479,15 @@ export const AppProvider = ({ children }) => {
         setLaborRates(lrList);
       }
       if (Array.isArray(sList)) {
-        const cleanSList = sList.filter(s => !isDemoRecordId(s?.id || s?._id));
+        const cleanSList = sList
+          .filter(s => !isDemoRecordId(s?.id || s?._id))
+          .map(s => ({
+            ...s,
+            category: s.category || 'Grocery',
+            subCategory: s.subCategory || '',
+            phone: s.phone || s.contact || '',
+            secondaryPhone: s.secondaryPhone || ''
+          }));
         setSuppliers(cleanSList);
         try { localStorage.setItem('cater_suppliers', JSON.stringify(cleanSList)); } catch (e) {}
       }
@@ -903,7 +911,14 @@ export const AppProvider = ({ children }) => {
   };
 
   const addSupplier = async (sup) => {
-    const payload = { ...sup, id: sup.id || ('s_' + Date.now()) };
+    const payload = {
+      ...sup,
+      id: sup.id || ('s_' + Date.now()),
+      category: sup.category || 'Grocery',
+      subCategory: sup.subCategory || '',
+      phone: sup.phone || sup.contact || '',
+      secondaryPhone: sup.secondaryPhone || ''
+    };
     setSuppliers(prev => {
       const next = [...prev.filter(s => s.id !== payload.id), payload];
       try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
@@ -912,7 +927,7 @@ export const AppProvider = ({ children }) => {
     const res = await apiCall('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
     if (res) {
       setSuppliers(prev => {
-        const next = prev.map(s => s.id === payload.id ? res : s);
+        const next = prev.map(s => s.id === payload.id ? { ...payload, ...res } : s);
         try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
         return next;
       });
@@ -921,15 +936,22 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateSupplier = async (updated) => {
+    const normalized = {
+      ...updated,
+      category: updated.category || 'Grocery',
+      subCategory: updated.subCategory || '',
+      phone: updated.phone || updated.contact || '',
+      secondaryPhone: updated.secondaryPhone || ''
+    };
     setSuppliers(prev => {
-      const next = prev.map(s => s.id === updated.id ? updated : s);
+      const next = prev.map(s => s.id === normalized.id ? normalized : s);
       try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
       return next;
     });
-    const res = await apiCall(`/suppliers/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
+    const res = await apiCall(`/suppliers/${normalized.id}`, { method: 'PUT', body: JSON.stringify(normalized) });
     if (res) {
       setSuppliers(prev => {
-        const next = prev.map(s => s.id === updated.id ? res : s);
+        const next = prev.map(s => s.id === normalized.id ? { ...normalized, ...res } : s);
         try { localStorage.setItem('cater_suppliers', JSON.stringify(next)); } catch (e) {}
         return next;
       });

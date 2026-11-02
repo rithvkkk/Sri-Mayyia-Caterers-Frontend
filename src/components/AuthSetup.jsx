@@ -246,7 +246,9 @@ const AuthSetup = () => {
     } else if (type === 'dish') {
       addDish({ name: 'New Dish', category: 'WELCOME DRINK', subCategory: 'General Items', price: 100, recipe: [], instructions: '' });
     } else if (type === 'supplier') {
-      addSupplier({ name: 'New Supplier', category: 'Grocery', contact: 'Name', phone: '+91' });
+      const defaultCat = effectiveVendorCategories[0]?.name || 'Grocery';
+      const defaultSub = effectiveVendorCategories[0]?.subCategories?.[0] || '';
+      addSupplier({ name: 'New Supplier', category: defaultCat, subCategory: defaultSub, contact: 'Name', phone: '+91', secondaryPhone: '' });
     } else if (type === 'agency') {
       addAgency({ name: 'New Agency', contact: 'Name', phone: '+91', categories: ['Waiter / Service Staff'] });
     }
@@ -888,14 +890,18 @@ const AuthSetup = () => {
                 <tr>
                   <th>Supplier Name</th>
                   <th>Supply Category</th>
+                  <th>Subcategory</th>
                   <th>Contact Person</th>
-                  <th>Phone Number</th>
+                  <th>Primary Phone</th>
+                  <th>Secondary Phone</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {suppliers.map(s => {
                   const isEditing = editingId === s.id;
+                  const catObj = effectiveVendorCategories.find(c => c.name === (isEditing ? tempData.category : s.category));
+                  const availableSubs = catObj?.subCategories || [];
                   return (
                     <tr key={s.id}>
                       <td>
@@ -905,23 +911,68 @@ const AuthSetup = () => {
                       </td>
                       <td>
                         {isEditing ? (
-                          <select className="form-select" value={tempData.category || ''} onChange={e => setTempData({ ...tempData, category: e.target.value })}>
-                            <option>Grocery</option>
-                            <option>Dairy</option>
-                            <option>Veg/Fruit</option>
-                            <option>Fuel</option>
+                          <select
+                            className="form-select"
+                            value={tempData.category || ''}
+                            onChange={e => {
+                              const newCat = e.target.value;
+                              const found = effectiveVendorCategories.find(c => c.name === newCat);
+                              setTempData({ ...tempData, category: newCat, subCategory: found?.subCategories?.[0] || '' });
+                            }}
+                          >
+                            {effectiveVendorCategories.map(c => (
+                              <option key={c.id || c._id || c.name} value={c.name}>{c.name}</option>
+                            ))}
                           </select>
-                        ) : s.category}
+                        ) : (
+                          <span className="badge badge-info" style={{ fontWeight: 600 }}>{s.category || 'General'}</span>
+                        )}
+                      </td>
+                      <td>
+                        {isEditing ? (
+                          availableSubs.length > 0 ? (
+                            <select
+                              className="form-select"
+                              value={tempData.subCategory || ''}
+                              onChange={e => setTempData({ ...tempData, subCategory: e.target.value })}
+                            >
+                              <option value="">-- None --</option>
+                              {availableSubs.map(sub => (
+                                <option key={sub} value={sub}>{sub}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              className="form-input"
+                              placeholder="Subcategory"
+                              value={tempData.subCategory || ''}
+                              onChange={e => setTempData({ ...tempData, subCategory: e.target.value })}
+                            />
+                          )
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', color: s.subCategory ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            {s.subCategory || '—'}
+                          </span>
+                        )}
                       </td>
                       <td>
                         {isEditing ? (
                           <input className="form-input" value={tempData.contact || ''} onChange={e => setTempData({ ...tempData, contact: e.target.value })} />
-                        ) : s.contact}
+                        ) : (s.contact || '—')}
                       </td>
                       <td>
                         {isEditing ? (
-                          <input className="form-input" value={tempData.phone || ''} onChange={e => setTempData({ ...tempData, phone: e.target.value })} />
-                        ) : s.phone}
+                          <input className="form-input" placeholder="Primary Phone" value={tempData.phone || ''} onChange={e => setTempData({ ...tempData, phone: e.target.value })} />
+                        ) : (s.phone || '—')}
+                      </td>
+                      <td>
+                        {isEditing ? (
+                          <input className="form-input" placeholder="Secondary Phone" value={tempData.secondaryPhone || ''} onChange={e => setTempData({ ...tempData, secondaryPhone: e.target.value })} />
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', color: s.secondaryPhone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            {s.secondaryPhone || '—'}
+                          </span>
+                        )}
                       </td>
                       <td>
                         {isEditing ? (

@@ -1118,8 +1118,15 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
 
   const sup = supplier || {};
   const supName = sup.name || 'Vendor / Supplier';
-  const supContact = sup.contact || sup.phone || 'N/A';
+  const supPrimaryPhone = sup.phone || sup.contact || '';
+  const supSecondaryPhone = sup.secondaryPhone || '';
+  let supContactText = supPrimaryPhone || 'N/A';
+  if (supSecondaryPhone) {
+    supContactText += ` / Alt: ${supSecondaryPhone}`;
+  }
   const supCategory = sup.category || 'General Provisions';
+  const supSubCategory = sup.subCategory || '';
+  const supCategoryDisplay = supSubCategory ? `${supCategory} (${supSubCategory})` : supCategory;
   const supGst = sup.gstin || sup.gstNumber || '';
 
   const ev = event || {};
@@ -1223,8 +1230,8 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...charcoalColor);
-  doc.text(`Category: ${supCategory}`, 18, 53);
-  doc.text(`Contact: ${supContact}`, 18, 57.5);
+  doc.text(`Category: ${supCategoryDisplay}`, 18, 53);
+  doc.text(`Contact: ${supContactText}`, 18, 57.5);
   if (supGst) {
     doc.text(`GSTIN: ${supGst}`, 18, 61.5);
   }
@@ -2269,7 +2276,7 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
 
 /**
  * Generates the Traditional Festive Gold Food Menu PDF.
- * Matches uploaded gold festive menu template (media_1790875990683.pdf):
+ * Matches Festive Amber Gold occasion menu template suite:
  * - Page 1: Traditional South Indian Kalasha, coconut & banana plant cover
  *   - Event Title & Client dedication
  *   - Date & Venue placed at exact coordinate geometry
@@ -2656,23 +2663,236 @@ export const generateGoldMenuPdf = (event, subFunction, companyProfile, dishesLi
 };
 
 /**
+ * Official Sri Mayyia Caterers Proposal & Menu Template Suite Registry.
+ * Modular, extensible configuration for occasion proposal & menu suites.
+ * When adding more PDF templates later, add a new entry to this registry.
+ */
+export const MENU_OCCASION_TEMPLATES = {
+  royal_cream: {
+    id: 'royal_cream',
+    title: 'Royal Cream & Gold Proposal Booklet',
+    badge: '★ Classic Royal Feast (5 Pages)',
+    description: 'Ceremonial cream & gold banquet booklet featuring classic curry feast platter, credentials since 1953, tabular menu layout, brass thali service terms, and palace heritage back cover.',
+    color: '#9C1519',
+    primaryColor: [156, 21, 25],
+    accentColor: [184, 134, 11],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(156, 21, 25, 0.06)',
+    hasPreprintedLabels: true,
+    dateCoords: { x: 48.0, y: 145.2 },
+    eventCoords: { x: 51.5, y: 159.5 },
+    venueCoords: { x: 51.5, y: 167.0 },
+    coverTextColor: [156, 21, 25],
+    assets: {
+      cover: 'royalCreamPage1Cover',
+      about: 'royalCreamPage2About',
+      menu: 'royalCreamPage3Menu',
+      terms: 'royalCreamPage4Terms',
+      back: 'royalCreamPage5Back',
+    }
+  },
+  vintage_parchment: {
+    id: 'vintage_parchment',
+    title: 'Vintage Parchment Grand Banquet Booklet',
+    badge: '★ Grand Banquet Parchment (5 Pages)',
+    description: 'Timeless vintage parchment presentation featuring traditional 8-compartment feast tray, silver buffet counter, credentials, tabular session menu, and royal heritage back cover.',
+    color: '#8B1E22',
+    primaryColor: [139, 30, 34],
+    accentColor: [194, 155, 56],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(139, 30, 34, 0.06)',
+    hasPreprintedLabels: false,
+    dateCoords: { x: 105.0, y: 147.0, align: 'center' },
+    eventCoords: { x: 105.0, y: 142.0, align: 'center' },
+    venueCoords: { x: 105.0, y: 151.5, align: 'center' },
+    coverTextColor: [139, 30, 34],
+    assets: {
+      cover: 'vintageParchmentPage1Cover',
+      about: 'vintageParchmentPage2About',
+      menu: 'vintageParchmentPage3Menu',
+      terms: 'vintageParchmentPage4Terms',
+      back: 'vintageParchmentPage5Back',
+    }
+  },
+  amber_gold: {
+    id: 'amber_gold',
+    title: 'Festive Amber Gold Buffet Booklet',
+    badge: '★ Festive Amber Gold (5 Pages)',
+    description: 'Warm amber gold ceremonial buffet booklet with royal 3-star insignia, chafing dish feast display, achievements, tabular menu, brass thali service terms, and back cover.',
+    color: '#B8860B',
+    primaryColor: [180, 115, 10],
+    accentColor: [218, 165, 32],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(184, 134, 11, 0.06)',
+    hasPreprintedLabels: false,
+    dateCoords: { x: 105.0, y: 146.5, align: 'center' },
+    eventCoords: { x: 105.0, y: 141.5, align: 'center' },
+    venueCoords: { x: 105.0, y: 151.0, align: 'center' },
+    coverTextColor: [180, 115, 10],
+    assets: {
+      cover: 'amberGoldPage1Cover',
+      about: 'amberGoldPage2About',
+      menu: 'amberGoldPage3Menu',
+      terms: 'amberGoldPage4Terms',
+      back: 'amberGoldPage5Back',
+    }
+  },
+  royal_crimson: {
+    id: 'royal_crimson',
+    title: 'Royal Crimson Live Counters Booklet',
+    badge: '★ Royal Crimson Pavilion (5 Pages)',
+    description: 'Vibrant crimson & maroon pavilion booklet featuring live savory food counter, company credentials, tabular sub-function layout, service guidelines, and Mysore palace back cover.',
+    color: '#C00000',
+    primaryColor: [192, 0, 0],
+    accentColor: [230, 161, 23],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(192, 0, 0, 0.05)',
+    hasPreprintedLabels: false,
+    dateCoords: { x: 105.0, y: 146.5, align: 'center' },
+    eventCoords: { x: 105.0, y: 141.5, align: 'center' },
+    venueCoords: { x: 105.0, y: 151.0, align: 'center' },
+    coverTextColor: [192, 0, 0],
+    assets: {
+      cover: 'royalCrimsonPage1Cover',
+      about: 'royalCrimsonPage2About',
+      menu: 'royalCrimsonPage3Menu',
+      terms: 'royalCrimsonPage4Terms',
+      back: 'royalCrimsonPage5Back',
+    }
+  },
+  rustic_wood: {
+    id: 'rustic_wood',
+    title: 'Rustic Wood & Heritage Feast Booklet',
+    badge: '★ Rustic Wood Heritage (5 Pages)',
+    description: 'Warm rustic wood grain backdrop featuring artisan earthen gourmet cookware, comprehensive credentials, tabular menu courses, and authentic service guidelines.',
+    color: '#6E2D14',
+    primaryColor: [110, 45, 20],
+    accentColor: [196, 130, 63],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(110, 45, 20, 0.06)',
+    hasPreprintedLabels: true,
+    dateCoords: { x: 48.0, y: 145.2 },
+    eventCoords: { x: 51.5, y: 159.5 },
+    venueCoords: { x: 51.5, y: 167.0 },
+    coverTextColor: [110, 45, 20],
+    assets: {
+      cover: 'rusticWoodPage1Cover',
+      about: 'rusticWoodPage2About',
+      menu: 'rusticWoodPage3Menu',
+      terms: 'rusticWoodPage4Terms',
+      back: 'rusticWoodPage5Back',
+    }
+  },
+  olive_biryani: {
+    id: 'olive_biryani',
+    title: 'Olive Green Biryani Proposal Booklet',
+    badge: '★ Signature Biryani Theme (5 Pages)',
+    description: 'Ceremonial olive green proposal booklet featuring hot aromatic Biryani bowl, illuminated garden counter credentials, tabular menu layout, brass thali service terms, and palace heritage back cover.',
+    color: '#4A5D23',
+    primaryColor: [74, 93, 35],
+    accentColor: [218, 165, 32],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(74, 93, 35, 0.06)',
+    hasPreprintedLabels: true,
+    dateCoords: { x: 53.5, y: 150.2 },
+    eventCoords: { x: 58.9, y: 166.1 },
+    venueCoords: { x: 58.9, y: 173.5 },
+    coverTextColor: [255, 255, 255],
+    assets: {
+      cover: 'oliveBiryaniPage1Cover',
+      about: 'oliveBiryaniPage2About',
+      menu: 'oliveBiryaniPage3Menu',
+      terms: 'oliveBiryaniPage4Terms',
+      back: 'oliveBiryaniPage5Back',
+    }
+  },
+  crimson_thali: {
+    id: 'crimson_thali',
+    title: 'Royal Crimson Thali Proposal Booklet',
+    badge: '★ Majestic Royal Thali (5 Pages)',
+    description: 'Regal crimson sunburst presentation booklet featuring royal North & South Indian thali spread, boat counter achievements, tabular sub-function layout, service guidelines, and palace heritage back cover.',
+    color: '#C00000',
+    primaryColor: [192, 0, 0],
+    accentColor: [230, 161, 23],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(192, 0, 0, 0.05)',
+    hasPreprintedLabels: true,
+    dateCoords: { x: 51.6, y: 150.0 },
+    eventCoords: { x: 55.0, y: 165.9 },
+    venueCoords: { x: 55.0, y: 173.5 },
+    coverTextColor: [255, 255, 255],
+    assets: {
+      cover: 'crimsonThaliPage1Cover',
+      about: 'crimsonThaliPage2About',
+      menu: 'crimsonThaliPage3Menu',
+      terms: 'crimsonThaliPage4Terms',
+      back: 'crimsonThaliPage5Back',
+    }
+  },
+  festive_gold: {
+    id: 'festive_gold',
+    title: 'Traditional Festive Gold Food Menu',
+    badge: '★ South Indian Festive (3 Pages)',
+    description: 'Ceremonial 3-page South Indian festive menu with sacred Kalasha & banana plants cover, gold floral inner course menu, and 25000+ events heritage stats back cover.',
+    color: '#B8860B',
+    primaryColor: [156, 21, 25],
+    accentColor: [184, 134, 11],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(184, 134, 11, 0.06)',
+    isGold: true,
+  },
+  executive: {
+    id: 'executive',
+    title: 'Executive Function Menu Sheet',
+    badge: '★ Event Order Sheet (1-2 Pages)',
+    description: 'Clean, modern minimalist event order sheet with official logo header, centered date & venue, sequential numbered session menus, Pax headcount, notes, and parcel list.',
+    color: '#17375E',
+    primaryColor: [23, 55, 94],
+    accentColor: [23, 55, 94],
+    navyColor: [23, 55, 94],
+    bgTint: 'rgba(23, 55, 94, 0.05)',
+    isExecutive: true
+  }
+};
+
+export const TEMPLATE_ALIASES = {
+  olive: 'olive_biryani',
+  crimson: 'crimson_thali',
+  gold: 'festive_gold',
+  traditional: 'festive_gold',
+  baleyele: 'vintage_parchment',
+  royal_baleyele: 'vintage_parchment',
+  heritage: 'vintage_parchment',
+  official: 'crimson_thali',
+};
+
+/**
  * Generates the Official Sri Mayyia Caterers Proposal & Menu PDF booklet.
  * Supports:
- * - 'olive': 5-page Olive Green Proposal & Menu Booklet (Biryani Cover)
- * - 'crimson' / 'official': 5-page Royal Crimson Proposal & Menu Booklet (Thali Cover)
- * - 'gold': 3-page Traditional Festive Gold Food Menu (Kalasha Cover)
+ * - 'royal_cream': 5-page Royal Cream & Gold Proposal Booklet
+ * - 'vintage_parchment': 5-page Vintage Parchment Grand Banquet Booklet
+ * - 'amber_gold': 5-page Festive Amber Gold Buffet Booklet
+ * - 'royal_crimson': 5-page Royal Crimson Pavilion Booklet
+ * - 'rustic_wood': 5-page Rustic Wood & Heritage Feast Booklet
+ * - 'olive_biryani': 5-page Olive Green Biryani Proposal Booklet
+ * - 'crimson_thali': 5-page Royal Crimson Thali Proposal Booklet
+ * - 'festive_gold': 3-page Traditional Festive Gold Food Menu
  * - 'executive': 1-2 page Executive Function Menu Sheet
+ * - Backward compatibility aliases: 'olive', 'crimson', 'gold', 'baleyele'
  * 
  * Returns { blobUrl, blob, filename, doc }
  */
-export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'olive', dishesList = []) => {
+export const generateOccasionMenuPdf = (event, subFunction, companyProfile, templateId = 'royal_cream', dishesList = []) => {
+  // Resolve template ID via aliases
+  const resolvedId = TEMPLATE_ALIASES[templateId] || templateId;
+
   // If executive function sheet requested, route to generateExecutiveMenuPdf
-  if (templateId === 'executive' || templateId === 'compact' || templateId === 'function_sheet') {
+  if (resolvedId === 'executive' || templateId === 'compact' || templateId === 'function_sheet') {
     return generateExecutiveMenuPdf(event, subFunction, companyProfile, dishesList);
   }
 
   // If traditional festive gold menu requested, route to generateGoldMenuPdf
-  if (templateId === 'gold' || templateId === 'festive_gold' || templateId === 'traditional') {
+  if (resolvedId === 'festive_gold' || templateId === 'gold' || templateId === 'traditional') {
     return generateGoldMenuPdf(event, subFunction, companyProfile, dishesList);
   }
 
@@ -2681,30 +2901,16 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     return generateVectorOccasionMenuPdf(event, subFunction, companyProfile, templateId, dishesList);
   }
 
-  // Choose Theme Assets based on templateId
-  const isCrimson = templateId === 'crimson' || templateId === 'official';
-  const isBaleyele = templateId === 'baleyele' || templateId === 'royal_baleyele' || templateId === 'heritage' || templateId === 'vector';
+  const tpl = MENU_OCCASION_TEMPLATES[resolvedId] || MENU_OCCASION_TEMPLATES.royal_cream;
 
-  const coverAsset = isBaleyele
-    ? (menuTemplateAssets.baleyelePage1Cover || menuTemplateAssets.page1Cover)
-    : (isCrimson ? (menuTemplateAssets.crimsonPage1Cover || menuTemplateAssets.page1Cover) : (menuTemplateAssets.olivePage1Cover || menuTemplateAssets.page1Cover));
-  const aboutAsset = isBaleyele
-    ? (menuTemplateAssets.baleyelePage2About || menuTemplateAssets.page3About)
-    : (isCrimson ? (menuTemplateAssets.crimsonPage2About || menuTemplateAssets.page3About) : (menuTemplateAssets.olivePage2About || menuTemplateAssets.page3About));
-  const menuAsset = isBaleyele
-    ? (menuTemplateAssets.baleyelePage3Menu || menuTemplateAssets.page2MenuBg)
-    : (isCrimson ? (menuTemplateAssets.crimsonPage3Menu || menuTemplateAssets.page2MenuBg) : (menuTemplateAssets.olivePage3Menu || menuTemplateAssets.page2MenuBg));
-  const termsAsset = isBaleyele
-    ? (menuTemplateAssets.baleyelePage4Terms || menuTemplateAssets.page4Terms)
-    : (isCrimson ? (menuTemplateAssets.crimsonPage4Terms || menuTemplateAssets.page4Terms) : (menuTemplateAssets.olivePage4Terms || menuTemplateAssets.page4Terms));
-  const backAsset = isBaleyele
-    ? (menuTemplateAssets.baleyelePage5Back || menuTemplateAssets.page5Back)
-    : (isCrimson ? (menuTemplateAssets.crimsonPage5Back || menuTemplateAssets.page5Back) : (menuTemplateAssets.olivePage5Back || menuTemplateAssets.page5Back));
+  const coverAsset = (tpl.assets?.cover && menuTemplateAssets[tpl.assets.cover]) || menuTemplateAssets.page1Cover;
+  const aboutAsset = (tpl.assets?.about && menuTemplateAssets[tpl.assets.about]) || menuTemplateAssets.page3About;
+  const menuAsset = (tpl.assets?.menu && menuTemplateAssets[tpl.assets.menu]) || menuTemplateAssets.page2MenuBg;
+  const termsAsset = (tpl.assets?.terms && menuTemplateAssets[tpl.assets.terms]) || menuTemplateAssets.page4Terms;
+  const backAsset = (tpl.assets?.back && menuTemplateAssets[tpl.assets.back]) || menuTemplateAssets.page5Back;
 
-  const primaryColor = isBaleyele
-    ? [156, 21, 25]  // Royal Crimson / Maroon #9C1519 for Baleyele
-    : (isCrimson ? [192, 0, 0] : [74, 93, 35]); // Crimson Red #C00000 vs Deep Olive #4A5D23
-  const navyColor = [23, 55, 94];     // Deep royal navy #17375E
+  const primaryColor = tpl.primaryColor || [156, 21, 25];
+  const navyColor = tpl.navyColor || [23, 55, 94];
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.width; // 210
@@ -2746,13 +2952,12 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     }
   }
 
-  if (isBaleyele) {
-    // Elegant royal styling on warm parchment cover matching the uploaded template
-    // Pre-printed labels on Page 1: "Date:" (ends X=44.7mm, baseline Y=145.2mm) and "Event:" (ends X=48.2mm, baseline Y=159.5mm)
+  if (tpl.hasPreprintedLabels) {
+    // Template with pre-printed "Date:" and "Event:" on left
     doc.setFont('times', 'bold');
     doc.setFontSize(13);
-    doc.setTextColor(156, 21, 25);
-    doc.text(coverDateText, 48.0, 145.2);
+    doc.setTextColor(...tpl.coverTextColor);
+    doc.text(coverDateText, tpl.dateCoords.x, tpl.dateCoords.y);
 
     let eventLine = displayEventTitle;
     if (doc.getTextWidth(eventLine) > 135) {
@@ -2761,7 +2966,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
         eventLine = doc.splitTextToSize(eventLine, 133)[0] + '...';
       }
     }
-    doc.text(eventLine, 51.5, 159.5);
+    doc.text(eventLine, tpl.eventCoords.x, tpl.eventCoords.y);
 
     const resolvedVenue = resolveEventVenue(event);
     if (resolvedVenue) {
@@ -2772,29 +2977,45 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       if (doc.getTextWidth(venueLine) > 135) {
         venueLine = doc.splitTextToSize(venueLine, 133)[0] + '...';
       }
-      doc.text(venueLine, 51.5, 167.0);
+      doc.text(venueLine, tpl.venueCoords.x, tpl.venueCoords.y);
     }
   } else {
+    // Centered styling for artistic covers
     doc.setFont('times', 'bold');
-    doc.setFontSize(12.5);
-    // Pure crisp white font for Page 1 cover ONLY to ensure contrast against dark artwork
-    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11.5);
+    doc.setTextColor(...tpl.coverTextColor);
 
-    const coverDateX = isCrimson ? 51.5 : 53.5;
-    const coverDateY = isCrimson ? 143.2 : 150.5;
-    doc.text(coverDateText, coverDateX, coverDateY);
+    let eventLine = displayEventTitle;
+    if (doc.getTextWidth(eventLine) > 135) {
+      doc.setFontSize(10);
+      if (doc.getTextWidth(eventLine) > 135) {
+        eventLine = doc.splitTextToSize(eventLine, 133)[0] + '...';
+      }
+    }
+    doc.text(eventLine, tpl.eventCoords.x, tpl.eventCoords.y, { align: tpl.eventCoords.align || 'center' });
 
-    const coverEventX = isCrimson ? 53.5 : 56.5;
-    const coverEventY = isCrimson ? 159.2 : 166.4;
-    doc.text(displayEventTitle, coverEventX, coverEventY);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...(tpl.accentColor || tpl.coverTextColor));
+    doc.text(coverDateText, tpl.dateCoords.x, tpl.dateCoords.y, { align: tpl.dateCoords.align || 'center' });
+
+    const resolvedVenue = resolveEventVenue(event);
+    if (resolvedVenue) {
+      doc.setFont('times', 'italic');
+      doc.setFontSize(8.5);
+      doc.setTextColor(90, 90, 90);
+      let venueLine = `Venue: ${resolvedVenue}`;
+      if (doc.getTextWidth(venueLine) > 135) {
+        venueLine = doc.splitTextToSize(venueLine, 133)[0] + '...';
+      }
+      doc.text(venueLine, tpl.venueCoords.x, tpl.venueCoords.y, { align: tpl.venueCoords.align || 'center' });
+    }
   }
 
-  // If not Baleyele, add Page 2: About / Credentials before menus (Olive and Crimson flow)
-  if (!isBaleyele) {
-    doc.addPage();
-    if (aboutAsset) {
-      doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
-    }
+  // PAGE 2: ABOUT / CREDENTIALS (Pioneers since 1953)
+  doc.addPage();
+  if (aboutAsset) {
+    doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
   }
 
   // Helper to map catalog category to clean uppercase header
@@ -2947,33 +3168,24 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFontSize(9.5);
       doc.setTextColor(...primaryColor);
 
-      if (isBaleyele) {
-        // Dynamic labels above table (Y = 49.0 mm) for Baleyele (table starts at Y = 54.5 mm)
-        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 16.0, 49.0);
-        doc.text(`Date: ${dateText}`, 95.5, 49.0, { align: 'center' });
-        doc.text(`Serving: ${servingVal}`, 196.0, 49.0, { align: 'right' });
-      } else {
-        // Above the table (Y = 48 mm) for Olive & Crimson
-        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
-        doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
-        doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
-      }
+      // Dynamic labels above table (Y = 49.0 mm)
+      doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 16.0, 49.0);
+      doc.text(`Date: ${dateText}`, 95.5, 49.0, { align: 'center' });
+      doc.text(`Serving: ${servingVal}`, 196.0, 49.0, { align: 'right' });
 
       // 2. Table Merged Bar: "MENU for <NAME>"
       const headerSuffix = chunkIdx > 0 ? ' (CONTD.)' : '';
       doc.setFont('times', 'bold');
       doc.setFontSize(11.5);
       doc.setTextColor(...primaryColor);
-      const titleCenterX = isBaleyele ? 95.5 : 94.0;
-      doc.text(`MENU for ${subCleanName}${headerSuffix}`, titleCenterX, 60.5, { align: 'center' });
+      doc.text(`MENU for ${subCleanName}${headerSuffix}`, 95.5, 60.5, { align: 'center' });
 
       // 3. Pax in Column 3 header: exact number right after "Pax:" (pre-printed label ends at 124.7 mm)
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFont('times', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(...primaryColor);
-      const paxX = isBaleyele ? 127.5 : 128.0;
-      doc.text(String(paxCount), paxX, 70.3);
+      doc.text(String(paxCount), 127.5, 70.3);
 
       const availableHeight = 270 - 77; // 193 mm
       const stepY = Math.min(8.0, Math.max(5.8, availableHeight / (chunk.length + 1)));
@@ -2986,20 +3198,17 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
           doc.setFont('times', 'bold');
           doc.setFontSize(10.5);
           doc.setTextColor(...primaryColor);
-          const catCenterX = isBaleyele ? 95.5 : centerX;
-          doc.text(entry.text, catCenterX, curY, { align: 'center' });
+          doc.text(entry.text, 95.5, curY, { align: 'center' });
           curY += stepY;
         } else {
           sessionItemNum++;
-          // Column 1: SL NO (center X = 22.45 mm for Baleyele, 21.05 mm for Olive/Crimson)
-          const slColX = isBaleyele ? 22.45 : 21.05;
+          // Column 1: SL NO (center X = 22.45 mm)
           doc.setFont('times', 'bold');
           doc.setFontSize(10);
           doc.setTextColor(...primaryColor);
-          doc.text(String(sessionItemNum), slColX, curY, { align: 'center' });
+          doc.text(String(sessionItemNum), 22.45, curY, { align: 'center' });
 
-          // Column 2: Item Name (center X = 95.5 mm for Baleyele, 94.0 mm for others)
-          const itemCenterX = isBaleyele ? 95.5 : centerX;
+          // Column 2: Item Name (center X = 95.5 mm)
           doc.setFont('times', 'bold');
           doc.setFontSize(11);
           doc.setTextColor(...navyColor);
@@ -3014,7 +3223,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
             doc.setFontSize(11);
           }
 
-          doc.text(displayName, itemCenterX, curY, { align: 'center' });
+          doc.text(displayName, 95.5, curY, { align: 'center' });
           curY += stepY;
         }
       });
@@ -3058,24 +3267,16 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
       doc.setFont('times', 'bold');
       doc.setFontSize(9.5);
       doc.setTextColor(...primaryColor);
-      if (isBaleyele) {
-        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 16.0, 49.0);
-        doc.text(`Date: ${dateText}`, 95.5, 49.0, { align: 'center' });
-        doc.text(`Serving: ${servingVal}`, 196.0, 49.0, { align: 'right' });
-      } else {
-        doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 15, 48);
-        doc.text(`Date: ${dateText}`, 94, 48, { align: 'center' });
-        doc.text(`Serving: ${servingVal}`, 195, 48, { align: 'right' });
-      }
+      doc.text(`Occasion: ${occasionVal || 'BANQUET'}`, 16.0, 49.0);
+      doc.text(`Date: ${dateText}`, 95.5, 49.0, { align: 'center' });
+      doc.text(`Serving: ${servingVal}`, 196.0, 49.0, { align: 'right' });
 
       doc.setFontSize(11.5);
-      const contTitleCenterX = isBaleyele ? 95.5 : 94.0;
-      doc.text(`MENU for ${subCleanName} (CONTD.)`, contTitleCenterX, 60.5, { align: 'center' });
+      doc.text(`MENU for ${subCleanName} (CONTD.)`, 95.5, 60.5, { align: 'center' });
 
       const paxCount = sub.guestCount || event?.guestCount || 200;
       doc.setFontSize(10.5);
-      const paxX = isBaleyele ? 127.5 : 128.0;
-      doc.text(String(paxCount), paxX, 70.3);
+      doc.text(String(paxCount), 127.5, 70.3);
 
       let contInstY = 78.0;
       while (instLineIdx < formattedInstLines.length && contInstY <= 272) {
@@ -3104,21 +3305,13 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
     }
   });
 
-  // For Baleyele, Company Credentials & Achievements (Page 3 of uploaded template) comes immediately after menu pages
-  if (isBaleyele) {
-    doc.addPage();
-    if (aboutAsset) {
-      doc.addImage(aboutAsset, 'JPEG', 0, 0, pw, ph);
-    }
-  }
-
-  // SECOND-TO-LAST PAGE: SERVICE TERMS (Page 4 of uploaded template)
+  // SECOND-TO-LAST PAGE: SERVICE TERMS (Page 4 of template)
   doc.addPage();
   if (termsAsset) {
     doc.addImage(termsAsset, 'JPEG', 0, 0, pw, ph);
   }
 
-  // LAST PAGE: BACK COVER & HERITAGE (Page 5 of uploaded template)
+  // LAST PAGE: BACK COVER & HERITAGE (Page 5 of template)
   doc.addPage();
   if (backAsset) {
     doc.addImage(backAsset, 'JPEG', 0, 0, pw, ph);
@@ -3128,8 +3321,8 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   const safeSubName = isAllSessions
     ? 'Full_Event_Proposal'
     : (subList[0]?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const themePrefix = isBaleyele ? 'Baleyele_Proposal' : (isCrimson ? 'Crimson_Proposal' : 'Olive_Proposal');
-  const filename = `Sri_Mayyia_${themePrefix}_${safeEventId}_${safeSubName}.pdf`;
+  const themePrefix = (tpl.id || 'proposal').charAt(0).toUpperCase() + (tpl.id || 'proposal').slice(1);
+  const filename = `Sri_Mayyia_${themePrefix}_Proposal_${safeEventId}_${safeSubName}.pdf`;
 
   const blob = doc.output('blob');
   let blobUrl = '';
