@@ -959,14 +959,60 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateDish = async (updated) => {
-    setDishes(prev => prev.map(d => d.id === updated.id ? updated : d));
-    const res = await apiCall(`/dishes/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) });
-    if (res) setDishes(prev => prev.map(d => d.id === updated.id ? res : d));
+    const targetId = updated.id || updated._id;
+    if (!targetId) {
+      throw new Error('Dish ID is missing');
+    }
+    const cleanUpdated = {
+      ...updated,
+      id: targetId,
+      _id: targetId,
+      price: Number(updated.price) || 0
+    };
+
+    // Optimistically update React state
+    setDishes(prev => prev.map(d => (d.id === targetId || d._id === targetId) ? cleanUpdated : d));
+
+    // Save to localStorage immediately so changes persist locally
+    try {
+      const currentList = Array.isArray(dishes) ? dishes : [];
+      const updatedList = currentList.map(d => (d.id === targetId || d._id === targetId) ? cleanUpdated : d);
+      localStorage.setItem('cater_dishes', JSON.stringify(updatedList));
+    } catch (e) {}
+
+    const res = await apiCall(`/dishes/${targetId}`, {
+      method: 'PUT',
+      body: JSON.stringify(cleanUpdated),
+      returnErrorResponse: true
+    });
+
+    if (res && !res.__httpError) {
+      const finalDish = { ...cleanUpdated, ...res, id: targetId, _id: targetId };
+      setDishes(prev => prev.map(d => (d.id === targetId || d._id === targetId) ? finalDish : d));
+      try {
+        const currentList = Array.isArray(dishes) ? dishes : [];
+        const updatedList = currentList.map(d => (d.id === targetId || d._id === targetId) ? finalDish : d);
+        localStorage.setItem('cater_dishes', JSON.stringify(updatedList));
+      } catch (e) {}
+      return finalDish;
+    }
+
+    if (res && res.__httpError) {
+      console.error('Failed to update dish in MongoDB:', res.error);
+      throw new Error(res.error || 'Failed to update dish in MongoDB');
+    }
+
+    return cleanUpdated;
   };
 
   const deleteDish = async (id) => {
-    setDishes(prev => prev.filter(d => d.id !== id));
-    await apiCall(`/dishes/${id}`, { method: 'DELETE' });
+    if (!id) return;
+    setDishes(prev => prev.filter(d => d.id !== id && d._id !== id));
+    try {
+      const currentList = Array.isArray(dishes) ? dishes : [];
+      localStorage.setItem('cater_dishes', JSON.stringify(currentList.filter(d => d.id !== id && d._id !== id)));
+    } catch (e) {}
+    await apiCall(`/dishes/${id}`, { method: 'DELETE', returnErrorResponse: true });
   };
 
   const addSupplier = async (sup) => {

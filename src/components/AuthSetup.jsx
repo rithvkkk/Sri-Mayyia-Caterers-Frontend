@@ -1,7 +1,7 @@
 import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2, Save, CheckCircle, AlertTriangle } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
@@ -135,6 +135,8 @@ const AuthSetup = () => {
   const [newRecipeItems, setNewRecipeItems] = useState([]); // [{ materialId, quantity }]
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [materialQty, setMaterialQty] = useState('');
+  const [isSavingDish, setIsSavingDish] = useState(false);
+  const [dishSaveMessage, setDishSaveMessage] = useState(null); // { type: 'success' | 'error', text: '' }
 
   // Add Dish Modal & Form States
   const [isAddDishModalOpen, setIsAddDishModalOpen] = useState(false);
@@ -242,20 +244,61 @@ const AuthSetup = () => {
 
   // Generic Edit/Add Action
   const startEdit = (item) => {
-    setEditingId(item.id);
-    setTempData({ ...item });
-    if (item.recipe) {
+    const itemId = item.id || item._id;
+    setEditingId(itemId);
+    setTempData({ ...item, id: itemId, _id: itemId });
+    setDishSaveMessage(null);
+    if (item.recipe && Array.isArray(item.recipe)) {
       setNewRecipeItems([...item.recipe]);
+    } else {
+      setNewRecipeItems([]);
     }
   };
 
-  const saveEdit = (type) => {
+  const saveEdit = async (type) => {
+    if (type === 'dish') {
+      const dishId = tempData.id || tempData._id;
+      if (!dishId) {
+        setDishSaveMessage({ type: 'error', text: 'Dish ID is missing' });
+        return;
+      }
+      if (!tempData.name || !tempData.name.trim()) {
+        setDishSaveMessage({ type: 'error', text: 'Dish name is required' });
+        return;
+      }
+      setIsSavingDish(true);
+      setDishSaveMessage(null);
+      try {
+        await updateDish({
+          ...tempData,
+          id: dishId,
+          _id: dishId,
+          name: tempData.name.trim(),
+          category: tempData.category ? tempData.category.trim() : 'WELCOME DRINK',
+          subCategory: tempData.subCategory ? tempData.subCategory.trim() : (tempData.cuisine ? tempData.cuisine.trim() : ''),
+          cuisine: tempData.cuisine ? tempData.cuisine.trim() : (tempData.subCategory ? tempData.subCategory.trim() : ''),
+          price: Number(tempData.price) || 0,
+          recipe: newRecipeItems,
+          instructions: tempData.instructions ? tempData.instructions.trim() : ''
+        });
+        setDishSaveMessage({ type: 'success', text: 'Dish & Recipe saved to MongoDB successfully!' });
+        setTimeout(() => {
+          setDishSaveMessage(null);
+          cancelEdit();
+        }, 1200);
+      } catch (err) {
+        console.error('Failed to update dish in MongoDB:', err);
+        setDishSaveMessage({ type: 'error', text: err.message || 'Failed to update dish in MongoDB' });
+      } finally {
+        setIsSavingDish(false);
+      }
+      return;
+    }
+
     if (type === 'venue') {
       updateVenue(tempData);
     } else if (type === 'material') {
       updateRawMaterial(tempData);
-    } else if (type === 'dish') {
-      updateDish({ ...tempData, recipe: newRecipeItems });
     } else if (type === 'supplier') {
       updateSupplier(tempData);
     } else if (type === 'agency') {
@@ -270,6 +313,8 @@ const AuthSetup = () => {
     setNewRecipeItems([]);
     setSelectedMaterialId('');
     setMaterialQty('');
+    setDishSaveMessage(null);
+    setIsSavingDish(false);
   };
 
   const handleOpenAddDishModal = async () => {
@@ -870,9 +915,9 @@ const AuthSetup = () => {
                 </thead>
                 <tbody>
                   {filteredDishes.map(d => {
-                    const isSelected = editingId === d.id;
+                    const isSelected = editingId === d.id || editingId === d._id;
                     return (
-                      <tr key={d.id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'transparent', fontWeight: isSelected ? 600 : 'normal' }}>
+                      <tr key={d.id || d._id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'transparent', fontWeight: isSelected ? 600 : 'normal' }}>
                         <td>
                           <span className="badge badge-secondary" style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem' }}>
                             {d.dishNumber || 'DISH-????'}
@@ -933,7 +978,7 @@ const AuthSetup = () => {
                         </span>
                       )}
                     </div>
-                    <button className="btn btn-danger btn-small" style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem' }} onClick={() => deleteDish(tempData.id)}>
+                    <button className="btn btn-danger btn-small" style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem' }} onClick={() => deleteDish(tempData.id || tempData._id)}>
                       <Trash2 size={12} /> Delete Dish
                     </button>
                   </h3>
@@ -1031,9 +1076,45 @@ const AuthSetup = () => {
                     </div>
                   </div>
 
+                  {dishSaveMessage && (
+                    <div style={{
+                      marginTop: '0.85rem',
+                      padding: '0.55rem 0.85rem',
+                      borderRadius: '6px',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      background: dishSaveMessage.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: dishSaveMessage.type === 'success' ? '#166534' : '#991b1b',
+                      border: `1px solid ${dishSaveMessage.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                    }}>
+                      {dishSaveMessage.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+                      <span>{dishSaveMessage.text}</span>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
-                    <button className="btn btn-secondary" onClick={cancelEdit}>Cancel</button>
-                    <button className="btn btn-primary" onClick={() => saveEdit('dish')}>Save Recipe & Dish</button>
+                    <button className="btn btn-secondary" disabled={isSavingDish} onClick={cancelEdit}>Cancel</button>
+                    <button
+                      className="btn btn-primary"
+                      disabled={isSavingDish}
+                      onClick={() => saveEdit('dish')}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '160px', justifyContent: 'center' }}
+                    >
+                      {isSavingDish ? (
+                        <>
+                          <Loader2 size={15} className="spinner" />
+                          <span>Saving to MongoDB...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save size={15} />
+                          <span>Save Recipe &amp; Dish</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               ) : (
