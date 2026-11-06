@@ -1176,7 +1176,7 @@ const HistoricalLearning = () => {
                         >
                           <div style={{ minWidth: 0, paddingRight: '0.4rem' }}>
                             <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {dish.name}
+                              {dish.dishNumber ? `[${dish.dishNumber}] ` : ''}{dish.name}
                             </div>
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
                               {dish.category} • {dish.subCategory || 'Special'}

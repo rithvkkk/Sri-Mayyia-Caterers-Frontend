@@ -1105,6 +1105,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                     const matchesMeal = matchesMealCategory(d, selectedMealCategory);
                     const matchesSearch = !term || 
                       d.name.toLowerCase().includes(term) || 
+                      (d.dishNumber && String(d.dishNumber).toLowerCase().includes(term)) ||
                       (d.subCategory && d.subCategory.toLowerCase().includes(term)) ||
                       (d.cuisine && d.cuisine.toLowerCase().includes(term));
                     return matchesCat && matchesMeal && matchesSearch;
@@ -1205,6 +1206,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                             {group.items.map(dish => {
                               const isSelected = selectedSub.menuItems.includes(dish.id);
                               const conflictWarning = getDishConflict(dish);
+                              const dishNum = dish.dishNumber || (typeof dish.id === 'string' && dish.id.startsWith('DISH-') ? dish.id : null);
 
                               return (
                                 <div
@@ -1231,9 +1233,29 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                                   }}
                                   onClick={() => toggleDish(dish.id)}
                                 >
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? '#000000' : 'var(--text-primary)', lineHeight: '1.25' }}>
-                                      {dish.name}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? '#000000' : 'var(--text-primary)', lineHeight: '1.3' }}>
+                                      {dishNum && (
+                                        <span
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            fontWeight: 800,
+                                            fontSize: '0.72rem',
+                                            color: isSelected ? '#9C1519' : 'var(--color-primary)',
+                                            background: isSelected ? 'rgba(156, 21, 25, 0.12)' : 'rgba(156, 21, 25, 0.08)',
+                                            border: '1px solid rgba(156, 21, 25, 0.25)',
+                                            padding: '0.08rem 0.35rem',
+                                            borderRadius: '4px',
+                                            marginRight: '0.45rem',
+                                            display: 'inline-block',
+                                            verticalAlign: 'middle',
+                                            letterSpacing: '0.3px'
+                                          }}
+                                        >
+                                          {dishNum}
+                                        </span>
+                                      )}
+                                      <span style={{ verticalAlign: 'middle' }}>{dish.name}</span>
                                     </div>
                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                       <span>{companyProfile?.currency || '₹'} {dish.price}</span>
@@ -1275,7 +1297,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
               })}
 
               {/* No dishes match search */}
-              {displayedCategories.every(cat => !dishes.some(d => d.category === cat && (!dishSearchTerm.trim() || d.name.toLowerCase().includes(dishSearchTerm.trim().toLowerCase()) || (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.trim().toLowerCase())) || (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.trim().toLowerCase()))))) && (
+              {displayedCategories.every(cat => !dishes.some(d => d.category === cat && (!dishSearchTerm.trim() || d.name.toLowerCase().includes(dishSearchTerm.trim().toLowerCase()) || (d.dishNumber && String(d.dishNumber).toLowerCase().includes(dishSearchTerm.trim().toLowerCase())) || (d.subCategory && d.subCategory.toLowerCase().includes(dishSearchTerm.trim().toLowerCase())) || (d.cuisine && d.cuisine.toLowerCase().includes(dishSearchTerm.trim().toLowerCase()))))) && (
                 <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                   <p style={{ margin: '0 0 0.5rem 0' }}>No dishes found matching "{dishSearchTerm.trim()}".</p>
                   {dishSearchTerm.trim() && (

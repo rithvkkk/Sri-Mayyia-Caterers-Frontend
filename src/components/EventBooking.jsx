@@ -2423,7 +2423,7 @@ const EventBooking = () => {
       <datalist id="dishes-datalist">
         {(dishes || []).map((d, i) => (
           <option key={d.id || d._id || i} value={d.name}>
-            {d.category ? `[${d.category}] ` : ''}{d.name}
+            {d.dishNumber ? `[${d.dishNumber}] ` : ''}{d.category ? `[${d.category}] ` : ''}{d.name}
           </option>
         ))}
       </datalist>

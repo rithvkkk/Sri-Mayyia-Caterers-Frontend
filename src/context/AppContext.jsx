@@ -47,9 +47,27 @@ const getSafeLocal = (key, fallback) => {
       }
       if (parsed.length === 0) return fallback;
       // Auto-migrate if old legacy mock dishes or events are cached in browser
-      if (key === 'cater_dishes' && parsed.some(d => d.id === 'd1' || d.id === 'd2')) {
-        localStorage.setItem(key, JSON.stringify(fallback));
-        return fallback;
+      if (key === 'cater_dishes') {
+        if (parsed.some(d => d.id === 'd1' || d.id === 'd2')) {
+          localStorage.setItem(key, JSON.stringify(fallback));
+          return fallback;
+        }
+        let needsUpdate = false;
+        const normalized = parsed.map((d, idx) => {
+          if (!d.dishNumber) {
+            needsUpdate = true;
+            const foundInFallback = Array.isArray(fallback) ? fallback.find(fb => (fb.id === d.id || fb._id === d._id || fb.name === d.name)) : null;
+            return {
+              ...d,
+              dishNumber: foundInFallback?.dishNumber || `DISH-${String(idx + 1).padStart(4, '0')}`
+            };
+          }
+          return d;
+        });
+        if (needsUpdate) {
+          try { localStorage.setItem(key, JSON.stringify(normalized)); } catch (e) {}
+        }
+        return normalized;
       }
       return parsed;
     }
@@ -467,9 +485,10 @@ export const AppProvider = ({ children }) => {
         setRawMaterials(rmList);
       }
       if (Array.isArray(dList) && dList.length > 0) {
-        const normalizedDishes = dList.map(d => ({
+        const normalizedDishes = dList.map((d, idx) => ({
           ...d,
           id: d.id || d._id,
+          dishNumber: d.dishNumber || `DISH-${String(idx + 1).padStart(4, '0')}`,
           category: d.category || '',
           cuisine: d.cuisine || d.subCategory || ''
         }));

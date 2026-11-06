@@ -226,7 +226,14 @@ const MenuExecution = () => {
                 {pendingDishes.map(d => (
                   <div key={d.id} className="kanban-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{d.name}</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                        {d.dishNumber && (
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-primary)', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.22)', padding: '0.05rem 0.3rem', borderRadius: '4px', marginRight: '0.4rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                            {d.dishNumber}
+                          </span>
+                        )}
+                        <span style={{ verticalAlign: 'middle' }}>{d.name}</span>
+                      </span>
                       <span className={`badge ${
                         d.route === 'internal' ? 'badge-info' : 
                         d.route === 'outsourced' ? 'badge-warning' : 'badge-purple'
@@ -298,7 +305,14 @@ const MenuExecution = () => {
                 {cookingDishes.map(d => (
                   <div key={d.id} className="kanban-card" style={{ borderColor: 'rgba(255, 255, 255, 0.4)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{d.name}</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                        {d.dishNumber && (
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-primary)', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.22)', padding: '0.05rem 0.3rem', borderRadius: '4px', marginRight: '0.4rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                            {d.dishNumber}
+                          </span>
+                        )}
+                        <span style={{ verticalAlign: 'middle' }}>{d.name}</span>
+                      </span>
                       <span className={`badge ${
                         d.route === 'internal' ? 'badge-info' : 
                         d.route === 'outsourced' ? 'badge-warning' : 'badge-purple'
@@ -348,7 +362,14 @@ const MenuExecution = () => {
                 {servedDishes.map(d => (
                   <div key={d.id} className="kanban-card" style={{ borderColor: 'rgba(0,0,0,0.1)', background: 'rgba(156, 21, 25, 0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-success)' }}>{d.name}</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-success)' }}>
+                        {d.dishNumber && (
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-primary)', background: 'rgba(156, 21, 25, 0.08)', border: '1px solid rgba(156, 21, 25, 0.22)', padding: '0.05rem 0.3rem', borderRadius: '4px', marginRight: '0.4rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                            {d.dishNumber}
+                          </span>
+                        )}
+                        <span style={{ verticalAlign: 'middle' }}>{d.name}</span>
+                      </span>
                       <span className={`badge ${
                         d.route === 'internal' ? 'badge-info' : 
                         d.route === 'outsourced' ? 'badge-warning' : 'badge-purple'
