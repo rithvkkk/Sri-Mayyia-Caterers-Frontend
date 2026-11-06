@@ -1,7 +1,7 @@
 import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2 } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
@@ -10,7 +10,7 @@ const AuthSetup = () => {
     users, updateUser, updateUserPassword, addUser, deleteUser,
     venues, addVenue, updateVenue, deleteVenue,
     rawMaterials, addRawMaterial, updateRawMaterial, deleteRawMaterial,
-    dishes, addDish, updateDish, deleteDish,
+    dishes, addDish, getNextDishNumber, updateDish, deleteDish,
     suppliers, addSupplier, updateSupplier, deleteSupplier,
     agencies, addAgency, updateAgency, deleteAgency,
     companyProfile, setCompanyProfile,
@@ -46,16 +46,26 @@ const AuthSetup = () => {
   const [rawMaterialSearchTerm, setRawMaterialSearchTerm] = useState('');
   const [rawMaterialCategoryFilter, setRawMaterialCategoryFilter] = useState('All');
 
-  // Derived unique categories for Dishes
-  const dishCategoriesList = useMemo(() => {
+  // Combined list of all available categories for dishes (master categories + existing dish categories)
+  const allAvailableDishCategories = useMemo(() => {
     const set = new Set();
+    (effectiveMasterMenuCategories || []).forEach(cat => {
+      const name = typeof cat === 'string' ? cat : cat?.name;
+      if (name && name.trim()) set.add(name.trim());
+    });
     (dishes || []).forEach(d => {
       if (d && d.category && d.category.trim()) {
         set.add(d.category.trim());
       }
     });
+    if (set.size === 0) set.add('WELCOME DRINK');
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [dishes]);
+  }, [effectiveMasterMenuCategories, dishes]);
+
+  // Derived unique categories for Dishes
+  const dishCategoriesList = useMemo(() => {
+    return allAvailableDishCategories;
+  }, [allAvailableDishCategories]);
 
   // Filtered dishes with multi-field search and category filtering
   const filteredDishes = useMemo(() => {
@@ -66,6 +76,8 @@ const AuthSetup = () => {
       if (!matchesCat) return false;
       if (!term) return true;
 
+      // 0. Match dish number (e.g. DISH-0001 or 0001)
+      if (d.dishNumber && String(d.dishNumber).toLowerCase().includes(term)) return true;
       // 1. Match dish name
       if (d.name && d.name.toLowerCase().includes(term)) return true;
       // 2. Match category
@@ -123,6 +135,28 @@ const AuthSetup = () => {
   const [newRecipeItems, setNewRecipeItems] = useState([]); // [{ materialId, quantity }]
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [materialQty, setMaterialQty] = useState('');
+
+  // Add Dish Modal & Form States
+  const [isAddDishModalOpen, setIsAddDishModalOpen] = useState(false);
+  const [dishForm, setDishForm] = useState({
+    dishNumber: '',
+    name: '',
+    category: '',
+    subCategory: '',
+    cuisine: '',
+    price: 100,
+    dietary: ['Vegetarian'],
+    recipe: [],
+    instructions: ''
+  });
+  const [dishFormErrors, setDishFormErrors] = useState({});
+  const [isSubmittingDish, setIsSubmittingDish] = useState(false);
+
+  // Inline Category Creation Modal States
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '', type: 'MENU' });
+  const [categoryFormError, setCategoryFormError] = useState('');
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
 
   // User creation modal state
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -238,13 +272,133 @@ const AuthSetup = () => {
     setMaterialQty('');
   };
 
+  const handleOpenAddDishModal = async () => {
+    cancelEdit();
+    setDishFormErrors({});
+    let nextNum = 'DISH-????';
+    try {
+      if (typeof getNextDishNumber === 'function') {
+        nextNum = await getNextDishNumber();
+      }
+    } catch (e) {
+      console.warn('Could not fetch next dish number:', e);
+    }
+    const defaultCat = allAvailableDishCategories[0] || 'WELCOME DRINK';
+    setDishForm({
+      dishNumber: nextNum,
+      name: '',
+      category: defaultCat,
+      subCategory: '',
+      cuisine: '',
+      price: 100,
+      dietary: ['Vegetarian'],
+      recipe: [],
+      instructions: ''
+    });
+    setIsAddDishModalOpen(true);
+  };
+
+  const handleSaveDish = async (e) => {
+    if (e) e.preventDefault();
+    if (isSubmittingDish) return;
+
+    const errors = {};
+    if (!dishForm.name || !dishForm.name.trim()) {
+      errors.name = 'Dish name is required';
+    }
+    if (!dishForm.category || !dishForm.category.trim()) {
+      errors.category = 'Please select or create a category';
+    }
+    if (dishForm.price === undefined || isNaN(Number(dishForm.price)) || Number(dishForm.price) < 0) {
+      errors.price = 'Price must be a non-negative number';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setDishFormErrors(errors);
+      return;
+    }
+
+    setIsSubmittingDish(true);
+    setDishFormErrors({});
+    try {
+      const created = await addDish({
+        ...dishForm,
+        name: dishForm.name.trim(),
+        category: dishForm.category.trim(),
+        subCategory: dishForm.subCategory ? dishForm.subCategory.trim() : '',
+        cuisine: dishForm.cuisine ? dishForm.cuisine.trim() : '',
+        price: Number(dishForm.price) || 0,
+        dietary: dishForm.dietary || ['Vegetarian'],
+        instructions: dishForm.instructions ? dishForm.instructions.trim() : ''
+      });
+
+      setIsAddDishModalOpen(false);
+      // Automatically select and open the newly created dish for recipe editing
+      if (created) {
+        startEdit(created);
+      }
+    } catch (err) {
+      setDishFormErrors({ general: err.message || 'Failed to create dish' });
+    } finally {
+      setIsSubmittingDish(false);
+    }
+  };
+
+  const handleSaveCategory = async (e) => {
+    if (e) e.preventDefault();
+    if (isSubmittingCategory) return;
+
+    const trimmedName = (categoryForm.name || '').trim();
+    if (!trimmedName) {
+      setCategoryFormError('Category name is required');
+      return;
+    }
+
+    // Case-insensitive duplicate check
+    const isDuplicate = allAvailableDishCategories.some(
+      cat => cat.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (isDuplicate) {
+      setCategoryFormError(`Category "${trimmedName}" already exists`);
+      return;
+    }
+
+    setIsSubmittingCategory(true);
+    setCategoryFormError('');
+    try {
+      const cleanName = trimmedName.toUpperCase();
+      const prefix = (categoryForm.type || 'MENU') === 'LIVE_STATION' ? 'ls_' : 'mc_';
+      const created = await addMenuCategory({
+        id: prefix + Date.now(),
+        name: cleanName,
+        type: categoryForm.type || 'MENU',
+        description: cleanName,
+        displayOrder: (effectiveMenuCategories.length + 1),
+        active: true
+      });
+
+      // Auto-select in the dish form without losing any entered fields!
+      setDishForm(prev => ({
+        ...prev,
+        category: created?.name || cleanName
+      }));
+      setDishFormErrors(prev => ({ ...prev, category: null }));
+      setIsAddCategoryModalOpen(false);
+      setCategoryForm({ name: '', type: 'MENU' });
+    } catch (err) {
+      setCategoryFormError(err.message || 'Failed to create category');
+    } finally {
+      setIsSubmittingCategory(false);
+    }
+  };
+
   const createNewItem = (type) => {
     if (type === 'venue') {
       addVenue({ name: 'New Venue', capacity: 100, price: 50000, address: 'Address' });
     } else if (type === 'material') {
       addRawMaterial({ name: 'New Material', category: 'Grocery', unit: 'kg', costPerUnit: 50 });
     } else if (type === 'dish') {
-      addDish({ name: 'New Dish', category: 'WELCOME DRINK', subCategory: 'General Items', price: 100, recipe: [], instructions: '' });
+      handleOpenAddDishModal();
     } else if (type === 'supplier') {
       const defaultCat = effectiveVendorCategories[0]?.name || 'Grocery';
       const defaultSub = effectiveVendorCategories[0]?.subCategories?.[0] || '';
@@ -601,7 +755,7 @@ const AuthSetup = () => {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn btn-primary btn-small" onClick={() => createNewItem('dish')}>
+              <button className="btn btn-primary btn-small" onClick={handleOpenAddDishModal}>
                 <Plus size={16} /> Add New Dish
               </button>
             </div>
@@ -624,7 +778,7 @@ const AuthSetup = () => {
               <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', flexShrink: 0 }} />
               <input
                 type="text"
-                placeholder="Search dishes by name, cuisine, ingredients..."
+                placeholder="Search dishes by number (e.g. DISH-0001), name, cuisine, ingredients..."
                 value={dishSearchTerm}
                 onChange={e => setDishSearchTerm(e.target.value)}
                 style={{
@@ -703,9 +857,10 @@ const AuthSetup = () => {
             
             {/* Left Box: Dishes List */}
             <div className="table-container" style={{ maxHeight: '620px', overflowY: 'auto', overflowX: 'auto' }}>
-              <table className="custom-table" style={{ width: '100%', minWidth: '420px' }}>
+              <table className="custom-table" style={{ width: '100%', minWidth: '460px' }}>
                 <thead>
                   <tr>
+                    <th style={{ width: '100px' }}>Dish Number</th>
                     <th>Dish Name</th>
                     <th>Category</th>
                     <th>Price/Plate</th>
@@ -718,6 +873,11 @@ const AuthSetup = () => {
                     const isSelected = editingId === d.id;
                     return (
                       <tr key={d.id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'transparent', fontWeight: isSelected ? 600 : 'normal' }}>
+                        <td>
+                          <span className="badge badge-secondary" style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem' }}>
+                            {d.dishNumber || 'DISH-????'}
+                          </span>
+                        </td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{d.name}</div>
                           {d.cuisine && <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{d.cuisine}</div>}
@@ -735,7 +895,7 @@ const AuthSetup = () => {
                   })}
                   {filteredDishes.length === 0 && (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
                           <p style={{ margin: 0, fontSize: '0.9rem' }}>
                             {dishSearchTerm.trim() ? (
@@ -764,26 +924,39 @@ const AuthSetup = () => {
             <div>
               {editingId ? (
                 <div className="glass-card" style={{ background: 'rgba(17, 24, 39, 0.5)', border: '1px solid var(--color-primary)' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Configure: {tempData.name}</span>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>Configure: {tempData.name}</span>
+                      {tempData.dishNumber && (
+                        <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700 }}>
+                          {tempData.dishNumber}
+                        </span>
+                      )}
+                    </div>
                     <button className="btn btn-danger btn-small" style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem' }} onClick={() => deleteDish(tempData.id)}>
                       <Trash2 size={12} /> Delete Dish
                     </button>
                   </h3>
 
-                  <div className="form-group">
-                    <label className="form-label">Dish Name</label>
-                    <input className="form-input" value={tempData.name || ''} onChange={e => setTempData({ ...tempData, name: e.target.value })} />
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Dish Number</label>
+                      <input className="form-input" disabled readOnly value={tempData.dishNumber || ''} style={{ fontFamily: 'monospace', fontWeight: 700, background: 'rgba(0,0,0,0.04)' }} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Dish Name</label>
+                      <input className="form-input" value={tempData.name || ''} onChange={e => setTempData({ ...tempData, name: e.target.value })} />
+                    </div>
                   </div>
 
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">Category</label>
                       <select className="form-select" value={tempData.category || ''} onChange={e => setTempData({ ...tempData, category: e.target.value })}>
-                        {effectiveMasterMenuCategories.map(cat => (
-                          <option key={cat.id || cat._id || cat.name} value={cat.name}>{cat.name}</option>
+                        {allAvailableDishCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
                         ))}
-                        {tempData.category && !effectiveMasterMenuCategories.some(c => c.name === tempData.category) && (
+                        {tempData.category && !allAvailableDishCategories.includes(tempData.category) && (
                           <option value={tempData.category}>{tempData.category}</option>
                         )}
                       </select>
@@ -1889,6 +2062,341 @@ const AuthSetup = () => {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsUserModalOpen(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Create User Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── ADD DISH MODAL ─────────────────── */}
+      {isAddDishModalOpen && (
+        <div className="modal-overlay" onClick={() => !isSubmittingDish && setIsAddDishModalOpen(false)}>
+          <div
+            className="glass-card modal-card"
+            style={{ maxWidth: '640px', width: '92%', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800 }}>Add New Master Dish</h2>
+                  <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.85rem', padding: '0.2rem 0.55rem' }}>
+                    {dishForm.dishNumber || 'Generating...'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  Register culinary recipe formula, pricing, and category classification.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={isSubmittingDish}
+                onClick={() => setIsAddDishModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px' }}
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDish} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Dish Number (Read-only) & Price */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Dish Number</label>
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={dishForm.dishNumber}
+                    className="form-input"
+                    style={{
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      background: 'rgba(0, 0, 0, 0.04)',
+                      cursor: 'not-allowed',
+                      color: 'var(--color-primary)'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Auto-assigned unique sequential identifier</span>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Selling Price / Plate ({companyProfile?.currency || '₹'}) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    className="form-input"
+                    placeholder="e.g. 120"
+                    value={dishForm.price}
+                    onChange={e => {
+                      setDishForm({ ...dishForm, price: parseFloat(e.target.value) || 0 });
+                      if (dishFormErrors.price) setDishFormErrors({ ...dishFormErrors, price: null });
+                    }}
+                  />
+                  {dishFormErrors.price && (
+                    <span style={{ fontSize: '0.74rem', color: 'var(--color-danger)', fontWeight: 600 }}>{dishFormErrors.price}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Dish Name */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 600 }}>Dish Name <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <input
+                  type="text"
+                  required
+                  className="form-input"
+                  placeholder="e.g. Badam Halwa, Paneer Butter Masala, Fresh Tender Coconut Payasam"
+                  value={dishForm.name}
+                  onChange={e => {
+                    setDishForm({ ...dishForm, name: e.target.value });
+                    if (dishFormErrors.name) setDishFormErrors({ ...dishFormErrors, name: null });
+                  }}
+                />
+                {dishFormErrors.name && (
+                  <span style={{ fontSize: '0.74rem', color: 'var(--color-danger)', fontWeight: 600 }}>{dishFormErrors.name}</span>
+                )}
+              </div>
+
+              {/* Category with inline '+ Create New Category' */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>Category <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => {
+                      setCategoryForm({ name: '', type: 'MENU' });
+                      setCategoryFormError('');
+                      setIsAddCategoryModalOpen(true);
+                    }}
+                    style={{ padding: '0.2rem 0.55rem', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                  >
+                    <Plus size={13} /> Create New Category
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select
+                    className="form-select"
+                    required
+                    style={{ flex: 1 }}
+                    value={dishForm.category}
+                    onChange={e => {
+                      if (e.target.value === '__CREATE_NEW__') {
+                        setCategoryForm({ name: '', type: 'MENU' });
+                        setCategoryFormError('');
+                        setIsAddCategoryModalOpen(true);
+                      } else {
+                        setDishForm({ ...dishForm, category: e.target.value });
+                        if (dishFormErrors.category) setDishFormErrors({ ...dishFormErrors, category: null });
+                      }
+                    }}
+                  >
+                    <option value="">-- Select Category --</option>
+                    {allAvailableDishCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="__CREATE_NEW__" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                      ➕ Create New Category...
+                    </option>
+                  </select>
+                </div>
+                {dishFormErrors.category && (
+                  <span style={{ fontSize: '0.74rem', color: 'var(--color-danger)', fontWeight: 600 }}>{dishFormErrors.category}</span>
+                )}
+              </div>
+
+              {/* Cuisine / Sub-Category */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Sub-Category</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Traditional Sweets, Gravy, Starters"
+                    value={dishForm.subCategory}
+                    onChange={e => setDishForm({ ...dishForm, subCategory: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Cuisine Style</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. South Indian, North Indian, Chinese, Continental"
+                    value={dishForm.cuisine}
+                    onChange={e => setDishForm({ ...dishForm, cuisine: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Dietary Preferences */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 600 }}>Dietary Specifications</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginTop: '0.2rem' }}>
+                  {['Vegetarian', 'Vegan', 'Gluten-Free', 'Jain', 'Nut-Free', 'Special Signature'].map(diet => {
+                    const active = (dishForm.dietary || []).includes(diet);
+                    return (
+                      <button
+                        key={diet}
+                        type="button"
+                        onClick={() => {
+                          const prev = dishForm.dietary || [];
+                          const next = active ? prev.filter(d => d !== diet) : [...prev, diet];
+                          setDishForm({ ...dishForm, dietary: next });
+                        }}
+                        className={`btn btn-small ${active ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{
+                          fontSize: '0.76rem',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '16px',
+                          border: active ? 'none' : '1px solid var(--border-color)'
+                        }}
+                      >
+                        {diet}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Kitchen Directives & Instructions */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 600 }}>Kitchen Directives & Service Instructions</label>
+                <textarea
+                  className="form-textarea"
+                  rows="2"
+                  placeholder="e.g. Garnish with fried cashews & saffron strands; prepare 20 mins prior to service."
+                  value={dishForm.instructions}
+                  onChange={e => setDishForm({ ...dishForm, instructions: e.target.value })}
+                />
+              </div>
+
+              {/* General Form Error */}
+              {dishFormErrors.general && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 600 }}>
+                  {dishFormErrors.general}
+                </div>
+              )}
+
+              {/* Footer Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={isSubmittingDish}
+                  onClick={() => setIsAddDishModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingDish}
+                  style={{ minWidth: '120px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                >
+                  {isSubmittingDish ? (
+                    <>
+                      <Loader2 size={15} className="spin" /> Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} /> Save Dish
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── INLINE CATEGORY CREATION SUB-MODAL ─────────────────── */}
+      {isAddCategoryModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1200 }} onClick={() => !isSubmittingCategory && setIsAddCategoryModalOpen(false)}>
+          <div
+            className="glass-card modal-card"
+            style={{ maxWidth: '440px', width: '90%', zIndex: 1210 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700 }}>Create New Category</h3>
+              <button
+                type="button"
+                disabled={isSubmittingCategory}
+                onClick={() => setIsAddCategoryModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: 600 }}>Category Name <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  className="form-input"
+                  placeholder="e.g. WELCOME DRINK, ARTISAN BREADS, CHATS"
+                  value={categoryForm.name}
+                  onChange={e => {
+                    setCategoryForm({ ...categoryForm, name: e.target.value });
+                    setCategoryFormError('');
+                  }}
+                />
+                {categoryFormError && (
+                  <span style={{ fontSize: '0.74rem', color: 'var(--color-danger)', fontWeight: 600, display: 'block', marginTop: '0.25rem' }}>
+                    {categoryFormError}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 600 }}>Classification Type</label>
+                <select
+                  className="form-select"
+                  value={categoryForm.type || 'MENU'}
+                  onChange={e => setCategoryForm({ ...categoryForm, type: e.target.value })}
+                >
+                  <option value="MENU">MENU (Master Food & Dish Menu)</option>
+                  <option value="LIVE_STATION">LIVE_STATION (Live Counter Setup)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  disabled={isSubmittingCategory}
+                  onClick={() => setIsAddCategoryModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-small"
+                  disabled={isSubmittingCategory}
+                  style={{ minWidth: '100px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                >
+                  {isSubmittingCategory ? (
+                    <>
+                      <Loader2 size={14} className="spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={14} /> Create Category
+                    </>
+                  )}
+                </button>
               </div>
             </form>
           </div>

@@ -3321,8 +3321,7 @@ export const generateOccasionMenuPdf = (event, subFunction, companyProfile, temp
   const safeSubName = isAllSessions
     ? 'Full_Event_Proposal'
     : (subList[0]?.name || 'Menu').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const themePrefix = (tpl.id || 'proposal').charAt(0).toUpperCase() + (tpl.id || 'proposal').slice(1);
-  const filename = `Sri_Mayyia_${themePrefix}_Proposal_${safeEventId}_${safeSubName}.pdf`;
+  const filename = `Sri_Mayyia_Proposal_${safeEventId}_${safeSubName}.pdf`;
 
   const blob = doc.output('blob');
   let blobUrl = '';

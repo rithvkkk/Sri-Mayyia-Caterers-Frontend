@@ -92,9 +92,10 @@ export const initialRawMaterials = [
 import masterMenuData from '../data/catering_master_menu.json' with { type: 'json' };
 
 export const initialDishes = Array.isArray(masterMenuData)
-  ? masterMenuData.map(item => ({
+  ? masterMenuData.map((item, idx) => ({
       id: item.id || item._id,
       _id: item._id || item.id,
+      dishNumber: item.dishNumber || `DISH-${String(idx + 1).padStart(4, '0')}`,
       name: item.name,
       category: item.category === 'Other Welcome Drinks' ? 'SHELL BASED FRESH JUICE' : item.category,
       subCategory: item.subCategory,
@@ -105,9 +106,10 @@ export const initialDishes = Array.isArray(masterMenuData)
     }))
   : (masterMenuData.categories || []).flatMap(cat =>
       (cat.subCategories || []).flatMap(sub =>
-        (sub.items || []).map(item => ({
+        (sub.items || []).map((item, idx) => ({
           id: item.id || item._id,
           _id: item._id || item.id,
+          dishNumber: item.dishNumber || `DISH-${String(idx + 1).padStart(4, '0')}`,
           name: item.name,
           category: (item.category || cat.name) === 'Other Welcome Drinks' ? 'SHELL BASED FRESH JUICE' : (item.category || cat.name),
           subCategory: item.subCategory || sub.name,

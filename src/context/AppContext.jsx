@@ -891,11 +891,51 @@ export const AppProvider = ({ children }) => {
     return updated;
   };
 
+  const getNextDishNumber = async () => {
+    try {
+      const res = await apiCall('/dishes/next-number');
+      if (res && res.nextDishNumber) return res.nextDishNumber;
+    } catch (e) {}
+
+    // Fallback: derive sequentially from current in-memory dishes
+    const existing = (dishes || []).map(d => d.dishNumber).filter(Boolean);
+    let max = 0;
+    for (const dn of existing) {
+      const match = dn.match(/^DISH-(\d+)$/i);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > max) max = n;
+      }
+    }
+    if (max === 0) max = Math.max((dishes || []).length, 374);
+    return `DISH-${String(max + 1).padStart(4, '0')}`;
+  };
+
   const addDish = async (dish) => {
-    const payload = { ...dish, id: dish.id || ('d_' + Date.now()) };
+    let dishNum = dish.dishNumber;
+    if (!dishNum) {
+      dishNum = await getNextDishNumber();
+    }
+    const payload = {
+      ...dish,
+      dishNumber: dishNum,
+      id: dish.id || ('d_' + Date.now()),
+      price: Number(dish.price) || 0
+    };
     setDishes(prev => [...prev, payload]);
-    const res = await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload) });
-    if (res) setDishes(prev => prev.map(d => d.id === payload.id ? res : d));
+    const res = await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload), returnErrorResponse: true });
+    if (res && !res.__httpError) {
+      const finalDish = { ...payload, ...res };
+      setDishes(prev => prev.map(d => d.id === payload.id ? finalDish : d));
+      try {
+        localStorage.setItem('cater_dishes', JSON.stringify([...dishes.filter(d => d.id !== payload.id), finalDish]));
+      } catch (e) {}
+      return finalDish;
+    }
+    if (res && res.__httpError) {
+      setDishes(prev => prev.filter(d => d.id !== payload.id));
+      throw new Error(res.error || 'Failed to create dish');
+    }
     return payload;
   };
 
@@ -1204,8 +1244,16 @@ export const AppProvider = ({ children }) => {
   const addMenuCategory = async (cat) => {
     const payload = { ...cat, id: cat.id || ('mc_' + Date.now()) };
     setMenuCategories(prev => [...prev, payload]);
-    const res = await apiCall('/menu-categories', { method: 'POST', body: JSON.stringify(payload) });
-    if (res) setMenuCategories(prev => prev.map(c => c.id === payload.id ? res : c));
+    const res = await apiCall('/menu-categories', { method: 'POST', body: JSON.stringify(payload), returnErrorResponse: true });
+    if (res && !res.__httpError) {
+      const finalCat = { ...payload, ...res };
+      setMenuCategories(prev => prev.map(c => c.id === payload.id ? finalCat : c));
+      return finalCat;
+    }
+    if (res && res.__httpError) {
+      setMenuCategories(prev => prev.filter(c => c.id !== payload.id));
+      throw new Error(res.error || 'Failed to create category');
+    }
     return payload;
   };
 
@@ -1870,6 +1918,7 @@ export const AppProvider = ({ children }) => {
       unlinkSupplierFromMaterial,
       dishes,
       addDish,
+      getNextDishNumber,
       updateDish,
       deleteDish,
       suppliers,
