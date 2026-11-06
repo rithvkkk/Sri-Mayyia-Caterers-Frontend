@@ -47,17 +47,18 @@ const Login = () => {
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
-            width: '80px',
+            width: '88px',
             height: '80px',
             margin: '0 auto 1rem',
-            background: 'var(--primary-grad)',
-            borderRadius: '20px',
+            background: '#ffffff',
+            borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(128, 0, 32, 0.2)'
+            border: '1.5px solid rgba(197, 160, 89, 0.45)',
+            boxShadow: '0 8px 24px rgba(128, 0, 32, 0.12)'
           }}>
-            <img src={logoImg} alt="K R Ananth Mayia Catering Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+            <img src={logoImg} alt="K R Ananth Mayia Catering Logo" style={{ width: '74px', height: '56px', objectFit: 'contain' }} />
           </div>
           <h1 className="gradient-text" style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
             K R Ananth Mayia Catering

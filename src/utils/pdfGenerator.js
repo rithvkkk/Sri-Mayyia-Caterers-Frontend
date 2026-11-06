@@ -254,7 +254,7 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
 
   // 1. Centered Official Brand Logo
   if (menuTemplateAssets.invoiceLogo) {
-    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 93, 10, 24, 24);
+    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 86, 10, 38, 24);
   }
 
   // 2. Document Title
@@ -1145,7 +1145,7 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
 
   // Official Logo if available
   if (menuTemplateAssets.invoiceLogo) {
-    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 14, 8, 20, 20);
+    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 14, 8, 20, 13);
   }
 
   // Document Type Badge (Top Right)
@@ -2048,9 +2048,10 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
   let currentY = 16;
 
   // 1. Logo
-  if (menuTemplateAssets.companyLogo) {
+  const sheetLogo = menuTemplateAssets.companyLogo || menuTemplateAssets.invoiceLogo;
+  if (sheetLogo) {
     try {
-      doc.addImage(menuTemplateAssets.companyLogo, 'PNG', 24, currentY, 20, 24);
+      doc.addImage(sheetLogo, 'PNG', 24, currentY, 32, 20);
     } catch (e) {
       doc.setFont('times', 'bold');
       doc.setFontSize(16);

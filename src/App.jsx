@@ -292,7 +292,7 @@ const AppContent = () => {
       {/* Sidebar Navigation */}
       <div className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <img src={logoImg} alt="K R Ananth Mayia Catering Logo" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '4px', background: '#FFFDD0', padding: '2px' }} />
+          <img src={logoImg} alt="K R Ananth Mayia Catering Logo" style={{ width: '46px', height: '38px', objectFit: 'contain', borderRadius: '6px', background: '#ffffff', padding: '2px', border: '1px solid rgba(197, 160, 89, 0.35)' }} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.02em', lineHeight: '1.2', color: 'var(--color-primary)' }}>{companyProfile.name}</span>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Catering Management System</span>
