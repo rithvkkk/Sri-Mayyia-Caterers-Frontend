@@ -1492,7 +1492,7 @@ const HistoricalLearning = () => {
                 </div>
 
                 <div style={{ padding: '1rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  <strong>How Sri Mayyia Caterers AI Category Intelligence calculates:</strong>
+                  <strong>How K R Ananth Mayia Catering AI Category Intelligence calculates:</strong>
                   <p style={{ margin: '0.3rem 0 0 0' }}>
                     Because catering dish recipes vary by kitchen chef, the engine uses multi-variable category heuristics trained on historical banquets. For example, selecting 4 rice dishes applies 46g of raw Basmati per pax (1:2.5 cooked yield) with oil and spices. Each South Indian gravy adds lentils, tomatoes, and vegetables; while North Indian gravies add cottage cheese (paneer), fresh butter, and heavy cream.
                   </p>
@@ -2079,7 +2079,7 @@ const HistoricalLearning = () => {
                 <span>Dish Recipe Version Control & Yield Repository</span>
               </h2>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
-                Track version history, cooking yields, and preparation loss % for core Sri Mayyia signature dishes.
+                Track version history, cooking yields, and preparation loss % for core K R Ananth Mayia signature dishes.
               </p>
             </div>
           </div>

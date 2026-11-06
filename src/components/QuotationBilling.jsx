@@ -1358,7 +1358,7 @@ const QuotationBilling = () => {
             {/* Bill Sheet */}
             <div style={{ border: '1px dashed var(--border-color)', borderRadius: '12px', padding: '1.25rem', background: 'rgba(255, 255, 255, 0.5)' }}>
               <div style={{ textAlign: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }} className="gradient-text">{companyProfile?.name || 'Sri Mayyia Caterers'}</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }} className="gradient-text">{companyProfile?.name || 'K R Ananth Mayia Catering'}</h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.2rem 0' }}>{companyProfile?.address || ''}</p>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>GSTIN: {companyProfile?.gstin || 'N/A'}</p>
               </div>
@@ -1930,7 +1930,7 @@ const QuotationBilling = () => {
               {[
                 {
                   id: 'official_tax_invoice',
-                  title: 'Official Sri Mayyia Tax Invoice',
+                  title: 'Official K R Ananth Mayia Tax Invoice',
                   badge: '★ Statutory Tax Invoice (Karur Vysya Bank)',
                   description: 'Official template with centered brand logo, Govardhanagiri corporate address, Halasuru branch payment instructions (IFSC KVBL0001304), dynamic GST calculation (CGST/SGST/IGST/0%), amount in words, special instructions, and authorized signatory.',
                   color: '#9C1519',

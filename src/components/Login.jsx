@@ -57,10 +57,10 @@ const Login = () => {
             justifyContent: 'center',
             boxShadow: '0 8px 24px rgba(128, 0, 32, 0.2)'
           }}>
-            <img src={logoImg} alt="Sri Mayyia Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+            <img src={logoImg} alt="K R Ananth Mayia Catering Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
           </div>
           <h1 className="gradient-text" style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
-            Sri Mayyia Caterers
+            K R Ananth Mayia Catering
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
             Enterprise Catering Operations Portal

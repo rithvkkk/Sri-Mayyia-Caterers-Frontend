@@ -216,7 +216,7 @@ const AppContent = () => {
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '420px' }}>
               {isFadingOut
-                ? 'Database sync complete. Launching Sri Mayyia Caterers Workspace...'
+                ? 'Database sync complete. Launching K R Ananth Mayia Catering Workspace...'
                 : (syncStatus === 'offline'
                   ? 'Cloud database is currently unreachable. You can retry connecting or proceed in offline mode with cached data.'
                   : 'Establishing secure live connection. Please wait while database initializes...')}
@@ -292,7 +292,7 @@ const AppContent = () => {
       {/* Sidebar Navigation */}
       <div className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <img src={logoImg} alt="Sri Mayyia Caterers Logo" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '4px', background: '#FFFDD0', padding: '2px' }} />
+          <img src={logoImg} alt="K R Ananth Mayia Catering Logo" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '4px', background: '#FFFDD0', padding: '2px' }} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.02em', lineHeight: '1.2', color: 'var(--color-primary)' }}>{companyProfile.name}</span>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Catering Management System</span>

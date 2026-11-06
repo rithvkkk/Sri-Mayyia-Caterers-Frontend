@@ -52,7 +52,7 @@ const translations = {
     unitCost: 'Unit Cost',
     totalCost: 'Est. Total Cost',
     supplier: 'Allocated Supplier',
-    footerMsg: 'Thank you for choosing our services. Sri Mayyia Caterers.'
+    footerMsg: 'Thank you for choosing our services. K R Ananth Mayia Catering.'
   }
 };
 
@@ -267,7 +267,7 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   const cpGstin = cp.gstin || '29ACUPA7565Q1ZI';
   doc.setFont('times', 'bold');
   doc.setFontSize(9.5);
-  doc.text('SRI MAYYIA CATERERS', 14, 49);
+  doc.text((cp.name || 'K R ANANTH MAYIA CATERING').toUpperCase(), 14, 49);
 
   doc.setFont('times', 'bold');
   doc.setFontSize(8.5);
@@ -596,7 +596,7 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  doc.text('Account Name :- SRI MAYYIA CATERERS', 14, curLeftY); curLeftY += 4.2;
+  doc.text(`Account Name :- ${(cp.accountName || cp.name || 'K R ANANTH MAYIA CATERING').toUpperCase()}`, 14, curLeftY); curLeftY += 4.2;
   doc.text('Account Number: 1304013000000051', 14, curLeftY); curLeftY += 4.2;
   doc.text('IFSC CODE :- KVBL0001304', 14, curLeftY); curLeftY += 4.2;
   doc.text('BANK :- KARUR VYSYA BANK', 14, curLeftY); curLeftY += 4.2;
@@ -608,7 +608,7 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   doc.setFont('times', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(0, 0, 0);
-  doc.text('FOR SRI MAYYIA CATERERS', 135, sigY);
+  doc.text(`FOR ${(cp.name || 'K R ANANTH MAYIA CATERING').toUpperCase()}`, 135, sigY);
   doc.setFont('times', 'normal');
   doc.setFontSize(9);
   doc.text('Authorized Signature', 140, sigY + 20);
@@ -675,7 +675,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const goldColor = [210, 172, 103];  // Champagne Gold #D2AC67
   const charcoalColor = [50, 50, 50];
 
-  const cpName = cp.name || 'Sri Mayyia Caterers';
+  const cpName = cp.name || 'K R Ananth Mayia Catering';
   const cpTagline = cp.tagline || 'Pioneers in authentic, pure vegetarian catering since 1953';
   const cpGstin = cp.gstin || '24AAAAA1111A1Z1';
   const cpPhone = cp.phone || '+91 99988 77766';
@@ -1030,8 +1030,8 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.5);
-    doc.text('Thank you for choosing Sri Mayyia Caterers.', 15, pageHeight - 11);
-    doc.text(`Page ${p} of ${totalPages}  |  Generated securely by Sri Mayyia ERP`, 195, pageHeight - 11, { align: 'right' });
+    doc.text(`Thank you for choosing ${cpName || 'K R Ananth Mayia Catering'}.`, 15, pageHeight - 11);
+    doc.text(`Page ${p} of ${totalPages}  |  Generated securely by CaterFlow ERP`, 195, pageHeight - 11, { align: 'right' });
   }
 
   // Standardized filename
@@ -1109,7 +1109,7 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   const charcoalColor = [50, 50, 50];
 
   const cp = companyProfile || {};
-  const cpName = cp.name || 'Sri Mayyia Caterers';
+  const cpName = cp.name || 'K R Ananth Mayia Catering';
   const cpTagline = cp.tagline || 'Pioneers in authentic, pure vegetarian catering since 1953';
   const cpPhone = cp.phone || '+91 99988 77766';
   const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
@@ -1634,7 +1634,7 @@ export const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text(companyProfile?.name ? companyProfile.name.toUpperCase() : 'SRI MAYYIA CATERERS', pw / 2, 27, { align: 'center' });
+    doc.text(companyProfile?.name ? companyProfile.name.toUpperCase() : 'K R ANANTH MAYIA CATERING', pw / 2, 27, { align: 'center' });
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
@@ -1841,7 +1841,7 @@ export const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile
     doc.setTextColor(...maroon);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text('SHREE MAYYIA CATERERS — SWASTIK TRADITIONAL GASTRONOMY', pw / 2, ph - 11, { align: 'center' });
+    doc.text(`${(companyProfile?.name || 'K R Ananth Mayia Catering').toUpperCase()} — SWASTIK TRADITIONAL GASTRONOMY`, pw / 2, ph - 11, { align: 'center' });
 
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.5);
@@ -2055,7 +2055,7 @@ export const generateExecutiveMenuPdf = (event, subFunction, companyProfile, dis
       doc.setFont('times', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(...redColor);
-      doc.text('SRI MAYYIA CATERERS', 24, currentY + 12);
+      doc.text((companyProfile?.name || 'K R ANANTH MAYIA CATERING').toUpperCase(), 24, currentY + 12);
     }
   }
 

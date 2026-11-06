@@ -1,5 +1,5 @@
 /**
- * Historical Data & Learning Engine for Sri Mayyia Caterers ERP
+ * Historical Data & Learning Engine for K R Ananth Mayia Catering ERP
  * 
  * Persistent catering estimation intelligence system based on real-world historical actuals.
  * Continuous learning cycle:

@@ -1,6 +1,6 @@
 /**
  * Master Role-Based Access Control (RBAC) Matrix
- * Sri Mayyia Caterers Enterprise ERP (Since 1953)
+ * K R Ananth Mayia Catering Enterprise ERP (Since 1953)
  */
 
 export const MODULES = {

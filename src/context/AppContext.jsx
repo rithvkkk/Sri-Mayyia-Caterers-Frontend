@@ -417,15 +417,27 @@ export const AppProvider = ({ children }) => {
     return (menuCategories || []).filter(c => c.type === 'LIVE_STATION');
   }, [menuCategories]);
 
-  const [companyProfile, setCompanyProfile] = useState({
-    name: 'Sri Mayyia Caterers',
-    tagline: 'Legacy of Royal Flavors Since 1953',
-    phone: '+91 99988 77766',
-    email: 'info@srimayyiacaterers.com',
-    address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
-    gstin: '24AAAAA1111A1Z1',
-    defaultTaxRate: 18,
-    currency: '₹'
+  const [companyProfile, setCompanyProfile] = useState(() => {
+    const local = getSafeLocal('cater_company_profile', null);
+    if (local && typeof local === 'object') {
+      if (local.name === 'Sri Mayyia Caterers' || !local.name) {
+        local.name = 'K R Ananth Mayia Catering';
+      }
+      if (local.email === 'info@srimayyiacaterers.com' || !local.email) {
+        local.email = 'info@krananthmayiacatering.com';
+      }
+      return local;
+    }
+    return {
+      name: 'K R Ananth Mayia Catering',
+      tagline: 'Legacy of Royal Flavors Since 1953',
+      phone: '+91 99988 77766',
+      email: 'info@krananthmayiacatering.com',
+      address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
+      gstin: '24AAAAA1111A1Z1',
+      defaultTaxRate: 18,
+      currency: '₹'
+    };
   });
 
   const [syncStatus, setSyncStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
@@ -485,14 +497,21 @@ export const AppProvider = ({ children }) => {
         setRawMaterials(rmList);
       }
       if (Array.isArray(dList) && dList.length > 0) {
-        const normalizedDishes = dList.map((d, idx) => ({
-          ...d,
-          id: d.id || d._id,
-          dishNumber: d.dishNumber || `DISH-${String(idx + 1).padStart(4, '0')}`,
-          category: d.category || '',
-          cuisine: d.cuisine || d.subCategory || ''
-        }));
+        const normalizedDishes = dList.map((d, idx) => {
+          const rawId = d.id || d._id || `dish_${idx + 1}`;
+          return {
+            ...d,
+            id: rawId,
+            _id: rawId,
+            dishNumber: d.dishNumber || `DISH-${String(idx + 1).padStart(4, '0')}`,
+            category: d.category || '',
+            cuisine: d.cuisine || d.subCategory || '',
+            price: Number(d.price) || 0,
+            recipe: Array.isArray(d.recipe) ? d.recipe : []
+          };
+        });
         setDishes(normalizedDishes);
+        try { localStorage.setItem('cater_dishes', JSON.stringify(normalizedDishes)); } catch (e) {}
       }
       if (Array.isArray(lrList) && lrList.length > 0) {
         setLaborRates(lrList);
@@ -562,7 +581,14 @@ export const AppProvider = ({ children }) => {
           return finalEvents;
         });
       }
-      if (pDoc && typeof pDoc === 'object' && pDoc.name) setCompanyProfile(pDoc);
+      if (pDoc && typeof pDoc === 'object' && pDoc.name) {
+        const normDoc = {
+          ...pDoc,
+          name: pDoc.name === 'Sri Mayyia Caterers' ? 'K R Ananth Mayia Catering' : pDoc.name,
+          email: pDoc.email === 'info@srimayyiacaterers.com' ? 'info@krananthmayiacatering.com' : pDoc.email
+        };
+        setCompanyProfile(normDoc);
+      }
       if (Array.isArray(uList) && uList.length > 0) {
         setUsers(prevUsers => {
           const prevMap = new Map((prevUsers || []).map(u => [u.id?.toLowerCase(), u]));
@@ -938,21 +964,39 @@ export const AppProvider = ({ children }) => {
     const payload = {
       ...dish,
       dishNumber: dishNum,
-      id: dish.id || ('d_' + Date.now()),
-      price: Number(dish.price) || 0
+      id: dish.id || dish._id || ('d_' + Date.now()),
+      _id: dish._id || dish.id || ('d_' + Date.now()),
+      price: Number(dish.price) || 0,
+      recipe: Array.isArray(dish.recipe) ? dish.recipe : []
     };
-    setDishes(prev => [...prev, payload]);
+    setDishes(prev => {
+      const next = [...prev.filter(d => d.id !== payload.id && d._id !== payload.id), payload];
+      try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+
     const res = await apiCall('/dishes', { method: 'POST', body: JSON.stringify(payload), returnErrorResponse: true });
     if (res && !res.__httpError) {
-      const finalDish = { ...payload, ...res };
-      setDishes(prev => prev.map(d => d.id === payload.id ? finalDish : d));
-      try {
-        localStorage.setItem('cater_dishes', JSON.stringify([...dishes.filter(d => d.id !== payload.id), finalDish]));
-      } catch (e) {}
+      const finalDish = {
+        ...payload,
+        ...res,
+        id: res.id || payload.id,
+        _id: res._id || res.id || payload.id,
+        dishNumber: res.dishNumber || payload.dishNumber
+      };
+      setDishes(prev => {
+        const next = prev.map(d => (d.id === payload.id || d._id === payload.id) ? finalDish : d);
+        try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
       return finalDish;
     }
     if (res && res.__httpError) {
-      setDishes(prev => prev.filter(d => d.id !== payload.id));
+      setDishes(prev => {
+        const next = prev.filter(d => d.id !== payload.id && d._id !== payload.id);
+        try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
       throw new Error(res.error || 'Failed to create dish');
     }
     return payload;
@@ -967,33 +1011,44 @@ export const AppProvider = ({ children }) => {
       ...updated,
       id: targetId,
       _id: targetId,
-      price: Number(updated.price) || 0
+      price: Number(updated.price) || 0,
+      recipe: Array.isArray(updated.recipe) ? updated.recipe : []
     };
 
-    // Optimistically update React state
-    setDishes(prev => prev.map(d => (d.id === targetId || d._id === targetId) ? cleanUpdated : d));
+    const matchesDish = (d) => {
+      if (!d) return false;
+      if (d.id === targetId || d._id === targetId) return true;
+      if (cleanUpdated.dishNumber && d.dishNumber && d.dishNumber === cleanUpdated.dishNumber) return true;
+      return false;
+    };
 
-    // Save to localStorage immediately so changes persist locally
-    try {
-      const currentList = Array.isArray(dishes) ? dishes : [];
-      const updatedList = currentList.map(d => (d.id === targetId || d._id === targetId) ? cleanUpdated : d);
-      localStorage.setItem('cater_dishes', JSON.stringify(updatedList));
-    } catch (e) {}
+    // Optimistically update React state and local storage functionally
+    setDishes(prev => {
+      const exists = prev.some(matchesDish);
+      const next = exists ? prev.map(d => matchesDish(d) ? cleanUpdated : d) : [...prev, cleanUpdated];
+      try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
 
-    const res = await apiCall(`/dishes/${targetId}`, {
+    const res = await apiCall(`/dishes/${encodeURIComponent(targetId)}`, {
       method: 'PUT',
       body: JSON.stringify(cleanUpdated),
       returnErrorResponse: true
     });
 
     if (res && !res.__httpError) {
-      const finalDish = { ...cleanUpdated, ...res, id: targetId, _id: targetId };
-      setDishes(prev => prev.map(d => (d.id === targetId || d._id === targetId) ? finalDish : d));
-      try {
-        const currentList = Array.isArray(dishes) ? dishes : [];
-        const updatedList = currentList.map(d => (d.id === targetId || d._id === targetId) ? finalDish : d);
-        localStorage.setItem('cater_dishes', JSON.stringify(updatedList));
-      } catch (e) {}
+      const finalDish = {
+        ...cleanUpdated,
+        ...res,
+        id: res.id || targetId,
+        _id: res._id || res.id || targetId,
+        dishNumber: res.dishNumber || cleanUpdated.dishNumber
+      };
+      setDishes(prev => {
+        const next = prev.map(d => (matchesDish(d) || (res.id && (d.id === res.id || d._id === res.id))) ? finalDish : d);
+        try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
       return finalDish;
     }
 
@@ -1007,12 +1062,12 @@ export const AppProvider = ({ children }) => {
 
   const deleteDish = async (id) => {
     if (!id) return;
-    setDishes(prev => prev.filter(d => d.id !== id && d._id !== id));
-    try {
-      const currentList = Array.isArray(dishes) ? dishes : [];
-      localStorage.setItem('cater_dishes', JSON.stringify(currentList.filter(d => d.id !== id && d._id !== id)));
-    } catch (e) {}
-    await apiCall(`/dishes/${id}`, { method: 'DELETE', returnErrorResponse: true });
+    setDishes(prev => {
+      const next = prev.filter(d => d.id !== id && d._id !== id && d.dishNumber !== id);
+      try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    await apiCall(`/dishes/${encodeURIComponent(id)}`, { method: 'DELETE', returnErrorResponse: true });
   };
 
   const addSupplier = async (sup) => {

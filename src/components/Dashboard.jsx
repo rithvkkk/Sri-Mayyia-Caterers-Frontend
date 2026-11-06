@@ -164,7 +164,7 @@ const Dashboard = ({ setActiveTab }) => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
           <h1 className="gradient-text" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>Executive Dashboard</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Welcome to {companyProfile?.name || 'Sri Mayyia Caterers'} Central Control Console.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Welcome to {companyProfile?.name || 'K R Ananth Mayia Catering'} Central Control Console.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setActiveTab('bookings')}>
           <PlusCircle size={18} />

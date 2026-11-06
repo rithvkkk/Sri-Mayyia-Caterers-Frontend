@@ -226,13 +226,15 @@ const AuthSetup = () => {
   // Recipe Builder Helpers
   const addRecipeItemToTemp = () => {
     if (!selectedMaterialId || !materialQty) return;
+    const qty = parseFloat(materialQty);
+    if (isNaN(qty) || qty <= 0) return;
     const exists = newRecipeItems.find(item => item.materialId === selectedMaterialId);
     if (exists) {
       setNewRecipeItems(newRecipeItems.map(item => 
-        item.materialId === selectedMaterialId ? { ...item, quantity: parseFloat(materialQty) } : item
+        item.materialId === selectedMaterialId ? { ...item, quantity: qty } : item
       ));
     } else {
-      setNewRecipeItems([...newRecipeItems, { materialId: selectedMaterialId, quantity: parseFloat(materialQty) }]);
+      setNewRecipeItems([...newRecipeItems, { materialId: selectedMaterialId, quantity: qty }]);
     }
     setSelectedMaterialId('');
     setMaterialQty('');
@@ -269,7 +271,7 @@ const AuthSetup = () => {
       setIsSavingDish(true);
       setDishSaveMessage(null);
       try {
-        await updateDish({
+        const savedDish = await updateDish({
           ...tempData,
           id: dishId,
           _id: dishId,
@@ -281,6 +283,12 @@ const AuthSetup = () => {
           recipe: newRecipeItems,
           instructions: tempData.instructions ? tempData.instructions.trim() : ''
         });
+        if (savedDish) {
+          setTempData({ ...savedDish, id: dishId, _id: dishId });
+          if (Array.isArray(savedDish.recipe)) {
+            setNewRecipeItems([...savedDish.recipe]);
+          }
+        }
         setDishSaveMessage({ type: 'success', text: 'Dish & Recipe saved to MongoDB successfully!' });
         setTimeout(() => {
           setDishSaveMessage(null);
@@ -428,6 +436,15 @@ const AuthSetup = () => {
         category: created?.name || cleanName
       }));
       setDishFormErrors(prev => ({ ...prev, category: null }));
+
+      // ALSO auto-select in the existing dish editor if currently editing a dish!
+      if (editingId) {
+        setTempData(prev => ({
+          ...prev,
+          category: created?.name || cleanName
+        }));
+      }
+
       setIsAddCategoryModalOpen(false);
       setCategoryForm({ name: '', type: 'MENU' });
     } catch (err) {
@@ -996,14 +1013,44 @@ const AuthSetup = () => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label className="form-label">Category</label>
-                      <select className="form-select" value={tempData.category || ''} onChange={e => setTempData({ ...tempData, category: e.target.value })}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <label className="form-label" style={{ margin: 0 }}>Category</label>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          style={{ padding: '0.12rem 0.45rem', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          onClick={() => {
+                            setCategoryForm({ name: '', type: 'MENU' });
+                            setCategoryFormError('');
+                            setIsAddCategoryModalOpen(true);
+                          }}
+                          title="Create a new menu category"
+                        >
+                          <Plus size={12} /> Add Category
+                        </button>
+                      </div>
+                      <select
+                        className="form-select"
+                        value={tempData.category || ''}
+                        onChange={e => {
+                          if (e.target.value === '__CREATE_NEW__') {
+                            setCategoryForm({ name: '', type: 'MENU' });
+                            setCategoryFormError('');
+                            setIsAddCategoryModalOpen(true);
+                          } else {
+                            setTempData({ ...tempData, category: e.target.value });
+                          }
+                        }}
+                      >
                         {allAvailableDishCategories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                         {tempData.category && !allAvailableDishCategories.includes(tempData.category) && (
                           <option value={tempData.category}>{tempData.category}</option>
                         )}
+                        <option value="__CREATE_NEW__" style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                          ➕ Create New Category...
+                        </option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -1038,7 +1085,7 @@ const AuthSetup = () => {
                     
                     <div className="recipe-builder-list" style={{ marginBottom: '1rem' }}>
                       {newRecipeItems.map((item, idx) => {
-                        const material = rawMaterials.find(rm => rm.id === item.materialId);
+                        const material = rawMaterials.find(rm => rm.id === item.materialId || rm._id === item.materialId);
                         return (
                           <div key={idx} className="recipe-builder-row" style={{ padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                             <span style={{ fontSize: '0.85rem' }}>{material ? material.name : 'Unknown Ingredient'}</span>

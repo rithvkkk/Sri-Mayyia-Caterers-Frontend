@@ -657,7 +657,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                   <Award size={16} className="accent-text" />
                   <span>4 Event Archetypes (Presets)</span>
                 </h3>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Sri Mayyia Since 1953</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>K R Ananth Mayia Since 1953</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {EVENT_ARCHETYPES.map(arc => (
@@ -882,7 +882,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                     <span>Operational Rules & Dietary Directives Engine</span>
                   </div>
                   <span style={{ fontSize: '0.75rem', color: '#000000', fontWeight: 600 }}>
-                    1-Click Sri Mayyia Quality Directives & Kitchen Safeguards
+                    1-Click K R Ananth Mayia Quality Directives & Kitchen Safeguards
                   </span>
                 </div>
 
@@ -1312,7 +1312,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
           ) : (
             <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
               <HelpCircle size={48} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-              <p>Please select an Event sub-function instance from the sidebar to plan menu courses and apply Sri Mayyia event archetypes & dietary directives.</p>
+              <p>Please select an Event sub-function instance from the sidebar to plan menu courses and apply K R Ananth Mayia event archetypes & dietary directives.</p>
             </div>
           )}
         </div>
@@ -1326,7 +1326,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                 <Award size={22} style={{ color: 'var(--color-primary)' }} />
                 <div>
                   <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Download Indian Occasion Menu PDF</h2>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Select a traditional Sri Mayyia occasion design template</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Select a traditional K R Ananth Mayia occasion design template</p>
                 </div>
               </div>
               <button type="button" onClick={() => setIsMenuPdfModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>

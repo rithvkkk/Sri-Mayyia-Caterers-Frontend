@@ -1,5 +1,5 @@
 /**
- * AI Predictive & Calculation Model for Sri Mayyia Caterers ERP
+ * AI Predictive & Calculation Model for K R Ananth Mayia Catering ERP
  * 
  * Multivariate Regression and Domain-Trained Machine Learning Model
  * for Catering Intelligence, Material Forecasting, Financials, and Staffing.
