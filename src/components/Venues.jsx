@@ -15,7 +15,8 @@ import {
   XCircle,
   X,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  User
 } from 'lucide-react';
 
 const Venues = () => {
@@ -44,6 +45,10 @@ const Venues = () => {
     capacity: 300,
     price: 100000,
     address: '',
+    ownerName: '',
+    ownerContactNumber: '',
+    managerName: '',
+    managerContactNumber: '',
     contactPerson: '',
     contactNumber: '',
     email: '',
@@ -104,6 +109,12 @@ const Venues = () => {
     return users.filter(u => u.role === 'Sales Executive' || u.role === 'Admin');
   }, [users]);
 
+  const isValidPhoneNumber = (phone) => {
+    if (!phone || !String(phone).trim()) return true; // Optional field
+    const digitsOnly = String(phone).replace(/[\s\-\(\)\+]/g, '');
+    return /^\d{10,15}$/.test(digitsOnly);
+  };
+
   const handleOpenAdd = () => {
     setEditingVenue(null);
     setFormData({
@@ -112,6 +123,10 @@ const Venues = () => {
       capacity: 300,
       price: 100000,
       address: '',
+      ownerName: '',
+      ownerContactNumber: '',
+      managerName: '',
+      managerContactNumber: '',
       contactPerson: '',
       contactNumber: '',
       email: '',
@@ -126,14 +141,20 @@ const Venues = () => {
 
   const handleOpenEdit = (venue) => {
     setEditingVenue(venue);
+    const mName = venue.managerName || venue.contactPerson || '';
+    const mContact = venue.managerContactNumber || venue.contactNumber || '';
     setFormData({
       name: venue.name || '',
       venueCode: venue.venueCode || venue.id || '',
       capacity: venue.capacity || 0,
       price: venue.price || 0,
       address: venue.address || '',
-      contactPerson: venue.contactPerson || '',
-      contactNumber: venue.contactNumber || '',
+      ownerName: venue.ownerName || '',
+      ownerContactNumber: venue.ownerContactNumber || '',
+      managerName: mName,
+      managerContactNumber: mContact,
+      contactPerson: mName,
+      contactNumber: mContact,
       email: venue.email || '',
       type: venue.type || 'Banquet Hall',
       notes: venue.notes || '',
@@ -158,11 +179,30 @@ const Venues = () => {
       setValidationError('Valid guest capacity is required.');
       return;
     }
+    if (formData.ownerContactNumber && !isValidPhoneNumber(formData.ownerContactNumber)) {
+      setValidationError('Invalid Owner contact number. Please enter a valid 10-digit phone number (e.g. +91 98250 11220).');
+      return;
+    }
+    if (formData.managerContactNumber && !isValidPhoneNumber(formData.managerContactNumber)) {
+      setValidationError('Invalid Manager contact number. Please enter a valid 10-digit phone number (e.g. +91 98250 11223).');
+      return;
+    }
+
+    const mName = (formData.managerName || formData.contactPerson || '').trim();
+    const mContact = (formData.managerContactNumber || formData.contactNumber || '').trim();
+    const oName = (formData.ownerName || '').trim();
+    const oContact = (formData.ownerContactNumber || '').trim();
 
     const payload = {
       ...formData,
       capacity: Number(formData.capacity),
       price: Number(formData.price) || 0,
+      ownerName: oName,
+      ownerContactNumber: oContact,
+      managerName: mName,
+      managerContactNumber: mContact,
+      contactPerson: mName,
+      contactNumber: mContact,
       assignedSalesPerson: isSalesPerson ? (editingVenue ? formData.assignedSalesPerson : currentUser) : formData.assignedSalesPerson
     };
 
@@ -482,18 +522,36 @@ const Venues = () => {
                       <span style={{ color: 'var(--text-primary)' }}>{venue.address || 'Address not provided'}</span>
                     </div>
 
-                    {venue.contactPerson && (
+                    {/* Owner Details */}
+                    {venue.ownerName && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <UserCheck size={15} style={{ flexShrink: 0, color: '#9CA3AF' }} />
-                        <span>Contact: <strong>{venue.contactPerson}</strong></span>
+                        <User size={15} style={{ flexShrink: 0, color: '#9CA3AF' }} />
+                        <span>Owner: <strong>{venue.ownerName}</strong></span>
+                      </div>
+                    )}
+                    {venue.ownerContactNumber && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Phone size={15} style={{ flexShrink: 0, color: '#9CA3AF' }} />
+                        <span style={{ fontSize: '12px' }}>Owner: </span>
+                        <a href={'tel:' + venue.ownerContactNumber} style={{ color: 'var(--brand-primary, #9C1519)', textDecoration: 'none', fontWeight: 600 }}>
+                          {venue.ownerContactNumber}
+                        </a>
                       </div>
                     )}
 
-                    {venue.contactNumber && (
+                    {/* Manager Details */}
+                    {(venue.managerName || venue.contactPerson) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <UserCheck size={15} style={{ flexShrink: 0, color: '#9CA3AF' }} />
+                        <span>Manager: <strong>{venue.managerName || venue.contactPerson}</strong></span>
+                      </div>
+                    )}
+                    {(venue.managerContactNumber || venue.contactNumber) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Phone size={15} style={{ flexShrink: 0, color: '#9CA3AF' }} />
-                        <a href={'tel:' + venue.contactNumber} style={{ color: 'var(--brand-primary, #9C1519)', textDecoration: 'none' }}>
-                          {venue.contactNumber}
+                        <span style={{ fontSize: '12px' }}>Manager: </span>
+                        <a href={'tel:' + (venue.managerContactNumber || venue.contactNumber)} style={{ color: 'var(--brand-primary, #9C1519)', textDecoration: 'none', fontWeight: 600 }}>
+                          {venue.managerContactNumber || venue.contactNumber}
                         </a>
                       </div>
                     )}
@@ -765,47 +823,115 @@ const Venues = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px' }}>
-                    Contact Person
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Mr. Arvind Saxena"
-                    value={formData.contactPerson}
-                    onChange={e => setFormData({ ...formData, contactPerson: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color, #D1D5DB)',
-                      background: 'var(--bg-input, #fff)',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px'
-                    }}
-                  />
+              {/* Owner Contact Information */}
+              <div style={{
+                background: 'var(--bg-card-secondary, #F9FAFB)',
+                border: '1px solid var(--border-color, #E5E7EB)',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <User size={15} style={{ color: 'var(--brand-primary, #9C1519)' }} />
+                  <span>Owner Contact Details</span>
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      Owner Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Rajesh Sharma"
+                      value={formData.ownerName}
+                      onChange={e => setFormData({ ...formData, ownerName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color, #D1D5DB)',
+                        background: 'var(--bg-input, #fff)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      Owner Contact Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +91 98250 11220"
+                      value={formData.ownerContactNumber}
+                      onChange={e => setFormData({ ...formData, ownerContactNumber: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color, #D1D5DB)',
+                        background: 'var(--bg-input, #fff)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px' }}>
-                    Contact Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+91 98XXX XXXXX"
-                    value={formData.contactNumber}
-                    onChange={e => setFormData({ ...formData, contactNumber: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color, #D1D5DB)',
-                      background: 'var(--bg-input, #fff)',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px'
-                    }}
-                  />
+              {/* Manager Contact Information */}
+              <div style={{
+                background: 'var(--bg-card-secondary, #F9FAFB)',
+                border: '1px solid var(--border-color, #E5E7EB)',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <UserCheck size={15} style={{ color: 'var(--brand-primary, #9C1519)' }} />
+                  <span>Manager Contact Details</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      Manager Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mr. Arvind Saxena"
+                      value={formData.managerName}
+                      onChange={e => setFormData({ ...formData, managerName: e.target.value, contactPerson: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color, #D1D5DB)',
+                        background: 'var(--bg-input, #fff)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      Manager Contact Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +91 98250 11223"
+                      value={formData.managerContactNumber}
+                      onChange={e => setFormData({ ...formData, managerContactNumber: e.target.value, contactNumber: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color, #D1D5DB)',
+                        background: 'var(--bg-input, #fff)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 

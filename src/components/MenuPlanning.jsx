@@ -1,9 +1,9 @@
 import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { 
-  ClipboardCopy, Package, ArrowRight, ShieldAlert, CheckCircle, 
+  ClipboardCopy, Package, ArrowRight, ShieldAlert, CheckCircle, CheckCircle2,
   HelpCircle, Save, MessageSquare, Tag, Sparkles, AlertCircle, 
-  Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X, Check
+  Search, Utensils, Award, ShieldCheck, Flame, BookOpen, Layers, Brain, Download, Printer, FileText, X, Check, Loader2
 } from 'lucide-react';
 import { generateOccasionMenuPdf, downloadPdfBlob, printPdfBlob, resolveEventVenue, MENU_OCCASION_TEMPLATES } from '../utils/pdfGenerator';
 import { MASTER_MENU_CATEGORIES, LIVE_STATION_CATEGORIES } from '../utils/mockData';
@@ -126,6 +126,7 @@ const MenuPlanning = () => {
     currentUser,
     events,
     updateEvent,
+    savePaxDetails,
     dishes,
     menuCategories,
     masterMenuCategories,
@@ -148,6 +149,9 @@ const MenuPlanning = () => {
   const [draftSubFunctions, setDraftSubFunctions] = useState(null);
   const [eventMenuNotes, setEventMenuNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingPax, setSavingPax] = useState(false);
+  const [paxSaveSuccess, setPaxSaveSuccess] = useState('');
+  const [paxSaveError, setPaxSaveError] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [parentEventSearch, setParentEventSearch] = useState('');
 
@@ -343,6 +347,47 @@ const MenuPlanning = () => {
     if (currentNotes.includes(tagText)) return;
     const updated = currentNotes ? `${currentNotes} ${tagText}` : tagText;
     handleUpdateSubNotes(updated);
+  };
+
+  const handleSavePax = async () => {
+    if (!isEditable || !currentEvent || !selectedSub) return;
+    const paxNum = parseInt(selectedSub.guestCount, 10);
+    if (isNaN(paxNum) || paxNum <= 0) {
+      setPaxSaveError('Please enter a valid positive number for guest count (Pax).');
+      return;
+    }
+    if (currentEvent.eventType === 'Micro Event' || currentEvent.eventType === 'Micro Home Event') {
+      if (paxNum < 50 || paxNum > 100) {
+        setPaxSaveError('Micro Event must have between 50 and 100 Pax (guests).');
+        return;
+      }
+    }
+
+    setSavingPax(true);
+    setPaxSaveError('');
+    try {
+      if (typeof savePaxDetails === 'function') {
+        await savePaxDetails(currentEvent.id, selectedSub.id, paxNum, selectedSub.pricePerPlate);
+      } else {
+        const updatedSf = (currentEvent.subFunctions || []).map(sf => {
+          if (sf.id === selectedSub.id) {
+            return { ...sf, guestCount: paxNum };
+          }
+          return sf;
+        });
+        await updateEvent({
+          ...currentEvent,
+          subFunctions: updatedSf
+        });
+      }
+      setTimeout(() => refreshEventTotals(selectedEventId), 50);
+      setPaxSaveSuccess('Pax details saved successfully');
+      setTimeout(() => setPaxSaveSuccess(''), 3000);
+    } catch (err) {
+      setPaxSaveError(err.message || 'Failed to save Pax details');
+    } finally {
+      setSavingPax(false);
+    }
   };
 
   const handleSaveMenu = async () => {
@@ -794,20 +839,81 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                 gap: '0.6rem',
                 alignItems: 'center'
               }}>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
-                    Session Headcount (PAX)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="form-input"
-                    value={selectedSub.guestCount}
-                    onChange={e => handleUpdateSelectedSubField('guestCount', Math.max(1, parseInt(e.target.value, 10) || 0))}
-                    disabled={!isEditable}
-                    style={{ fontSize: '0.85rem', padding: '0.3rem 0.5rem', fontWeight: 700 }}
-                  />
-                </div>
+                {(() => {
+                  const savedSub = currentEvent?.subFunctions?.find(sf => sf.id === selectedSub?.id);
+                  const isPaxDirty = Boolean(selectedSub && savedSub && Number(selectedSub.guestCount) !== Number(savedSub.guestCount));
+                  return (
+                    <div style={{ minWidth: '220px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', margin: 0 }}>
+                          Session Headcount (PAX)
+                        </label>
+                        {isPaxDirty && (
+                          <span style={{ fontSize: '0.65rem', background: '#FEF3C7', color: '#92400E', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                            Unsaved Pax
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          className="form-input"
+                          value={selectedSub.guestCount}
+                          onChange={e => handleUpdateSelectedSubField('guestCount', Math.max(1, parseInt(e.target.value, 10) || 0))}
+                          disabled={!isEditable || savingPax}
+                          style={{
+                            fontSize: '0.85rem',
+                            padding: '0.3rem 0.5rem',
+                            fontWeight: 700,
+                            width: '85px',
+                            borderColor: isPaxDirty ? '#F59E0B' : undefined
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-small"
+                          onClick={handleSavePax}
+                          disabled={!isEditable || savingPax || !isPaxDirty}
+                          title="Save Pax details to event without submitting the full menu"
+                          style={{
+                            padding: '0.3rem 0.55rem',
+                            fontSize: '0.72rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            whiteSpace: 'nowrap',
+                            background: isPaxDirty ? 'var(--color-primary)' : 'rgba(0,0,0,0.12)',
+                            color: isPaxDirty ? '#fff' : 'var(--text-secondary)',
+                            cursor: (!isEditable || savingPax || !isPaxDirty) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {savingPax ? (
+                            <>
+                              <Loader2 size={12} className="spinner" />
+                              <span>Saving Pax...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save size={12} />
+                              <span>Save Pax Details</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {paxSaveSuccess && (
+                        <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 600, marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <CheckCircle2 size={11} /> {paxSaveSuccess}
+                        </div>
+                      )}
+                      {paxSaveError && (
+                        <div style={{ fontSize: '0.68rem', color: '#DC2626', fontWeight: 600, marginTop: '0.2rem' }}>
+                          {paxSaveError}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div>
                   <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
                     Session Rate (₹/plate)

@@ -1,7 +1,7 @@
 import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2, Save, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2, Save, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
 
 const AuthSetup = () => {
@@ -264,6 +264,20 @@ const AuthSetup = () => {
         setDishSaveMessage({ type: 'error', text: 'Dish ID is missing' });
         return;
       }
+      if (!tempData.dishNumber || !String(tempData.dishNumber).trim()) {
+        setDishSaveMessage({ type: 'error', text: 'Dish number is required' });
+        return;
+      }
+      const cleanNum = String(tempData.dishNumber).trim().toUpperCase();
+      const duplicate = (dishes || []).find(d => 
+        (d.id !== dishId && d._id !== dishId) && 
+        d.dishNumber && 
+        d.dishNumber.trim().toUpperCase() === cleanNum
+      );
+      if (duplicate) {
+        setDishSaveMessage({ type: 'error', text: `This Dish Number is already assigned to another dish (${duplicate.name}). Please choose a different number.` });
+        return;
+      }
       if (!tempData.name || !tempData.name.trim()) {
         setDishSaveMessage({ type: 'error', text: 'Dish name is required' });
         return;
@@ -275,6 +289,7 @@ const AuthSetup = () => {
           ...tempData,
           id: dishId,
           _id: dishId,
+          dishNumber: cleanNum,
           name: tempData.name.trim(),
           category: tempData.category ? tempData.category.trim() : 'WELCOME DRINK',
           subCategory: tempData.subCategory ? tempData.subCategory.trim() : (tempData.cuisine ? tempData.cuisine.trim() : ''),
@@ -356,6 +371,15 @@ const AuthSetup = () => {
     if (isSubmittingDish) return;
 
     const errors = {};
+    if (!dishForm.dishNumber || !String(dishForm.dishNumber).trim()) {
+      errors.dishNumber = 'Dish number is required';
+    } else {
+      const cleanNum = String(dishForm.dishNumber).trim().toUpperCase();
+      const duplicate = (dishes || []).find(d => d.dishNumber && d.dishNumber.trim().toUpperCase() === cleanNum);
+      if (duplicate) {
+        errors.dishNumber = 'This Dish Number is already assigned to another dish. Please choose a different number.';
+      }
+    }
     if (!dishForm.name || !dishForm.name.trim()) {
       errors.name = 'Dish name is required';
     }
@@ -374,8 +398,10 @@ const AuthSetup = () => {
     setIsSubmittingDish(true);
     setDishFormErrors({});
     try {
+      const cleanNum = String(dishForm.dishNumber).trim().toUpperCase();
       const created = await addDish({
         ...dishForm,
+        dishNumber: cleanNum,
         name: dishForm.name.trim(),
         category: dishForm.category.trim(),
         subCategory: dishForm.subCategory ? dishForm.subCategory.trim() : '',
@@ -391,7 +417,11 @@ const AuthSetup = () => {
         startEdit(created);
       }
     } catch (err) {
-      setDishFormErrors({ general: err.message || 'Failed to create dish' });
+      if (err.message && err.message.includes('already assigned')) {
+        setDishFormErrors({ dishNumber: err.message });
+      } else {
+        setDishFormErrors({ general: err.message || 'Failed to create dish' });
+      }
     } finally {
       setIsSubmittingDish(false);
     }
@@ -557,6 +587,7 @@ const AuthSetup = () => {
                   <th>Guest Capacity</th>
                   <th>Base Pricing Rent</th>
                   <th>Location Address</th>
+                  <th>Contacts (Owner / Manager)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -584,6 +615,38 @@ const AuthSetup = () => {
                         {isEditing ? (
                           <input className="form-input" value={tempData.address || ''} onChange={e => setTempData({ ...tempData, address: e.target.value })} />
                         ) : v.address}
+                      </td>
+                      <td>
+                        {isEditing ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <input
+                              className="form-input"
+                              placeholder="Owner Phone"
+                              value={tempData.ownerContactNumber || ''}
+                              onChange={e => setTempData({ ...tempData, ownerContactNumber: e.target.value })}
+                              style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }}
+                            />
+                            <input
+                              className="form-input"
+                              placeholder="Manager Phone"
+                              value={tempData.managerContactNumber || tempData.contactNumber || ''}
+                              onChange={e => setTempData({ ...tempData, managerContactNumber: e.target.value, contactNumber: e.target.value })}
+                              style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            {v.ownerContactNumber && (
+                              <div><span style={{ color: 'var(--text-muted)' }}>Owner:</span> <strong>{v.ownerName ? `${v.ownerName} (${v.ownerContactNumber})` : v.ownerContactNumber}</strong></div>
+                            )}
+                            {(v.managerContactNumber || v.contactNumber) && (
+                              <div><span style={{ color: 'var(--text-muted)' }}>Mgr:</span> <strong>{v.managerName || v.contactPerson ? `${v.managerName || v.contactPerson} (${v.managerContactNumber || v.contactNumber})` : (v.managerContactNumber || v.contactNumber)}</strong></div>
+                            )}
+                            {!v.ownerContactNumber && !v.managerContactNumber && !v.contactNumber && (
+                              <span style={{ color: 'var(--text-muted)' }}>Not configured</span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td>
                         {isEditing ? (
@@ -1000,13 +1063,19 @@ const AuthSetup = () => {
                     </button>
                   </h3>
 
-                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                     <div className="form-group">
-                      <label className="form-label">Dish Number</label>
-                      <input className="form-input" disabled readOnly value={tempData.dishNumber || ''} style={{ fontFamily: 'monospace', fontWeight: 700, background: 'rgba(0,0,0,0.04)' }} />
+                      <label className="form-label" style={{ fontWeight: 600 }}>Dish Number</label>
+                      <input
+                        className="form-input"
+                        value={tempData.dishNumber || ''}
+                        onChange={e => setTempData({ ...tempData, dishNumber: e.target.value.toUpperCase() })}
+                        placeholder="e.g. DISH-0001"
+                        style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary)' }}
+                      />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Dish Name</label>
+                      <label className="form-label" style={{ fontWeight: 600 }}>Dish Name</label>
                       <input className="form-input" value={tempData.name || ''} onChange={e => setTempData({ ...tempData, name: e.target.value })} />
                     </div>
                   </div>
@@ -2229,25 +2298,55 @@ const AuthSetup = () => {
             </div>
 
             <form onSubmit={handleSaveDish} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Dish Number (Read-only) & Price */}
+              {/* Dish Number (Editable) & Price */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Dish Number</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>Dish Number <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={async () => {
+                        try {
+                          if (typeof getNextDishNumber === 'function') {
+                            const num = await getNextDishNumber();
+                            setDishForm(prev => ({ ...prev, dishNumber: num }));
+                            if (dishFormErrors.dishNumber) {
+                              setDishFormErrors(prev => ({ ...prev, dishNumber: null }));
+                            }
+                          }
+                        } catch (err) {}
+                      }}
+                      title="Re-generate next sequential Dish Number"
+                      style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      <RotateCcw size={11} /> Auto
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    readOnly
-                    disabled
+                    required
                     value={dishForm.dishNumber}
+                    onChange={e => {
+                      setDishForm({ ...dishForm, dishNumber: e.target.value.toUpperCase() });
+                      if (dishFormErrors.dishNumber) {
+                        setDishFormErrors(prev => ({ ...prev, dishNumber: null }));
+                      }
+                    }}
+                    placeholder="e.g. DISH-0105"
                     className="form-input"
                     style={{
                       fontFamily: 'monospace',
                       fontWeight: 700,
-                      background: 'rgba(0, 0, 0, 0.04)',
-                      cursor: 'not-allowed',
-                      color: 'var(--color-primary)'
+                      color: 'var(--color-primary)',
+                      borderColor: dishFormErrors.dishNumber ? 'var(--color-danger)' : undefined
                     }}
                   />
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Auto-assigned unique sequential identifier</span>
+                  {dishFormErrors.dishNumber ? (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-danger)', fontWeight: 600, display: 'block', marginTop: '0.2rem' }}>{dishFormErrors.dishNumber}</span>
+                  ) : (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Auto-assigned or manually customizable sequential identifier</span>
+                  )}
                 </div>
 
                 <div>

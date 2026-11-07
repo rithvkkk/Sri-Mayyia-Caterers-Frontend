@@ -957,9 +957,15 @@ export const AppProvider = ({ children }) => {
   };
 
   const addDish = async (dish) => {
-    let dishNum = dish.dishNumber;
+    let dishNum = dish.dishNumber ? String(dish.dishNumber).trim().toUpperCase() : '';
     if (!dishNum) {
       dishNum = await getNextDishNumber();
+    } else {
+      // Validate uniqueness locally before creating
+      const duplicate = (dishes || []).find(d => d.dishNumber && d.dishNumber.trim().toUpperCase() === dishNum);
+      if (duplicate) {
+        throw new Error('This Dish Number is already assigned to another dish. Please choose a different number.');
+      }
     }
     const payload = {
       ...dish,
@@ -1015,11 +1021,24 @@ export const AppProvider = ({ children }) => {
       recipe: Array.isArray(updated.recipe) ? updated.recipe : []
     };
 
+    if (cleanUpdated.dishNumber !== undefined) {
+      if (!String(cleanUpdated.dishNumber).trim()) {
+        throw new Error('Dish number cannot be empty');
+      }
+      cleanUpdated.dishNumber = String(cleanUpdated.dishNumber).trim().toUpperCase();
+      const duplicate = (dishes || []).find(d => 
+        (d.id !== targetId && d._id !== targetId) && 
+        d.dishNumber && 
+        d.dishNumber.trim().toUpperCase() === cleanUpdated.dishNumber
+      );
+      if (duplicate) {
+        throw new Error(`This Dish Number is already assigned to another dish (${duplicate.name}). Please choose a different number.`);
+      }
+    }
+
     const matchesDish = (d) => {
       if (!d) return false;
-      if (d.id === targetId || d._id === targetId) return true;
-      if (cleanUpdated.dishNumber && d.dishNumber && d.dishNumber === cleanUpdated.dishNumber) return true;
-      return false;
+      return d.id === targetId || d._id === targetId;
     };
 
     // Optimistically update React state and local storage functionally
@@ -1045,7 +1064,7 @@ export const AppProvider = ({ children }) => {
         dishNumber: res.dishNumber || cleanUpdated.dishNumber
       };
       setDishes(prev => {
-        const next = prev.map(d => (matchesDish(d) || (res.id && (d.id === res.id || d._id === res.id))) ? finalDish : d);
+        const next = prev.map(d => matchesDish(d) ? finalDish : d);
         try { localStorage.setItem('cater_dishes', JSON.stringify(next)); } catch (e) {}
         return next;
       });
@@ -1732,6 +1751,85 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const savePaxDetails = async (eventId, subFunctionId, newGuestCount, pricePerPlate) => {
+    if (!eventId) throw new Error('Event ID is required to save Pax');
+    const paxNum = parseInt(newGuestCount, 10);
+    if (isNaN(paxNum) || paxNum <= 0) {
+      throw new Error('Guest count (Pax) must be a positive number');
+    }
+
+    const currentEvent = events.find(e => String(e.id || e._id) === String(eventId));
+    if (!currentEvent) throw new Error('Event not found');
+
+    if (currentEvent.eventType === 'Micro Event' || currentEvent.eventType === 'Micro Home Event') {
+      if (paxNum < 50 || paxNum > 100) {
+        throw new Error('Micro Event must have between 50 and 100 Pax (guests).');
+      }
+    }
+
+    // Clone event and update designated session headcount without touching menuItems or instructions
+    const updatedEvent = {
+      ...currentEvent,
+      subFunctions: (currentEvent.subFunctions || []).map(sf => {
+        if (sf.id === subFunctionId || (!subFunctionId && currentEvent.subFunctions[0]?.id === sf.id)) {
+          return {
+            ...sf,
+            guestCount: paxNum,
+            ...(pricePerPlate !== undefined && !isNaN(Number(pricePerPlate)) ? { pricePerPlate: Number(pricePerPlate) } : {})
+          };
+        }
+        return sf;
+      })
+    };
+
+    // Recompute total guestCount
+    if (Array.isArray(updatedEvent.subFunctions) && updatedEvent.subFunctions.length > 0) {
+      updatedEvent.guestCount = updatedEvent.subFunctions.reduce((sum, sf) => sum + (Number(sf.guestCount) || 0), 0);
+    } else {
+      updatedEvent.guestCount = paxNum;
+    }
+
+    recalculateEventFinances(updatedEvent);
+
+    // Optimistic state and localStorage update
+    const targetId = String(eventId);
+    setEvents(prev => prev.map(e => (String(e.id || e._id) === targetId) ? updatedEvent : e));
+    try {
+      const stored = JSON.parse(localStorage.getItem('cater_events') || '[]');
+      if (Array.isArray(stored)) {
+        localStorage.setItem('cater_events', JSON.stringify(stored.map(e => (String(e.id || e._id) === targetId) ? updatedEvent : e)));
+      }
+    } catch (e) {}
+
+    // Call dedicated Pax endpoint
+    try {
+      const res = await apiCall(`/events/${encodeURIComponent(targetId)}/pax`, {
+        method: 'PUT',
+        body: JSON.stringify({ subFunctionId, guestCount: paxNum, pricePerPlate }),
+        returnErrorResponse: true
+      });
+      if (res && !res.__httpError) {
+        setEvents(prev => prev.map(e => (String(e.id || e._id) === targetId) ? res : e));
+        return res;
+      }
+      // If dedicated endpoint had error or 404, fallback to standard event update
+      if (res && res.__httpError) {
+        const fallbackRes = await apiCall(`/events/${encodeURIComponent(targetId)}`, {
+          method: 'PUT',
+          body: JSON.stringify(updatedEvent)
+        });
+        if (fallbackRes) {
+          setEvents(prev => prev.map(e => (String(e.id || e._id) === targetId) ? fallbackRes : e));
+          return fallbackRes;
+        }
+      }
+    } catch (err) {
+      console.warn('Dedicated Pax sync notice:', err);
+    }
+
+    return updatedEvent;
+  };
+
   const deleteEvent = async (id) => {
     if (!id) return false;
     const cleanId = String(id).trim();
@@ -2095,6 +2193,7 @@ export const AppProvider = ({ children }) => {
       events,
       createEvent,
       updateEvent,
+      savePaxDetails,
       deleteEvent,
       deduplicateEvents,
       refreshEventTotals,
