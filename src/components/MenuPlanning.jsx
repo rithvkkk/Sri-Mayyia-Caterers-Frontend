@@ -685,7 +685,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                         )}
                       </div>
                       <span className="badge badge-info">
-                        {sf.guestCount} Pax · ₹{sf.pricePerPlate !== undefined && sf.pricePerPlate !== '' ? sf.pricePerPlate : (currentEvent?.billing?.pricePerPlate || currentEvent?.pricePerPlate || 800)}
+                        {sf.guestCount} Pax{sf.pricePerPlate !== undefined && sf.pricePerPlate !== null && sf.pricePerPlate !== '' ? ` · ₹${sf.pricePerPlate}` : ''}
                       </span>
                     </button>
                   ))}
@@ -829,32 +829,37 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
 
               {/* Session Independent Headcount, Timing & Rate Parameters */}
               <div style={{
-                background: 'rgba(253, 248, 237, 0.85)',
-                border: '1px solid rgba(210, 180, 130, 0.5)',
-                borderRadius: '10px',
-                padding: '0.75rem 1rem',
+                background: 'rgba(253, 248, 237, 0.95)',
+                border: '1px solid rgba(210, 180, 130, 0.55)',
+                borderRadius: '12px',
+                padding: '0.85rem 1rem',
                 marginBottom: '1rem',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: '0.6rem',
-                alignItems: 'center'
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.85rem',
+                alignItems: 'flex-start'
               }}>
                 {(() => {
                   const savedSub = currentEvent?.subFunctions?.find(sf => sf.id === selectedSub?.id);
-                  const isPaxDirty = Boolean(selectedSub && savedSub && Number(selectedSub.guestCount) !== Number(savedSub.guestCount));
+                  const isPaxDirty = Boolean(
+                    selectedSub && savedSub && (
+                      Number(selectedSub.guestCount) !== Number(savedSub.guestCount) ||
+                      (selectedSub.pricePerPlate !== undefined && selectedSub.pricePerPlate !== (savedSub.pricePerPlate ?? ''))
+                    )
+                  );
                   return (
-                    <div style={{ minWidth: '220px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <div style={{ flex: '1 1 280px', minWidth: '260px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
                         <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', margin: 0 }}>
                           Session Headcount (PAX)
                         </label>
                         {isPaxDirty && (
                           <span style={{ fontSize: '0.65rem', background: '#FEF3C7', color: '#92400E', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
-                            Unsaved Pax
+                            Unsaved Changes
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                         <input
                           type="number"
                           min="1"
@@ -864,9 +869,9 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                           disabled={!isEditable || savingPax}
                           style={{
                             fontSize: '0.85rem',
-                            padding: '0.3rem 0.5rem',
+                            padding: '0.35rem 0.55rem',
                             fontWeight: 700,
-                            width: '85px',
+                            width: '95px',
                             borderColor: isPaxDirty ? '#F59E0B' : undefined
                           }}
                         />
@@ -875,75 +880,77 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                           className="btn btn-primary btn-small"
                           onClick={handleSavePax}
                           disabled={!isEditable || savingPax || !isPaxDirty}
-                          title="Save Pax details to event without submitting the full menu"
+                          title="Save Pax and Rate details without submitting full menu"
                           style={{
-                            padding: '0.3rem 0.55rem',
-                            fontSize: '0.72rem',
+                            padding: '0.38rem 0.65rem',
+                            fontSize: '0.74rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.25rem',
+                            gap: '0.3rem',
                             whiteSpace: 'nowrap',
                             background: isPaxDirty ? 'var(--color-primary)' : 'rgba(0,0,0,0.12)',
                             color: isPaxDirty ? '#fff' : 'var(--text-secondary)',
-                            cursor: (!isEditable || savingPax || !isPaxDirty) ? 'not-allowed' : 'pointer'
+                            cursor: (!isEditable || savingPax || !isPaxDirty) ? 'not-allowed' : 'pointer',
+                            flexShrink: 0
                           }}
                         >
                           {savingPax ? (
                             <>
-                              <Loader2 size={12} className="spinner" />
-                              <span>Saving Pax...</span>
+                              <Loader2 size={13} className="spinner" />
+                              <span>Saving...</span>
                             </>
                           ) : (
                             <>
-                              <Save size={12} />
+                              <Save size={13} />
                               <span>Save Pax Details</span>
                             </>
                           )}
                         </button>
                       </div>
                       {paxSaveSuccess && (
-                        <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 600, marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                           <CheckCircle2 size={11} /> {paxSaveSuccess}
                         </div>
                       )}
                       {paxSaveError && (
-                        <div style={{ fontSize: '0.68rem', color: '#DC2626', fontWeight: 600, marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#DC2626', fontWeight: 600, marginTop: '0.25rem' }}>
                           {paxSaveError}
                         </div>
                       )}
                     </div>
                   );
                 })()}
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                <div style={{ flex: '1 1 140px', minWidth: '130px', maxWidth: '170px' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.3rem' }}>
                     Session Rate (₹/plate)
                   </label>
                   <input
                     type="number"
                     min="0"
                     step="10"
+                    placeholder="Enter ₹/plate"
                     className="form-input"
-                    value={selectedSub.pricePerPlate !== undefined && selectedSub.pricePerPlate !== '' ? selectedSub.pricePerPlate : (currentEvent?.billing?.pricePerPlate || currentEvent?.pricePerPlate || 800)}
-                    onChange={e => handleUpdateSelectedSubField('pricePerPlate', parseFloat(e.target.value) || 0)}
+                    value={selectedSub.pricePerPlate !== undefined && selectedSub.pricePerPlate !== null ? selectedSub.pricePerPlate : ''}
+                    onChange={e => handleUpdateSelectedSubField('pricePerPlate', e.target.value === '' ? '' : (parseFloat(e.target.value) || 0))}
                     disabled={!isEditable}
-                    style={{ fontSize: '0.85rem', padding: '0.3rem 0.5rem', fontWeight: 700 }}
+                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.55rem', fontWeight: 700, width: '100%' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                <div style={{ flex: '1 1 140px', minWidth: '130px', maxWidth: '170px' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.3rem' }}>
                     Session Date
                   </label>
                   <input
                     type="date"
                     className="form-input"
-                    value={selectedSub.date || currentEvent.date}
+                    value={selectedSub.date || currentEvent.date || ''}
                     onChange={e => handleUpdateSelectedSubField('date', e.target.value)}
                     disabled={!isEditable}
-                    style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                    style={{ fontSize: '0.82rem', padding: '0.35rem 0.55rem', width: '100%' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                <div style={{ flex: '1 1 110px', minWidth: '110px', maxWidth: '140px' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.3rem' }}>
                     Start Time
                   </label>
                   <input
@@ -955,11 +962,11 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                       handleUpdateSelectedSubField('time', e.target.value);
                     }}
                     disabled={!isEditable}
-                    style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                    style={{ fontSize: '0.82rem', padding: '0.35rem 0.55rem', width: '100%' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                <div style={{ flex: '1 1 110px', minWidth: '110px', maxWidth: '140px' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.3rem' }}>
                     End Time
                   </label>
                   <input
@@ -968,7 +975,7 @@ const getDiningOrderIndex = (catName, menuCats = []) => {
                     value={selectedSub.endTime || ''}
                     onChange={e => handleUpdateSelectedSubField('endTime', e.target.value)}
                     disabled={!isEditable}
-                    style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                    style={{ fontSize: '0.82rem', padding: '0.35rem 0.55rem', width: '100%' }}
                   />
                 </div>
               </div>

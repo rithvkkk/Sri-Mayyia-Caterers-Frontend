@@ -1,8 +1,33 @@
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useCallback } from 'react';
 import { AppContext } from '../context/AppContext';
 import { initialMenuCategories, initialVendorCategories, initialLabourCategories } from '../utils/mockData';
-import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2, Save, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, ShieldAlert, Award, FileText, Shield, Key, Lock, Eye, EyeOff, Layers, Tag, Users, Search, Copy, Hash, Loader2, Save, CheckCircle, AlertTriangle, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { MODULES, MODULE_NAMES, ACCESS_LEVELS, DEFAULT_RBAC_MATRIX } from '../utils/rbacMatrix';
+
+const DishTableRow = React.memo(({ dish, isSelected, currency, onSelect }) => {
+  return (
+    <tr style={{ background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'transparent', fontWeight: isSelected ? 600 : 'normal' }}>
+      <td>
+        <span className="badge badge-secondary" style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem' }}>
+          {dish.dishNumber || 'DISH-????'}
+        </span>
+      </td>
+      <td>
+        <div style={{ fontWeight: 600 }}>{dish.name}</div>
+        {dish.cuisine && <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{dish.cuisine}</div>}
+      </td>
+      <td><span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{dish.category}</span></td>
+      <td style={{ fontWeight: 600 }}>{currency} {dish.price}</td>
+      <td>{dish.recipe ? dish.recipe.length : 0} items</td>
+      <td>
+        <button className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'} btn-small`} onClick={() => onSelect(dish)}>
+          <Edit2 size={12} /> {isSelected ? 'Editing' : 'Edit Recipe'}
+        </button>
+      </td>
+    </tr>
+  );
+});
+DishTableRow.displayName = 'DishTableRow';
 
 const AuthSetup = () => {
   const {
@@ -38,13 +63,43 @@ const AuthSetup = () => {
     ? masterMenuCategories
     : effectiveMenuCategories.filter(c => c.type !== 'LIVE_STATION');
 
-  // Search & Filter States for Menu Dishes & Recipes
+  // Search, Filter & Pagination States for Menu Dishes & Recipes
   const [dishSearchTerm, setDishSearchTerm] = useState('');
   const [dishCategoryFilter, setDishCategoryFilter] = useState('All');
+  const [dishCurrentPage, setDishCurrentPage] = useState(1);
+  const [dishPageSize, setDishPageSize] = useState(25);
 
   // Search & Filter States for Raw Materials
   const [rawMaterialSearchTerm, setRawMaterialSearchTerm] = useState('');
   const [rawMaterialCategoryFilter, setRawMaterialCategoryFilter] = useState('All');
+
+  // Fast O(1) Lookup Maps & Pre-sorted lists for Raw Materials (Eliminates lag)
+  const rawMaterialsObjMap = useMemo(() => {
+    const map = new Map();
+    (rawMaterials || []).forEach(rm => {
+      if (rm) {
+        if (rm.id) map.set(rm.id, rm);
+        if (rm._id) map.set(rm._id, rm);
+      }
+    });
+    return map;
+  }, [rawMaterials]);
+
+  const rawMaterialsNameMap = useMemo(() => {
+    const map = new Map();
+    (rawMaterials || []).forEach(rm => {
+      if (rm) {
+        const name = (rm.name || '').toLowerCase();
+        if (rm.id) map.set(rm.id, name);
+        if (rm._id) map.set(rm._id, name);
+      }
+    });
+    return map;
+  }, [rawMaterials]);
+
+  const sortedRawMaterials = useMemo(() => {
+    return [...(rawMaterials || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [rawMaterials]);
 
   // Combined list of all available categories for dishes (master categories + existing dish categories)
   const allAvailableDishCategories = useMemo(() => {
@@ -87,18 +142,34 @@ const AuthSetup = () => {
       if (d.subCategory && d.subCategory.toLowerCase().includes(term)) return true;
       // 4. Match ID
       if (d.id && String(d.id).toLowerCase().includes(term)) return true;
-      // 5. Match recipe raw material ingredients
+      // 5. Match recipe raw material ingredients via O(1) Map
       if (Array.isArray(d.recipe) && d.recipe.length > 0) {
         const hasIngredientMatch = d.recipe.some(ri => {
-          const mat = (rawMaterials || []).find(rm => rm.id === ri.materialId);
-          return mat && mat.name && mat.name.toLowerCase().includes(term);
+          const matName = rawMaterialsNameMap.get(ri.materialId);
+          return matName && matName.includes(term);
         });
         if (hasIngredientMatch) return true;
       }
 
       return false;
     });
-  }, [dishes, dishSearchTerm, dishCategoryFilter, rawMaterials]);
+  }, [dishes, dishSearchTerm, dishCategoryFilter, rawMaterialsNameMap]);
+
+  // Pagination calculations for dishes table
+  const totalDishPages = useMemo(() => {
+    if (dishPageSize === 'All') return 1;
+    return Math.max(1, Math.ceil(filteredDishes.length / Number(dishPageSize)));
+  }, [filteredDishes.length, dishPageSize]);
+
+  const paginatedDishes = useMemo(() => {
+    if (dishPageSize === 'All') return filteredDishes;
+    const start = (dishCurrentPage - 1) * Number(dishPageSize);
+    return filteredDishes.slice(start, start + Number(dishPageSize));
+  }, [filteredDishes, dishCurrentPage, dishPageSize]);
+
+  const handleSelectDish = useCallback((dish) => {
+    startEdit(dish);
+  }, []);
 
   // Derived unique categories for Raw Materials
   const rawMaterialCategoriesList = useMemo(() => {
@@ -905,7 +976,7 @@ const AuthSetup = () => {
                 type="text"
                 placeholder="Search dishes by number (e.g. DISH-0001), name, cuisine, ingredients..."
                 value={dishSearchTerm}
-                onChange={e => setDishSearchTerm(e.target.value)}
+                onChange={e => { setDishSearchTerm(e.target.value); setDishCurrentPage(1); }}
                 style={{
                   width: '100%',
                   padding: '0.45rem 2.2rem 0.45rem 2.1rem',
@@ -920,7 +991,7 @@ const AuthSetup = () => {
               {dishSearchTerm && (
                 <button
                   type="button"
-                  onClick={() => setDishSearchTerm('')}
+                  onClick={() => { setDishSearchTerm(''); setDishCurrentPage(1); }}
                   style={{
                     position: 'absolute',
                     right: '8px',
@@ -945,7 +1016,7 @@ const AuthSetup = () => {
               <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category:</span>
               <select
                 value={dishCategoryFilter}
-                onChange={e => setDishCategoryFilter(e.target.value)}
+                onChange={e => { setDishCategoryFilter(e.target.value); setDishCurrentPage(1); }}
                 style={{
                   padding: '0.45rem 0.65rem',
                   borderRadius: '6px',
@@ -966,7 +1037,7 @@ const AuthSetup = () => {
                 <button
                   type="button"
                   className="btn btn-secondary btn-small"
-                  onClick={() => { setDishSearchTerm(''); setDishCategoryFilter('All'); }}
+                  onClick={() => { setDishSearchTerm(''); setDishCategoryFilter('All'); setDishCurrentPage(1); }}
                   style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
                 >
                   Reset
@@ -981,7 +1052,7 @@ const AuthSetup = () => {
           <div className="responsive-grid two-cols">
             
             {/* Left Box: Dishes List */}
-            <div className="table-container" style={{ maxHeight: '620px', overflowY: 'auto', overflowX: 'auto' }}>
+            <div className="table-container" style={{ maxHeight: '620px', overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
               <table className="custom-table" style={{ width: '100%', minWidth: '460px' }}>
                 <thead>
                   <tr>
@@ -994,30 +1065,15 @@ const AuthSetup = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDishes.map(d => {
-                    const isSelected = editingId === d.id || editingId === d._id;
-                    return (
-                      <tr key={d.id || d._id} style={{ background: isSelected ? 'rgba(156, 21, 25, 0.08)' : 'transparent', fontWeight: isSelected ? 600 : 'normal' }}>
-                        <td>
-                          <span className="badge badge-secondary" style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem' }}>
-                            {d.dishNumber || 'DISH-????'}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{d.name}</div>
-                          {d.cuisine && <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{d.cuisine}</div>}
-                        </td>
-                        <td><span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{d.category}</span></td>
-                        <td style={{ fontWeight: 600 }}>{companyProfile?.currency || '₹'} {d.price}</td>
-                        <td>{d.recipe ? d.recipe.length : 0} items</td>
-                        <td>
-                          <button className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'} btn-small`} onClick={() => startEdit(d)}>
-                            <Edit2 size={12} /> {isSelected ? 'Editing' : 'Edit Recipe'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {paginatedDishes.map(d => (
+                    <DishTableRow
+                      key={d.id || d._id}
+                      dish={d}
+                      isSelected={editingId === d.id || editingId === d._id}
+                      currency={companyProfile?.currency || '₹'}
+                      onSelect={handleSelectDish}
+                    />
+                  ))}
                   {filteredDishes.length === 0 && (
                     <tr>
                       <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-secondary)' }}>
@@ -1032,7 +1088,7 @@ const AuthSetup = () => {
                           <button
                             type="button"
                             className="btn btn-secondary btn-small"
-                            onClick={() => { setDishSearchTerm(''); setDishCategoryFilter('All'); }}
+                            onClick={() => { setDishSearchTerm(''); setDishCategoryFilter('All'); setDishCurrentPage(1); }}
                             style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
                           >
                             Clear Search & Filters
@@ -1043,6 +1099,94 @@ const AuthSetup = () => {
                   )}
                 </tbody>
               </table>
+
+              {/* Pagination Controls */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.65rem 0.75rem',
+                borderTop: '1px solid var(--border-color)',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                fontSize: '0.78rem',
+                background: 'rgba(255, 255, 255, 0.45)',
+                marginTop: 'auto'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Show:</span>
+                  <select
+                    value={dishPageSize}
+                    onChange={e => {
+                      setDishPageSize(e.target.value === 'All' ? 'All' : Number(e.target.value));
+                      setDishCurrentPage(1);
+                    }}
+                    style={{
+                      padding: '0.2rem 0.45rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      fontSize: '0.78rem'
+                    }}
+                  >
+                    <option value={25}>25 / page</option>
+                    <option value={50}>50 / page</option>
+                    <option value={100}>100 / page</option>
+                    <option value="All">All ({filteredDishes.length})</option>
+                  </select>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {filteredDishes.length === 0 ? '0 dishes' : `${(dishCurrentPage - 1) * (dishPageSize === 'All' ? filteredDishes.length : dishPageSize) + 1} - ${dishPageSize === 'All' ? filteredDishes.length : Math.min(dishCurrentPage * dishPageSize, filteredDishes.length)} of ${filteredDishes.length}`}
+                  </span>
+                </div>
+
+                {dishPageSize !== 'All' && totalDishPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => setDishCurrentPage(1)}
+                      disabled={dishCurrentPage === 1}
+                      title="First page"
+                      style={{ padding: '0.2rem 0.4rem' }}
+                    >
+                      <ChevronsLeft size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => setDishCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={dishCurrentPage === 1}
+                      title="Previous page"
+                      style={{ padding: '0.2rem 0.4rem' }}
+                    >
+                      <ChevronLeft size={13} />
+                    </button>
+                    <span style={{ fontWeight: 600, padding: '0 0.35rem', color: 'var(--text-primary)' }}>
+                      Page {dishCurrentPage} of {totalDishPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => setDishCurrentPage(p => Math.min(totalDishPages, p + 1))}
+                      disabled={dishCurrentPage === totalDishPages}
+                      title="Next page"
+                      style={{ padding: '0.2rem 0.4rem' }}
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => setDishCurrentPage(totalDishPages)}
+                      disabled={dishCurrentPage === totalDishPages}
+                      title="Last page"
+                      style={{ padding: '0.2rem 0.4rem' }}
+                    >
+                      <ChevronsRight size={13} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Box: Selected Dish details & Recipe editor */}
@@ -1154,7 +1298,7 @@ const AuthSetup = () => {
                     
                     <div className="recipe-builder-list" style={{ marginBottom: '1rem' }}>
                       {newRecipeItems.map((item, idx) => {
-                        const material = rawMaterials.find(rm => rm.id === item.materialId || rm._id === item.materialId);
+                        const material = rawMaterialsObjMap.get(item.materialId);
                         return (
                           <div key={idx} className="recipe-builder-row" style={{ padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                             <span style={{ fontSize: '0.85rem' }}>{material ? material.name : 'Unknown Ingredient'}</span>
@@ -1177,7 +1321,7 @@ const AuthSetup = () => {
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Select Ingredient</span>
                         <select className="form-select" value={selectedMaterialId} onChange={e => setSelectedMaterialId(e.target.value)}>
                           <option value="">Choose...</option>
-                          {[...rawMaterials].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(rm => (
+                          {sortedRawMaterials.map(rm => (
                             <option key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</option>
                           ))}
                         </select>

@@ -1619,7 +1619,7 @@ export const AppProvider = ({ children }) => {
       },
       laborAllocations: [],
       billing: {
-        pricePerPlate: eventDetails.pricePerPlate || 800,
+        pricePerPlate: (eventDetails.pricePerPlate !== undefined && eventDetails.pricePerPlate !== '') ? Number(eventDetails.pricePerPlate) : (eventDetails.billing?.pricePerPlate !== undefined ? Number(eventDetails.billing.pricePerPlate) : undefined),
         taxType: eventDetails.billing?.taxType || 'GST',
         isInterState: !!eventDetails.billing?.isInterState,
         subtotal: 0,
@@ -1960,7 +1960,9 @@ export const AppProvider = ({ children }) => {
     const venueRent = venue ? venue.price : 0;
 
     const totalGuests = subFunctions.reduce((sum, sub) => sum + (parseInt(sub.guestCount, 10) || 0), 0);
-    const defaultPlateRate = parseFloat(event.billing?.pricePerPlate) || parseFloat(event.pricePerPlate) || 800;
+    const defaultPlateRate = (event.billing?.pricePerPlate !== undefined && event.billing?.pricePerPlate !== '' && !isNaN(Number(event.billing.pricePerPlate)))
+      ? parseFloat(event.billing.pricePerPlate)
+      : (parseFloat(event.pricePerPlate) || 0);
     let subtotal = 0;
     if (subFunctions.length > 0) {
       subtotal = subFunctions.reduce((sum, sub) => {
