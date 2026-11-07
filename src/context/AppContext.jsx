@@ -420,21 +420,21 @@ export const AppProvider = ({ children }) => {
   const [companyProfile, setCompanyProfile] = useState(() => {
     const local = getSafeLocal('cater_company_profile', null);
     if (local && typeof local === 'object') {
-      if (local.name === 'Sri Mayyia Caterers' || !local.name) {
-        local.name = 'K R Ananth Mayia Catering';
+      if (local.name === 'Sri Mayyia Caterers' || local.name === 'K R Ananth Mayia Catering' || !local.name) {
+        local.name = 'K R Ananth Mayia Caterers';
       }
-      if (local.email === 'info@srimayyiacaterers.com' || !local.email) {
-        local.email = 'info@krananthmayiacatering.com';
+      if (local.email === 'info@srimayyiacaterers.com' || local.email === 'info@krananthmayiacatering.com' || !local.email) {
+        local.email = 'info@krananthmayiacaterers.com';
       }
       return local;
     }
     return {
-      name: 'K R Ananth Mayia Catering',
+      name: 'K R Ananth Mayia Caterers',
       tagline: 'Legacy of Royal Flavors Since 1953',
-      phone: '+91 99988 77766',
-      email: 'info@krananthmayiacatering.com',
-      address: 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003',
-      gstin: '24AAAAA1111A1Z1',
+      phone: '+91 90191 64761',
+      email: 'info@krananthmayiacaterers.com',
+      address: '#39/2, C2 Govardhanagiri, Kalyani Gardens, BSK 1st Stage, Bengaluru - 560050',
+      gstin: '29ACUPA7565Q1ZI',
       defaultTaxRate: 18,
       currency: '₹'
     };
@@ -584,8 +584,8 @@ export const AppProvider = ({ children }) => {
       if (pDoc && typeof pDoc === 'object' && pDoc.name) {
         const normDoc = {
           ...pDoc,
-          name: pDoc.name === 'Sri Mayyia Caterers' ? 'K R Ananth Mayia Catering' : pDoc.name,
-          email: pDoc.email === 'info@srimayyiacaterers.com' ? 'info@krananthmayiacatering.com' : pDoc.email
+          name: (pDoc.name === 'Sri Mayyia Caterers' || pDoc.name === 'K R Ananth Mayia Catering') ? 'K R Ananth Mayia Caterers' : pDoc.name,
+          email: (pDoc.email === 'info@srimayyiacaterers.com' || pDoc.email === 'info@krananthmayiacatering.com') ? 'info@krananthmayiacaterers.com' : pDoc.email
         };
         setCompanyProfile(normDoc);
       }

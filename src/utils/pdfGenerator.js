@@ -52,7 +52,7 @@ const translations = {
     unitCost: 'Unit Cost',
     totalCost: 'Est. Total Cost',
     supplier: 'Allocated Supplier',
-    footerMsg: 'Thank you for choosing our services. K R Ananth Mayia Catering.'
+    footerMsg: 'Thank you for choosing our services. K R Ananth Mayia Caterers.'
   }
 };
 
@@ -254,20 +254,23 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
 
   // 1. Centered Official Brand Logo
   if (menuTemplateAssets.invoiceLogo) {
-    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 86, 10, 38, 24);
+    const logoW = 42;
+    const logoH = 26; // matches 800x496 aspect ratio (1.6129:1)
+    const logoX = (210 - logoW) / 2; // 84mm centered on 210mm A4
+    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', logoX, 8, logoW, logoH);
   }
 
   // 2. Document Title
   doc.setFont('times', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(0, 0, 0);
-  doc.text('TAX INVOICE', 105, 40, { align: 'center' });
+  doc.text('TAX INVOICE', 105, 39, { align: 'center' });
 
   // 3. Company & Invoice Metadata
   const cpGstin = cp.gstin || '29ACUPA7565Q1ZI';
   doc.setFont('times', 'bold');
   doc.setFontSize(9.5);
-  doc.text((cp.name || 'K R ANANTH MAYIA CATERING').toUpperCase(), 14, 49);
+  doc.text((cp.name || 'K R ANANTH MAYIA CATERERS').toUpperCase(), 14, 48);
 
   doc.setFont('times', 'bold');
   doc.setFontSize(8.5);
@@ -596,7 +599,7 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`Account Name :- ${(cp.accountName || cp.name || 'K R ANANTH MAYIA CATERING').toUpperCase()}`, 14, curLeftY); curLeftY += 4.2;
+  doc.text(`Account Name :- ${(cp.accountName || cp.name || 'K R ANANTH MAYIA CATERERS').toUpperCase()}`, 14, curLeftY); curLeftY += 4.2;
   doc.text('Account Number: 1304013000000051', 14, curLeftY); curLeftY += 4.2;
   doc.text('IFSC CODE :- KVBL0001304', 14, curLeftY); curLeftY += 4.2;
   doc.text('BANK :- KARUR VYSYA BANK', 14, curLeftY); curLeftY += 4.2;
@@ -608,17 +611,45 @@ export const generateOfficialTaxInvoicePdf = (event, companyProfile, options = {
   doc.setFont('times', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(`FOR ${(cp.name || 'K R ANANTH MAYIA CATERING').toUpperCase()}`, 135, sigY);
+  doc.text(`FOR ${(cp.name || 'K R ANANTH MAYIA CATERERS').toUpperCase()}`, 135, sigY);
   doc.setFont('times', 'normal');
   doc.setFontSize(9);
   doc.text('Authorized Signature', 140, sigY + 20);
 
-  // 8. Corporate Footer Image at bottom right of last page
+  // 8. Crisp Branded Corporate Footer Card at bottom right of last page
   const totalInvPages = doc.internal.getNumberOfPages();
   doc.setPage(totalInvPages);
-  if (menuTemplateAssets.invoiceFooter) {
-    doc.addImage(menuTemplateAssets.invoiceFooter, 'PNG', 122, 258, 74, 24);
-  }
+
+  const cardX = 118;
+  const cardY = 254;
+  const cardW = 78;
+  const cardH = 30;
+
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(156, 21, 25);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(cardX, cardY, cardW, cardH, 1.5, 1.5, 'FD');
+
+  // Crimson accent top strip
+  doc.setFillColor(156, 21, 25);
+  doc.rect(cardX, cardY, cardW, 2.5, 'F');
+
+  doc.setFont('times', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(156, 21, 25);
+  doc.text('K R ANANTH MAYIA CATERERS', cardX + (cardW / 2), cardY + 6.5, { align: 'center' });
+
+  doc.setFont('times', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(40, 40, 40);
+  doc.text('Corporate Office: #39/2, C2 Govardhanagiri, Kalyani Gardens,', cardX + 3, cardY + 11);
+  doc.text('BSK 1st Stage, Bengaluru - 560 050', cardX + 3, cardY + 14);
+  doc.text('Marketing Office: #32, Market Road, Basavanagudi, Bengaluru - 560 004', cardX + 3, cardY + 17.5);
+  doc.text('Phone: +91 90191 64761 / +91 80 2660 3267', cardX + 3, cardY + 21);
+
+  doc.setFont('times', 'bold');
+  doc.setTextColor(156, 21, 25);
+  doc.text('Email: info@krananthmayiacaterers.com  |  www.krananthmayiacaterers.com', cardX + 3, cardY + 25.5);
 
   const safeEventId = (ev.id || 'INV').replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Tax_Invoice_${safeEventId}.pdf`;
@@ -675,34 +706,12 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const goldColor = [210, 172, 103];  // Champagne Gold #D2AC67
   const charcoalColor = [50, 50, 50];
 
-  const cpName = cp.name || 'K R Ananth Mayia Catering';
+  const cpName = cp.name || 'K R Ananth Mayia Caterers';
   const cpTagline = cp.tagline || 'Pioneers in authentic, pure vegetarian catering since 1953';
-  const cpGstin = cp.gstin || '24AAAAA1111A1Z1';
-  const cpPhone = cp.phone || '+91 99988 77766';
-  const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
+  const cpGstin = cp.gstin || '29ACUPA7565Q1ZI';
+  const cpPhone = cp.phone || '+91 90191 64761';
+  const cpAddress = cp.address || '#39/2, C2 Govardhanagiri, Kalyani Gardens, BSK 1st Stage, Bengaluru - 560050';
   const curr = (cp.currency === '₹' || !cp.currency || cp.currency === 'INR') ? 'Rs.' : cp.currency;
-
-  // PAGE 1: OFFICIAL PARCHMENT COVER BACKGROUND
-  const page1Bg = menuTemplateAssets.invoiceCleanBg || menuTemplateAssets.invoicePage1CleanBg || menuTemplateAssets.invoicePage1Bg;
-  if (page1Bg) {
-    doc.addImage(page1Bg, 'JPEG', 0, 0, 210, 297);
-  }
-
-  // Header Contact Line & Top-Right Banner (Positioned below pre-printed logo artwork at Y=50+ to avoid overlap)
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...charcoalColor);
-  doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}`, 15, 50);
-  doc.text(`Address: ${cpAddress}`, 15, 54);
-
-  // Document Type Top-Right Banner
-  doc.setFillColor(...maroonColor);
-  doc.roundedRect(132, 36, 63, 10, 1.5, 1.5, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  const titleText = type === 'invoice' ? 'COMMERCIAL QUOTATION' : 'MATERIALS ESTIMATE';
-  doc.text(titleText, 163.5, 42.5, { align: 'center' });
 
   // Event Details Registry metadata
   const clientName = (ev.customer && typeof ev.customer === 'object' ? ev.customer.name : ev.customer) || '';
@@ -713,49 +722,134 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const hasVenue = Boolean(resolvedVenue);
   const cardHeight = hasVenue ? 28 : 22;
 
+  const drawQuotationPageFrame = (docInstance, pageNum) => {
+    // 1. Royal Ivory Parchment Background (clean, without legacy logos)
+    docInstance.setFillColor(254, 252, 247);
+    docInstance.rect(0, 0, 210, 297, 'F');
+
+    // 2. Double Gold Borders
+    docInstance.setDrawColor(210, 172, 103);
+    docInstance.setLineWidth(0.6);
+    docInstance.rect(10, 10, 190, 277);
+
+    docInstance.setLineWidth(0.25);
+    docInstance.rect(11.5, 11.5, 187, 274);
+
+    // Corner accents in crimson
+    const corners = [
+      [10, 10], [200, 10], [10, 287], [200, 287]
+    ];
+    docInstance.setFillColor(156, 21, 25);
+    corners.forEach(([cx, cy]) => {
+      docInstance.rect(cx - 0.75, cy - 0.75, 1.5, 1.5, 'F');
+    });
+
+    if (pageNum > 1) {
+      docInstance.setFont('helvetica', 'bold');
+      docInstance.setFontSize(8.5);
+      docInstance.setTextColor(156, 21, 25);
+      docInstance.text('K R ANANTH MAYIA CATERERS — COMMERCIAL QUOTATION', 15, 18);
+      docInstance.setDrawColor(210, 172, 103);
+      docInstance.setLineWidth(0.3);
+      docInstance.line(15, 20.5, 195, 20.5);
+    }
+  };
+
+  // PAGE 1: OFFICIAL ROYAL PARCHMENT & BRAND HEADER
+  drawQuotationPageFrame(doc, 1);
+
+  // Official Brand Logo (ANANTH MAYIA CATERERS)
+  if (menuTemplateAssets.invoiceLogo) {
+    const logoW = 38;
+    const logoH = 23.56;
+    doc.addImage(menuTemplateAssets.invoiceLogo, 'PNG', 15, 14, logoW, logoH);
+  }
+
+  // Header Brand & Company Details (Right of Logo)
+  const headerTextX = menuTemplateAssets.invoiceLogo ? 56 : 15;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13.5);
+  doc.setTextColor(...maroonColor);
+  doc.text('K R ANANTH MAYIA CATERERS', headerTextX, 19);
+
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(8);
+  doc.setTextColor(...navyColor);
+  doc.text(cpTagline, headerTextX, 23.5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.2);
+  doc.setTextColor(60, 60, 60);
+  doc.text(cpAddress, headerTextX, 27.8);
+  doc.text(`GSTIN: ${cpGstin}  |  Phone: ${cpPhone}  |  info@krananthmayiacaterers.com`, headerTextX, 32);
+
+  // Document Type Top-Right Banner
+  doc.setFillColor(...maroonColor);
+  doc.roundedRect(136, 14, 59, 9.5, 1.5, 1.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  const titleText = type === 'invoice' ? 'COMMERCIAL QUOTATION' : 'MATERIALS ESTIMATE';
+  doc.text(titleText, 165.5, 20, { align: 'center' });
+
+  // Reference & Date below banner
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Date: ${evDate}`, 195, 28, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  const evIdText = ev.id || ev._id || 'QUOT-2026';
+  doc.text(`Ref: ${evIdText}`, 195, 32.5, { align: 'right' });
+
+  // Gold Divider Line below Header
+  doc.setDrawColor(...goldColor);
+  doc.setLineWidth(0.4);
+  doc.line(15, 36.5, 195, 36.5);
+
   // Soft Glassmorphic Card Container for Client Info
+  const cardStartY = 39.5;
   doc.setFillColor(253, 248, 237);
-  doc.roundedRect(15, 58, 180, cardHeight, 2, 2, 'F');
+  doc.roundedRect(15, cardStartY, 180, cardHeight, 2, 2, 'F');
   doc.setDrawColor(210, 180, 130);
   doc.setLineWidth(0.3);
-  doc.roundedRect(15, 58, 180, cardHeight, 2, 2, 'D');
+  doc.roundedRect(15, cardStartY, 180, cardHeight, 2, 2, 'D');
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text(`${t.clientName || 'Client Name'}:`, 19, 65);
+  doc.text(`${t.clientName || 'Client Name'}:`, 19, cardStartY + 6.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(clientName, 45, 65);
+  doc.text(clientName, 45, cardStartY + 6.5);
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t.eventId || 'Quotation ID'}:`, 19, 73);
+  doc.text(`${t.eventId || 'Quotation ID'}:`, 19, cardStartY + 14.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(evId, 45, 73);
+  doc.text(evId, 45, cardStartY + 14.5);
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${t.eventDate || 'Event Date'}:`, 122, 65);
+  doc.text(`${t.eventDate || 'Event Date'}:`, 122, cardStartY + 6.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(evDate, 148, 65);
+  doc.text(evDate, 148, cardStartY + 6.5);
 
   doc.setTextColor(...navyColor);
   doc.setFont('helvetica', 'bold');
-  doc.text('Event Type:', 122, 73);
+  doc.text('Event Type:', 122, cardStartY + 14.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
-  doc.text(evType, 148, 73);
+  doc.text(evType, 148, cardStartY + 14.5);
 
   if (hasVenue) {
     doc.setTextColor(...navyColor);
     doc.setFont('helvetica', 'bold');
-    doc.text('Execution Venue:', 19, 81);
+    doc.text('Execution Venue:', 19, cardStartY + 22.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 30, 30);
-    doc.text(resolvedVenue, 52, 81);
+    doc.text(resolvedVenue, 52, cardStartY + 22.5);
   }
 
   // Table Generation based on report type
@@ -801,7 +895,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody,
-      startY: hasVenue ? 91 : 85,
+      startY: hasVenue ? 72 : 66,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9.5, halign: 'left' },
       styles: { fontSize: 9, cellPadding: 3.5, textColor: [30, 30, 30] },
@@ -980,7 +1074,7 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     renderTable(doc, {
       head: tableHeaders,
       body: tableBody.length ? tableBody : [['General Provisions', 'Provisions', '1 batch', formatCurrencyValue(0, curr), formatCurrencyValue(0, curr), 'Local Supplier']],
-      startY: 85,
+      startY: hasVenue ? 72 : 66,
       theme: 'grid',
       headStyles: { fillColor: maroonColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'left' },
       styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 30, 30] },
@@ -1011,10 +1105,10 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
     doc.text(formatCurrencyValue(totalMaterialsCost, curr), 190, finalY + 12, { align: 'right' });
   }
 
-  // Dynamic Terms page addition ONLY if terms or menu template background asset is actually present
+  // Dynamic Terms page addition ONLY if explicit terms content is provided
   const pageHeight = 297;
-  const page2Bg = menuTemplateAssets.page4Terms || menuTemplateAssets.page2MenuBg;
-  if (page2Bg && typeof page2Bg === 'string' && page2Bg.length > 50) {
+  const page2Bg = menuTemplateAssets.page4Terms;
+  if (ev.terms && page2Bg && typeof page2Bg === 'string' && page2Bg.length > 50) {
     doc.addPage();
     doc.addImage(page2Bg, 'JPEG', 0, 0, 210, 297);
   }
@@ -1022,16 +1116,18 @@ export const calculatePdfReport = async (event, dataList, companyProfile, lang =
   const totalPages = doc.internal.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
-    if (p < totalPages) {
-      doc.setDrawColor(210, 180, 130);
-      doc.setLineWidth(0.4);
-      doc.line(15, pageHeight - 16, 195, pageHeight - 16);
+    if (p > 1 && !ev.terms) {
+      drawQuotationPageFrame(doc, p);
     }
+    doc.setDrawColor(210, 180, 130);
+    doc.setLineWidth(0.4);
+    doc.line(15, 279, 195, 279);
+
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.5);
-    doc.text(`Thank you for choosing ${cpName || 'K R Ananth Mayia Catering'}.`, 15, pageHeight - 11);
-    doc.text(`Page ${p} of ${totalPages}  |  Generated securely by CaterFlow ERP`, 195, pageHeight - 11, { align: 'right' });
+    doc.text(`Thank you for choosing ${cpName || 'K R Ananth Mayia Caterers'}.`, 15, 283);
+    doc.text(`Page ${p} of ${totalPages}  |  Generated securely by CaterFlow ERP`, 195, 283, { align: 'right' });
   }
 
   // Standardized filename
@@ -1109,7 +1205,7 @@ export const generateSupplierPO = (supplier, items, event, companyProfile) => {
   const charcoalColor = [50, 50, 50];
 
   const cp = companyProfile || {};
-  const cpName = cp.name || 'K R Ananth Mayia Catering';
+  const cpName = cp.name || 'K R Ananth Mayia Caterers';
   const cpTagline = cp.tagline || 'Pioneers in authentic, pure vegetarian catering since 1953';
   const cpPhone = cp.phone || '+91 99988 77766';
   const cpAddress = cp.address || 'No 43, 2nd Cross, Malleshwaram, Bangalore - 560003';
@@ -1841,7 +1937,7 @@ export const generateVectorOccasionMenuPdf = (event, subFunction, companyProfile
     doc.setTextColor(...maroon);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text(`${(companyProfile?.name || 'K R Ananth Mayia Catering').toUpperCase()} — SWASTIK TRADITIONAL GASTRONOMY`, pw / 2, ph - 11, { align: 'center' });
+    doc.text(`${(companyProfile?.name || 'K R Ananth Mayia Caterers').toUpperCase()} — SWASTIK TRADITIONAL GASTRONOMY`, pw / 2, ph - 11, { align: 'center' });
 
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.5);
